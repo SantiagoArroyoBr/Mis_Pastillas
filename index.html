@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mis pastillas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14284B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FBF6EA;--card:#fff;--navy:#14284B;--ink:#1B1B1B;--green:#1F7A3E;--amber:#B86E00;--red:#B3261E;--line:#E4DCC8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:600 18px/1.4 Nunito,system-ui,sans-serif}
+header{background:var(--navy);color:#fff;padding:18px 16px 14px;border-radius:0 0 28px 28px}
+h1{margin:0;font-size:28px;font-weight:900}
+main{max-width:560px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:8px;margin-top:12px}
+.tab{flex:1;min-height:56px;border:0;border-radius:16px;background:rgba(255,255,255,.15);color:#fff;font:800 19px Nunito,sans-serif;padding:6px 10px}
+.tab[aria-selected=true]{background:#fff;color:var(--navy)}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:0;border-radius:16px;background:var(--navy);color:#fff;font:800 19px Nunito,sans-serif;text-decoration:none;padding:10px 14px;text-align:center;cursor:pointer}
+.btn.cal{background:#0B6E75}
+.btn.wa{background:#1F7A3E}
+.btn.ghost{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.btn.small{min-height:48px;font-size:17px}
+.row{display:flex;gap:8px}
+.soon{background:#fff;border:3px solid var(--navy);border-radius:20px;padding:14px;margin:16px 0}
+.soon h2{margin:0 0 6px;font-size:22px;font-weight:900}
+.soon ul{margin:6px 0 12px;padding-left:22px}
+.ok{border-color:var(--green);color:var(--green);font-weight:800}
+.card{background:var(--card);border-radius:22px;border-left:12px solid var(--c);box-shadow:0 3px 12px rgba(20,40,75,.12);padding:16px;margin:16px 0}
+.card.green{--c:var(--green)}.card.amber{--c:var(--amber)}.card.red{--c:var(--red)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.name{font-size:24px;font-weight:900;margin:0}
+.badge{color:#fff;background:var(--c);border-radius:999px;padding:4px 12px;font-weight:800;font-size:16px;white-space:nowrap}
+.big{font-size:64px;font-weight:900;line-height:1;margin:10px 0 0;color:var(--c)}
+.big small{font-size:20px;color:var(--ink);font-weight:800}
+.info{margin:8px 0 14px}
+.info b{font-weight:900}
+.card .row{margin-top:8px}
+.link{background:none;border:0;color:var(--red);font:800 16px Nunito,sans-serif;text-decoration:underline;padding:12px 4px}
+.add{margin:16px 0 8px}
+.share{margin:0 0 16px}
+.backup{margin:8px 0 24px}
+.empty{text-align:center;padding:24px 8px}
+dialog{border:0;border-radius:24px;padding:20px;width:calc(100% - 28px);max-width:520px;font:600 18px Nunito,sans-serif;max-height:calc(100% - 28px);overflow:auto}
+dialog::backdrop{background:rgba(20,40,75,.6)}
+dialog h2{margin:0 0 10px;font-size:24px;font-weight:900;color:var(--navy)}
+label{display:block;font-weight:800;margin:12px 0 4px}
+input{width:100%;min-height:56px;font:700 20px Nunito,sans-serif;border:2px solid var(--navy);border-radius:14px;padding:8px 12px}
+.hint{font-size:15px;color:#555;margin:4px 0 0}
+.err{color:var(--red);font-weight:800;margin:8px 0 0}
+.stack{display:grid;gap:8px;margin-top:16px}
+.ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:10px 0 0}
+.trow{display:flex;gap:8px;margin:6px 0}.trow input{flex:1}.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pbtn{min-height:44px;padding:4px 14px;border:2px solid var(--navy);border-radius:12px;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif}
+.pbtn[aria-pressed=true]{background:var(--navy);color:#fff}
+.schtabs{display:flex;gap:6px;margin-top:4px}
+.stab{flex:1;min-height:48px;border:2px solid var(--navy);border-radius:12px;background:#fff;color:var(--navy);font:800 15px Nunito,sans-serif;padding:4px}
+.stab[aria-selected=true]{background:var(--navy);color:#fff}
+.schpane{margin-top:10px}
+.wdays{display:flex;gap:6px;flex-wrap:wrap}
+.wdaybtn{width:46px;height:46px;border:2px solid var(--navy);border-radius:50%;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif}
+.wdaybtn[aria-pressed=true]{background:var(--navy);color:#fff}
+:focus-visible{outline:4px solid #F5B301;outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>💊 Mis pastillas</h1>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <button class="ren" id="ren">Cambiar nombre de esta persona</button>
+</header>
+<main>
+  <section id="soon"></section>
+  <button class="btn ghost small share" id="share">📲 Compartir resumen por WhatsApp</button>
+  <section id="list"></section>
+  <button class="btn add" id="add">+ Agregar medicina</button>
+  <div class="row backup">
+    <button class="btn ghost small" id="exp">⬇️ Exportar respaldo</button>
+    <button class="btn ghost small" id="imp">⬆️ Restaurar respaldo</button>
+  </div>
+  <input type="file" id="impFile" accept="application/json" hidden>
+</main>
+<dialog id="dlg"></dialog>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+}
+const $=s=>document.querySelector(s);
+let S=(()=>{try{const r=localStorage.getItem('pastillas-v1');if(r)return JSON.parse(r)}catch(e){}return{sel:0,last:'',p:[{name:'Persona 1',meds:[]},{name:'Persona 2',meds:[]}]}})();
+const save=()=>{try{localStorage.setItem('pastillas-v1',JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function parseTimes(txt){
+  const out=[];
+  for(const t of txt.split(/[,;]+/)){
+    const m=t.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
+    if(!m)return null;
+    const h=+m[1],mi=+(m[2]||0);
+    if(h>23||mi>59)return null;
+    out.push(String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'));
+  }
+  return [...new Set(out)].sort();
+}
+const at=(d,t)=>{const[h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x.getTime()};
+
+// ---- Frecuencia (todos los días / días fijos de la semana / cada X días) ----
+function dayMatches(sch,d){
+  if(!sch||sch.type==='daily')return true;
+  if(sch.type==='weekdays')return (sch.days||[]).includes(d.getDay());
+  if(sch.type==='interval'){
+    const start=new Date(sch.start||Date.now());start.setHours(0,0,0,0);
+    const cur=new Date(d);cur.setHours(0,0,0,0);
+    const diff=Math.round((cur-start)/86400000);
+    return diff>=0 && diff%Math.max(1,sch.n||1)===0;
+  }
+  return true;
+}
+const WD_SHORT=['dom','lun','mar','mié','jue','vie','sáb'];
+function schedText(sch){
+  if(!sch||sch.type==='daily')return'todos los días';
+  if(sch.type==='weekdays'){
+    const d=(sch.days||[]).slice().sort();
+    return d.length?d.map(i=>WD_SHORT[i]).join(', '):'todos los días';
+  }
+  if(sch.type==='interval')return'cada '+(sch.n||1)+' días';
+  return'todos los días';
+}
+function dosesBetween(times,sch,a,b){
+  let n=0;const d=new Date(a);d.setHours(0,0,0,0);
+  while(d.getTime()<=b){
+    if(dayMatches(sch,d))for(const t of times){const x=at(d,t);if(x>a&&x<=b)n++}
+    d.setDate(d.getDate()+1)
+  }
+  return n;
+}
+function nth(times,sch,now,n){
+  if(n<=0)return null;let c=0;const d=new Date(now);d.setHours(0,0,0,0);
+  for(let i=0;i<3000;i++){
+    if(dayMatches(sch,d))for(const t of times){const x=at(d,t);if(x>now&&++c===n)return x}
+    d.setDate(d.getDate()+1)
+  }
+  return null;
+}
+function calc(m,now=Date.now()){
+  const sch=m.schedule||{type:'daily'};
+  const per=m.times.length,th=Math.max(2*per,2);
+  const rem=Math.max(0,+(m.base-m.dose*dosesBetween(m.times,sch,m.t0,now)).toFixed(2));
+  const left=Math.floor(rem/m.dose+1e-9);
+  const end=left>0?nth(m.times,sch,now,left):null;
+  const buyIdx=left-th;
+  const buy=buyIdx>0?nth(m.times,sch,now,buyIdx):now;
+  const st=left<=per?'red':left<=th?'amber':'green';
+  const days=end?Math.max(0,Math.round((end-now)/86400000)):0;
+  return{rem,left,end,buy,st,days,now:buy<=now+3600e3};
+}
+const fmt=ms=>new Date(ms).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+const num=n=>String(n).replace('.',',');
+
+function calUrl(title,buyMs,details){
+  let d=new Date(buyMs);
+  if(buyMs<=Date.now()+3600e3){d=new Date();if(d.getHours()<9){d.setHours(9,0,0,0)}else{d=new Date(Date.now()+15*60e3)}}
+  else d.setHours(9,0,0,0);
+  const e=new Date(d.getTime()+30*60e3);
+  const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+f(d)+'/'+f(e)+'&details='+encodeURIComponent(details);
+}
+const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente']};
+
+function summaryText(P){
+  if(!P.meds.length)return'No hay medicinas registradas.';
+  return P.meds.map(m=>{
+    const c=calc(m);
+    const when=c.st==='red'?'¡urgente, comprar ya!':c.st==='amber'?'comprar antes del '+fmt(c.buy):'bien por ahora';
+    return `• ${m.name}: quedan ${num(c.rem)} pastillas (${when})`;
+  }).join('\n');
+}
+
+function render(){
+  const P=S.p[S.sel];
+  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" role="tab" aria-selected="${i===S.sel}" data-i="${i}">${esc(p.name)}</button>`).join('');
+  // Comprar pronto (ambas personas)
+  const items=[];
+  S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
+  items.sort((a,b)=>a.c.buy-b.c.buy);
+  let h;
+  if(!items.length){h=`<div class="soon ok">✓ Todo en orden: por ahora no hay que comprar nada.</div>`}
+  else{
+    const det=items.map(i=>`${i.m.name} (${i.p}): quedan ${num(i.c.rem)} pastillas`).join('\n');
+    h=`<div class="soon"><h2>🛒 Comprar pronto</h2><ul>${items.map(i=>`<li><b>${esc(i.m.name)}</b> (${esc(i.p)}): ${i.c.st==='red'?'urgente':'antes del '+fmt(i.c.buy)}</li>`).join('')}</ul>
+    <a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">📅 Avisarme en Calendario</a>
+    ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
+  }
+  $('#soon').innerHTML=h;
+  if(items.length&&'Notification' in window&&Notification.permission==='granted'){
+    const k=new Date().toDateString();
+    if(S.last!==k){S.last=k;save();try{new Notification('Mis pastillas',{body:'Hay que comprar: '+items.map(i=>i.m.name).join(', ')})}catch(e){}}
+  }
+  // Tarjetas
+  $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>{
+    const c=calc(m),[ic,tx]=LBL[c.st];
+    return `<article class="card ${c.st}">
+      <div class="top"><h3 class="name">${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
+      <p class="big">${num(c.rem)} <small>pastillas</small></p>
+      <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b> (${c.left} tomas).${c.end?`<br>Última toma completa: <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para una toma.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br>Toma ${num(m.dose)} pastilla${m.dose==1?'':'s'}, ${schedText(m.schedule)}, a las ${m.times.join(', ')}</p>
+      <button class="btn" data-a="box" data-i="${i}">Compré más</button>
+      <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
+      <button class="btn ghost small" data-a="fix" data-i="${i}">Corregir cantidad</button></div>
+      <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
+      <button class="link" data-a="del" data-i="${i}">Borrar esta medicina</button>
+    </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`;
+}
+
+const dlg=$('#dlg');
+dlg.addEventListener('click',e=>{
+  const b=e.target.closest('.pbtn');if(!b)return;
+  const inp=document.getElementById(b.dataset.set);if(!inp)return;
+  inp.value=b.dataset.val;
+  [...document.querySelectorAll('.pbtn[data-set="'+b.dataset.set+'"]')].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+});
+
+function fieldHTML(f){
+  if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt" style="margin-top:6px">+ Otra hora</button>`;
+  if(f.t==='schedule')return `<label>${f.l}</label>
+    <div class="schtabs" role="tablist" id="${f.id}-tabs">
+      <button type="button" class="stab" data-v="daily">Diario</button>
+      <button type="button" class="stab" data-v="weekdays">Días fijos</button>
+      <button type="button" class="stab" data-v="interval">Cada X días</button>
+    </div>
+    <div class="schpane" id="${f.id}-daily"><p class="hint">Se toma todos los días.</p></div>
+    <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" id="${f.id}-wdbtns"></div></div>
+    <div class="schpane" id="${f.id}-interval" hidden>
+      <label for="${f.id}-n">¿Cada cuántos días? (1 = diario, 2 = un día sí y uno no...)</label>
+      <input id="${f.id}-n" type="number" min="1" step="1" value="${(f.v&&f.v.n)||2}">
+    </div>`;
+  return `<label for="${f.id}">${f.l}</label><input id="${f.id}" ${f.t==='text'?'':'inputmode="decimal"'} type="${f.t==='text'?'text':'number'}" step="any" min="0" value="${esc(f.v??'')}" placeholder="${esc(f.ph||'')}">${f.presets?`<div class="presets">${f.presets.map(p=>`<button type="button" class="pbtn" data-set="${f.id}" data-val="${p.v}" aria-pressed="${String(f.v)===p.v}">${p.l}</button>`).join('')}</div>`:''}${f.h?`<p class="hint">${f.h}</p>`:''}`;
+}
+
+function form(title,fields,ok,btn='Guardar'){
+  dlg.innerHTML=`<form method="dialog" id="f"><h2>${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err"></p>
+  <div class="stack"><button class="btn" type="submit">${btn}</button><button class="btn ghost" type="button" id="no">Cancelar</button></div></form>`;
+  $('#no').onclick=()=>dlg.close();
+
+  const tf=fields.find(f=>f.t==='times');
+  if(tf){const box=$('#'+tf.id);const addRow=(v='')=>{const d=document.createElement('div');d.className='trow';d.innerHTML='<input type="time" aria-label="Hora de la toma"><button type="button" aria-label="Quitar hora">×</button>';d.querySelector('input').value=v;d.querySelector('button').onclick=()=>{if(box.children.length>1)d.remove()};box.appendChild(d)};(tf.v||['08:00']).forEach(addRow);$('#addt').onclick=()=>addRow('')}
+
+  const sf=fields.find(f=>f.t==='schedule');
+  if(sf){
+    const init=sf.v||{type:'daily'};
+    const tabs=$('#'+sf.id+'-tabs');
+    const panes={daily:$('#'+sf.id+'-daily'),weekdays:$('#'+sf.id+'-weekdays'),interval:$('#'+sf.id+'-interval')};
+    const setTab=v=>{[...tabs.children].forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===v)));Object.entries(panes).forEach(([k,el])=>el.hidden=k!==v);tabs.dataset.cur=v};
+    tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setTab(b.dataset.v)});
+    setTab(init.type||'daily');
+    const wdbox=$('#'+sf.id+'-wdbtns');
+    const selDays=new Set(init.days||[]);
+    WD_SHORT.forEach((lbl,i)=>{
+      const b=document.createElement('button');b.type='button';b.className='wdaybtn';b.textContent=lbl[0].toUpperCase();b.setAttribute('aria-pressed',String(selDays.has(i)));
+      b.onclick=()=>{if(selDays.has(i))selDays.delete(i);else selDays.add(i);b.setAttribute('aria-pressed',String(selDays.has(i)))};
+      wdbox.appendChild(b);
+    });
+    sf._selDays=selDays;
+    sf._start=init.start||Date.now();
+  }
+
+  $('#f').onsubmit=e=>{
+    e.preventDefault();
+    const v={};
+    fields.forEach(f=>{
+      if(f.t==='times')v[f.id]=[...$('#'+f.id).querySelectorAll('input')].map(i=>i.value).filter(Boolean).join(',');
+      else if(f.t==='schedule'){
+        const cur=$('#'+f.id+'-tabs').dataset.cur;
+        if(cur==='weekdays')v[f.id]={type:'weekdays',days:[...f._selDays].sort()};
+        else if(cur==='interval')v[f.id]={type:'interval',n:Math.max(1,parseInt($('#'+f.id+'-n').value)||2),start:f._start};
+        else v[f.id]={type:'daily'};
+      }
+      else v[f.id]=$('#'+f.id).value;
+    });
+    const r=ok(v);if(r){$('#err').textContent=r}else dlg.close()
+  };
+  dlg.showModal();
+}
+function result(m){
+  const c=calc(m);
+  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} pastillas</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
+  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
+  $('#cl').onclick=()=>dlg.close();dlg.showModal();
+}
+const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
+
+// ---- Campos y validación compartidos entre "agregar" y "editar" ----
+function medFields(name,q,d,sch,times){
+  return [
+    {id:'n',l:'Nombre de la medicina',t:'text',ph:'Ej. Losartán',v:name},
+    {id:'q',l:'Pastillas que hay ahora',ph:'Ej. 30',v:q},
+    {id:'d',l:'Pastillas por toma',v:d,presets:[{l:'¼',v:'0.25'},{l:'½',v:'0.5'},{l:'¾',v:'0.75'},{l:'1',v:'1'},{l:'1½',v:'1.5'},{l:'2',v:'2'}]},
+    {id:'sch',l:'¿Cada cuándo se toma?',t:'schedule',v:sch},
+    {id:'h',l:'Horas de las tomas',t:'times',v:times}
+  ];
+}
+function validateMed(v){
+  const q=pos(v.q),d=pos(v.d),h=parseTimes(v.h);
+  if(!v.n.trim())return'Escribe el nombre de la medicina.';
+  if(!(q>=0)||v.q==='')return'Escribe cuántas pastillas hay.';
+  if(!(d>0))return'Escribe cuántas pastillas se toman cada vez (puede ser media, ¼, etc.).';
+  if(v.sch.type==='weekdays'&&(!v.sch.days||!v.sch.days.length))return'Elige al menos un día de la semana.';
+  if(!h||!h.length)return null===h?'Revisa el formato de las horas (ej. 08:00).':'Agrega al menos una hora.';
+  return null;
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  const P=S.p[S.sel];
+  if(t.classList.contains('tab')){S.sel=+t.dataset.i;save();render()}
+  else if(t.id==='notif'){Notification.requestPermission().then(render)}
+  else if(t.id==='ren'){form('Nombre de la persona',[{id:'n',l:'Nombre',t:'text',v:P.name}],v=>{if(!v.n.trim())return'Escribe un nombre.';P.name=v.n.trim();save();render()})}
+  else if(t.id==='share'){
+    const txt='Resumen de medicinas de '+P.name+':\n\n'+summaryText(P);
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  }
+  else if(t.id==='exp'){
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='pastillas-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
+  else if(t.id==='imp'){$('#impFile').click()}
+  else if(t.id==='add'){
+    form('Agregar medicina',medFields('','','1',{type:'daily'},['08:00']),v=>{
+      const err=validateMed(v);if(err)return err;
+      P.meds.push({name:v.n.trim(),base:pos(v.q),dose:pos(v.d),times:parseTimes(v.h),schedule:v.sch,t0:Date.now()});save();render();
+    },'Agregar');
+  }
+  else if(t.dataset.a){
+    const m=P.meds[+t.dataset.i];
+    if(t.dataset.a==='box'){
+      form('Compré: '+esc(m.name),[
+        {id:'boxes',l:'¿Cuántas cajas/empaques compraste?',v:'1'},
+        {id:'q',l:'¿Cuántas pastillas trae cada una?',ph:'Ej. 30'}
+      ],v=>{
+        const boxes=pos(v.boxes),q=pos(v.q);
+        if(!(boxes>0))return'Escribe cuántas cajas compraste.';
+        if(!(q>0))return'Escribe cuántas pastillas trae cada caja.';
+        const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
+      },'Sumar pastillas');
+    }else if(t.dataset.a==='edit'){
+      const c=calc(m);
+      form('Editar: '+esc(m.name),medFields(m.name,c.rem,m.dose,m.schedule||{type:'daily'},m.times),v=>{
+        const err=validateMed(v);if(err)return err;
+        m.name=v.n.trim();m.base=pos(v.q);m.dose=pos(v.d);m.times=parseTimes(v.h);m.schedule=v.sch;m.t0=Date.now();
+        save();render();
+      },'Guardar cambios');
+    }else if(t.dataset.a==='fix'){
+      form('Corregir cantidad: '+esc(m.name),[{id:'q',l:'Cuente las pastillas que hay y escriba el número',v:calc(m).rem}],v=>{
+        const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe un número.';
+        m.base=q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
+      },'Corregir');
+    }else if(t.dataset.a==='del'){
+      form('¿Borrar '+esc(m.name)+'?',[],()=>{P.meds.splice(+t.dataset.i,1);save();render()},'Sí, borrar');
+    }
+  }
+});
+
+$('#impFile').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let data;
+    try{data=JSON.parse(reader.result);if(!data||!Array.isArray(data.p))throw 0}
+    catch(err){
+      dlg.innerHTML='<h2>Archivo no válido</h2><p>Ese archivo no parece un respaldo de Mis pastillas.</p><div class="stack"><button class="btn ghost" id="cl2">Cerrar</button></div>';
+      $('#cl2').onclick=()=>dlg.close();dlg.showModal();return;
+    }
+    form('¿Restaurar este respaldo?',[],()=>{
+      S=data;if(typeof S.sel!=='number'||!S.p[S.sel])S.sel=0;if(typeof S.last!=='string')S.last='';
+      save();render();
+    },'Sí, restaurar (reemplaza todo)');
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
+render();
+setInterval(()=>{if(!dlg.open)render()},60000);
+</script>
+</body>
+</html>
