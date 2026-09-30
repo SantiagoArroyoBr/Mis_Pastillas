@@ -71,7 +71,7 @@ input{width:100%;min-height:56px;font:700 20px Nunito,sans-serif;border:2px soli
 </head>
 <body>
 <header>
-  <h1>💊 Mis pastillas</h1>
+  <h1>💊 Mis pastillas <small style="font-size:13px;font-weight:700;opacity:.7">v3 · aviso 2 días</small></h1>
   <div class="tabs" role="tablist" id="tabs"></div>
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
 </header>
@@ -166,7 +166,7 @@ function calc(m,now=Date.now()){
     if(stock+1e-9<e.d)break;
     stock=+(stock-e.d).toFixed(2);left++;end=e.t;
   }
-  const WARN=7*864e5,URGENT=2*864e5;
+  const WARN=2*864e5,URGENT=1*864e5;
   const buy=end?Math.max(now,end-WARN):now;
   const st=(!end||end<=now+URGENT)?'red':end<=now+WARN?'amber':'green';
   const days=end?Math.max(0,Math.ceil((end-now)/864e5)):0;
