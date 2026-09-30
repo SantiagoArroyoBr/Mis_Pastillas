@@ -1,16 +1,25 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <title>Mis pastillas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14284B">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+
 <style>
-:root{--bg:#FBF6EA;--card:#fff;--navy:#14284B;--ink:#1B1B1B;--green:#1F7A3E;--amber:#B86E00;--red:#B3261E;--line:#E4DCC8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{
+  --bg:#FBF6EA;--card:#fff;--navy:#14284B;--ink:#1B1B1B;
+  --green:#1F7A3E;--amber:#B86E00;--red:#B3261E;--line:#E4DCC8;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px)
+}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:600 18px/1.4 Nunito,system-ui,sans-serif}
@@ -54,7 +63,9 @@ input{width:100%;min-height:56px;font:700 20px Nunito,sans-serif;border:2px soli
 .err{color:var(--red);font-weight:800;margin:8px 0 0}
 .stack{display:grid;gap:8px;margin-top:16px}
 .ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:10px 0 0}
-.trow{display:flex;gap:8px;margin:6px 0}.trow input{flex:1}.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
+.trow{display:flex;gap:8px;margin:6px 0}
+.trow input{flex:1}
+.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
 .presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .pbtn{min-height:44px;padding:4px 14px;border:2px solid var(--navy);border-radius:12px;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif}
 .pbtn[aria-pressed=true]{background:var(--navy);color:#fff}
@@ -65,328 +76,1889 @@ input{width:100%;min-height:56px;font:700 20px Nunito,sans-serif;border:2px soli
 .wdays{display:flex;gap:6px;flex-wrap:wrap}
 .wdaybtn{width:46px;height:46px;border:2px solid var(--navy);border-radius:50%;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif}
 .wdaybtn[aria-pressed=true]{background:var(--navy);color:#fff}
-:focus-visible{outline:4px solid #F5B301;outline-offset:2px}
+
+.consume{
+  border:2px solid var(--line);
+  border-radius:18px;
+  padding:12px;
+  margin:12px 0;
+  background:#FFFCF5;
+}
+.consume-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.consume-title{font-size:19px;font-weight:900;color:var(--navy)}
+.remove-consume{
+  width:42px;
+  height:42px;
+  border:2px solid var(--red);
+  background:#fff;
+  color:var(--red);
+  border-radius:12px;
+  font:900 22px Nunito,sans-serif;
+}
+.add-consume{
+  margin:8px 0 4px;
+}
+.consume-summary{
+  background:#fff;
+  border-radius:14px;
+  padding:10px 12px;
+  margin-top:10px;
+  font-size:16px;
+}
 </style>
+
 </head>
+
 <body>
+
 <header>
   <h1>💊 Mis pastillas</h1>
   <div class="tabs" role="tablist" id="tabs"></div>
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
 </header>
+
 <main>
   <section id="soon"></section>
-  <button class="btn ghost small share" id="share">📲 Compartir resumen por WhatsApp</button>
+
+  <button class="btn ghost small share" id="share">
+    📲 Compartir resumen por WhatsApp
+  </button>
+
   <section id="list"></section>
-  <button class="btn add" id="add">+ Agregar medicina</button>
+
+<button class="btn add" id="add">+ Agregar medicina</button>
+
   <div class="row backup">
     <button class="btn ghost small" id="exp">⬇️ Exportar respaldo</button>
     <button class="btn ghost small" id="imp">⬆️ Restaurar respaldo</button>
   </div>
+
   <input type="file" id="impFile" accept="application/json" hidden>
 </main>
+
 <dialog id="dlg"></dialog>
+
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{})
+  });
 }
+
 const $=s=>document.querySelector(s);
-let S=(()=>{try{const r=localStorage.getItem('pastillas-v1');if(r)return JSON.parse(r)}catch(e){}return{sel:0,last:'',p:[{name:'Persona 1',meds:[]},{name:'Persona 2',meds:[]}]}})();
-const save=()=>{try{localStorage.setItem('pastillas-v1',JSON.stringify(S))}catch(e){}};
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let S=(()=>{
+  try{
+    const r=localStorage.getItem('pastillas-v1');
+    if(r)return JSON.parse(r);
+  }catch(e){}
+  return{
+    sel:0,
+    last:'',
+    p:[
+      {name:'Persona 1',meds:[]},
+      {name:'Persona 2',meds:[]}
+    ]
+  };
+})();
+
+const save=()=>{
+  try{
+    localStorage.setItem('pastillas-v1',JSON.stringify(S))
+  }catch(e){}
+};
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+}[c]));
 
 function parseTimes(txt){
   const out=[];
-  for(const t of txt.split(/[,;]+/)){
+
+  for(const t of String(txt).split(/[,;]+/)){
     const m=t.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
+
     if(!m)return null;
-    const h=+m[1],mi=+(m[2]||0);
+
+    const h=+m[1];
+    const mi=+(m[2]||0);
+
     if(h>23||mi>59)return null;
-    out.push(String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'));
+
+    out.push(
+      String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0')
+    );
   }
+
   return [...new Set(out)].sort();
 }
-const at=(d,t)=>{const[h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x.getTime()};
 
-// ---- Frecuencia (todos los días / días fijos de la semana / cada X días) ----
+const at=(d,t)=>{
+  const [h,m]=t.split(':').map(Number);
+  const x=new Date(d);
+  x.setHours(h,m,0,0);
+  return x.getTime();
+};
+
+const WD_SHORT=['dom','lun','mar','mié','jue','vie','sáb'];
+
 function dayMatches(sch,d){
   if(!sch||sch.type==='daily')return true;
-  if(sch.type==='weekdays')return (sch.days||[]).includes(d.getDay());
-  if(sch.type==='interval'){
-    const start=new Date(sch.start||Date.now());start.setHours(0,0,0,0);
-    const cur=new Date(d);cur.setHours(0,0,0,0);
-    const diff=Math.round((cur-start)/86400000);
-    return diff>=0 && diff%Math.max(1,sch.n||1)===0;
+
+  if(sch.type==='weekdays'){
+    return (sch.days||[]).includes(d.getDay());
   }
+
+  if(sch.type==='interval'){
+    const start=new Date(sch.start||Date.now());
+    start.setHours(0,0,0,0);
+
+    const cur=new Date(d);
+    cur.setHours(0,0,0,0);
+
+    const diff=Math.round((cur-start)/86400000);
+
+    return diff>=0 &&
+      diff%Math.max(1,sch.n||1)===0;
+  }
+
   return true;
 }
-const WD_SHORT=['dom','lun','mar','mié','jue','vie','sáb'];
+
 function schedText(sch){
   if(!sch||sch.type==='daily')return'todos los días';
+
   if(sch.type==='weekdays'){
     const d=(sch.days||[]).slice().sort();
-    return d.length?d.map(i=>WD_SHORT[i]).join(', '):'todos los días';
+
+    return d.length
+      ?d.map(i=>WD_SHORT[i]).join(', ')
+      :'todos los días';
   }
-  if(sch.type==='interval')return'cada '+(sch.n||1)+' días';
+
+  if(sch.type==='interval'){
+    return'cada '+(sch.n||1)+' días';
+  }
+
   return'todos los días';
 }
-function dosesBetween(times,sch,a,b){
-  let n=0;const d=new Date(a);d.setHours(0,0,0,0);
+
+/*
+  Devuelve todas las tomas de UN consumo entre dos fechas.
+*/
+function consumptionEvents(consumption,a,b){
+  const out=[];
+  const sch=consumption.schedule||{type:'daily'};
+  const times=consumption.times||[];
+
+  const d=new Date(a);
+  d.setHours(0,0,0,0);
+
   while(d.getTime()<=b){
-    if(dayMatches(sch,d))for(const t of times){const x=at(d,t);if(x>a&&x<=b)n++}
-    d.setDate(d.getDate()+1)
+
+    if(dayMatches(sch,d)){
+      for(const t of times){
+        const x=at(d,t);
+
+        if(x>a && x<=b){
+          out.push({
+            time:x,
+            dose:+consumption.dose
+          });
+        }
+      }
+    }
+
+    d.setDate(d.getDate()+1);
   }
-  return n;
+
+  return out;
 }
-function nth(times,sch,now,n){
-  if(n<=0)return null;let c=0;const d=new Date(now);d.setHours(0,0,0,0);
-  for(let i=0;i<3000;i++){
-    if(dayMatches(sch,d))for(const t of times){const x=at(d,t);if(x>now&&++c===n)return x}
-    d.setDate(d.getDate()+1)
+
+/*
+  Todas las tomas futuras de una medicina.
+  Los consumos son completamente independientes,
+  pero comparten el mismo inventario.
+*/
+function futureEvents(m,now,limitDays=3000){
+  const out=[];
+
+  for(const c of m.consumptions||[]){
+    const sch=c.schedule||{type:'daily'};
+    const times=c.times||[];
+
+    const d=new Date(now);
+    d.setHours(0,0,0,0);
+
+    for(let i=0;i<limitDays;i++){
+
+      if(dayMatches(sch,d)){
+        for(const t of times){
+          const x=at(d,t);
+
+          if(x>now){
+            out.push({
+              time:x,
+              dose:+c.dose
+            });
+          }
+        }
+      }
+
+      d.setDate(d.getDate()+1);
+    }
   }
-  return null;
+
+  return out.sort((a,b)=>a.time-b.time);
 }
+
+/*
+  Calcula el consumo histórico desde t0 hasta ahora,
+  sumando TODOS los consumos independientes.
+*/
+function consumedUntil(m,now){
+  let total=0;
+
+  const t0=+m.t0||Date.now();
+
+  for(const c of m.consumptions||[]){
+    const events=consumptionEvents(c,t0,now);
+
+    for(const e of events){
+      total+=e.dose;
+    }
+  }
+
+  return total;
+}
+
+/*
+  Calcula exactamente cuándo se terminará el inventario.
+
+  Ejemplo:
+  Inventario = 30
+
+  Consumo A = 0.5 L/X/V
+  Consumo B = 1 M/J/S
+
+  Las tomas futuras se mezclan cronológicamente:
+  M 1
+  X 0.5
+  J 1
+  V 0.5
+  S 1
+  ...
+*/
 function calc(m,now=Date.now()){
-  const sch=m.schedule||{type:'daily'};
-  const per=m.times.length,th=Math.max(2*per,2);
-  const rem=Math.max(0,+(m.base-m.dose*dosesBetween(m.times,sch,m.t0,now)).toFixed(2));
-  const left=Math.floor(rem/m.dose+1e-9);
-  const end=left>0?nth(m.times,sch,now,left):null;
-  const buyIdx=left-th;
-  const buy=buyIdx>0?nth(m.times,sch,now,buyIdx):now;
-  const st=left<=per?'red':left<=th?'amber':'green';
-  const days=end?Math.max(0,Math.round((end-now)/86400000)):0;
-  return{rem,left,end,buy,st,days,now:buy<=now+3600e3};
+
+  const base=+m.base||0;
+
+  const historical=consumedUntil(m,now);
+
+  const rem=Math.max(
+    0,
+    +(base-historical).toFixed(2)
+  );
+
+  /*
+    Calculamos cuántas tomas completas
+    de cada consumo caben en el inventario.
+    Para mostrar "tomas restantes" hacemos
+    la simulación real de eventos.
+  */
+  const events=futureEvents(m,now);
+
+  let inventory=rem;
+  let count=0;
+  let end=null;
+
+  for(const e of events){
+
+    if(inventory+1e-9<e.dose){
+      break;
+    }
+
+    inventory=+(inventory-e.dose).toFixed(2);
+    count++;
+    end=e.time;
+  }
+
+  /*
+    Para "comprar pronto", usamos un umbral
+    equivalente a dos días de tomas futuras
+    como mínimo.
+  */
+  const dailyApprox=Math.max(
+    1,
+    (m.consumptions||[]).reduce((sum,c)=>{
+      const times=c.times||[];
+      const sch=c.schedule||{type:'daily'};
+
+      if(sch.type==='daily'){
+        return sum+(+c.dose||0)*times.length;
+      }
+
+      if(sch.type==='weekdays'){
+        return sum+
+          (+c.dose||0)*times.length*(sch.days||[]).length/7;
+      }
+
+      if(sch.type==='interval'){
+        return sum+
+          (+c.dose||0)*times.length/Math.max(1,sch.n||1);
+      }
+
+      return sum;
+    },0)
+  );
+
+  const threshold=Math.max(
+    2*dailyApprox,
+    Math.max(...(m.consumptions||[]).map(c=>(c.times||[]).length),1)
+  );
+
+  let buy=now;
+
+  if(count>threshold){
+
+    let inventory2=rem;
+    let previous=null;
+    let eventCount=0;
+
+    for(const e of events){
+
+      if(inventory2+1e-9<e.dose)break;
+
+      inventory2=+(inventory2-e.dose).toFixed(2);
+      eventCount++;
+
+      if(eventCount===Math.max(1,count-Math.ceil(threshold))){
+        buy=e.time;
+        break;
+      }
+
+      previous=e;
+    }
+  }else if(events.length){
+    buy=events[0].time;
+  }
+
+  const st=
+    count<=Math.max(1,Math.ceil(threshold/2))
+      ?'red'
+      :count<=threshold
+        ?'amber'
+        :'green';
+
+  const days=end
+    ?Math.max(0,Math.round((end-now)/86400000))
+    :0;
+
+  return{
+    rem,
+    left:count,
+    end,
+    buy,
+    st,
+    days,
+    now:buy<=now+3600e3
+  };
 }
-const fmt=ms=>new Date(ms).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-const num=n=>String(n).replace('.',',');
+
+const fmt=ms=>
+  new Date(ms).toLocaleDateString(
+    'es-MX',
+    {
+      weekday:'long',
+      day:'numeric',
+      month:'long'
+    }
+  );
+
+const num=n=>
+  String(n).replace('.',',');
 
 function calUrl(title,buyMs,details){
+
   let d=new Date(buyMs);
-  if(buyMs<=Date.now()+3600e3){d=new Date();if(d.getHours()<9){d.setHours(9,0,0,0)}else{d=new Date(Date.now()+15*60e3)}}
-  else d.setHours(9,0,0,0);
+
+  if(buyMs<=Date.now()+3600e3){
+
+    d=new Date();
+
+    if(d.getHours()<9){
+      d.setHours(9,0,0,0);
+    }else{
+      d=new Date(Date.now()+15*60e3);
+    }
+
+  }else{
+    d.setHours(9,0,0,0);
+  }
+
   const e=new Date(d.getTime()+30*60e3);
-  const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+f(d)+'/'+f(e)+'&details='+encodeURIComponent(details);
+
+  const f=x=>
+    x.getFullYear()+
+    String(x.getMonth()+1).padStart(2,'0')+
+    String(x.getDate()).padStart(2,'0')+
+    'T'+
+    String(x.getHours()).padStart(2,'0')+
+    String(x.getMinutes()).padStart(2,'0')+
+    '00';
+
+  return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+
+    encodeURIComponent(title)+
+    '&dates='+f(d)+'/'+f(e)+
+    '&details='+encodeURIComponent(details);
 }
-const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente']};
+
+const LBL={
+  green:['✓','Bien'],
+  amber:['!','Comprar pronto'],
+  red:['✕','Urgente']
+};
 
 function summaryText(P){
-  if(!P.meds.length)return'No hay medicinas registradas.';
+
+  if(!P.meds.length){
+    return'No hay medicinas registradas.';
+  }
+
   return P.meds.map(m=>{
+
     const c=calc(m);
-    const when=c.st==='red'?'¡urgente, comprar ya!':c.st==='amber'?'comprar antes del '+fmt(c.buy):'bien por ahora';
-    return `• ${m.name}: quedan ${num(c.rem)} pastillas (${when})`;
+
+    const when=
+      c.st==='red'
+        ?'¡urgente, comprar ya!'
+        :c.st==='amber'
+          ?'comprar antes del '+fmt(c.buy)
+          :'bien por ahora';
+
+    return`• ${m.name}: quedan ${num(c.rem)} pastillas (${when})`;
+
   }).join('\n');
 }
 
+/*
+  Descripción legible de todos los consumos.
+*/
+function consumptionText(m){
+
+  return(m.consumptions||[]).map((c,i)=>
+    `Consumo ${i+1}: toma ${num(c.dose)} pastilla${
+      c.dose==1?'':'s'
+    }, ${schedText(c.schedule)}, a las ${
+      (c.times||[]).join(', ')
+    }`
+  ).join('<br>');
+}
+
 function render(){
+
   const P=S.p[S.sel];
-  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" role="tab" aria-selected="${i===S.sel}" data-i="${i}">${esc(p.name)}</button>`).join('');
-  // Comprar pronto (ambas personas)
+
+  $('#tabs').innerHTML=
+    S.p.map((p,i)=>
+      `<button class="tab"
+        role="tab"
+        aria-selected="${i===S.sel}"
+        data-i="${i}">
+        ${esc(p.name)}
+      </button>`
+    ).join('');
+
   const items=[];
-  S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
+
+  S.p.forEach(p=>{
+    p.meds.forEach(m=>{
+      const c=calc(m);
+
+      if(c.st!=='green'){
+        items.push({p:p.name,m,c});
+      }
+    });
+  });
+
   items.sort((a,b)=>a.c.buy-b.c.buy);
+
   let h;
-  if(!items.length){h=`<div class="soon ok">✓ Todo en orden: por ahora no hay que comprar nada.</div>`}
-  else{
-    const det=items.map(i=>`${i.m.name} (${i.p}): quedan ${num(i.c.rem)} pastillas`).join('\n');
-    h=`<div class="soon"><h2>🛒 Comprar pronto</h2><ul>${items.map(i=>`<li><b>${esc(i.m.name)}</b> (${esc(i.p)}): ${i.c.st==='red'?'urgente':'antes del '+fmt(i.c.buy)}</li>`).join('')}</ul>
-    <a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">📅 Avisarme en Calendario</a>
-    ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
+
+  if(!items.length){
+
+    h=
+      `<div class="soon ok">
+        ✓ Todo en orden: por ahora no hay que comprar nada.
+      </div>`;
+
+  }else{
+
+    const det=
+      items.map(i=>
+        `${i.m.name} (${i.p}): quedan ${num(i.c.rem)} pastillas`
+      ).join('\n');
+
+    h=
+      `<div class="soon">
+        <h2>🛒 Comprar pronto</h2>
+
+        <ul>
+          ${items.map(i=>
+            `<li>
+              <b>${esc(i.m.name)}</b>
+              (${esc(i.p)}):
+              ${i.c.st==='red'
+                ?'urgente'
+                :'antes del '+fmt(i.c.buy)}
+            </li>`
+          ).join('')}
+        </ul>
+
+        <a class="btn cal"
+          target="_blank"
+          rel="noopener"
+          href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">
+          📅 Avisarme en Calendario
+        </a>
+
+        ${
+          ('Notification' in window &&
+           Notification.permission==='default')
+            ?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>'
+            :''
+        }
+
+      </div>`;
   }
+
   $('#soon').innerHTML=h;
-  if(items.length&&'Notification' in window&&Notification.permission==='granted'){
+
+  if(
+    items.length &&
+    'Notification' in window &&
+    Notification.permission==='granted'
+  ){
+
     const k=new Date().toDateString();
-    if(S.last!==k){S.last=k;save();try{new Notification('Mis pastillas',{body:'Hay que comprar: '+items.map(i=>i.m.name).join(', ')})}catch(e){}}
+
+    if(S.last!==k){
+
+      S.last=k;
+      save();
+
+      try{
+        new Notification(
+          'Mis pastillas',
+          {
+            body:
+              'Hay que comprar: '+
+              items.map(i=>i.m.name).join(', ')
+          }
+        );
+      }catch(e){}
+    }
   }
-  // Tarjetas
-  $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>{
-    const c=calc(m),[ic,tx]=LBL[c.st];
-    return `<article class="card ${c.st}">
-      <div class="top"><h3 class="name">${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
-      <p class="big">${num(c.rem)} <small>pastillas</small></p>
-      <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b> (${c.left} tomas).${c.end?`<br>Última toma completa: <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para una toma.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br>Toma ${num(m.dose)} pastilla${m.dose==1?'':'s'}, ${schedText(m.schedule)}, a las ${m.times.join(', ')}</p>
-      <button class="btn" data-a="box" data-i="${i}">Compré más</button>
-      <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
-      <button class="btn ghost small" data-a="fix" data-i="${i}">Corregir cantidad</button></div>
-      <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
-      <button class="link" data-a="del" data-i="${i}">Borrar esta medicina</button>
-    </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`;
+
+  $('#list').innerHTML=
+    P.meds.length
+
+      ?P.meds.map((m,i)=>{
+
+        const c=calc(m);
+        const [ic,tx]=LBL[c.st];
+
+        return`
+        <article class="card ${c.st}">
+
+          <div class="top">
+            <h3 class="name">${esc(m.name)}</h3>
+            <span class="badge">${ic} ${tx}</span>
+          </div>
+
+          <p class="big">
+            ${num(c.rem)}
+            <small>pastillas</small>
+          </p>
+
+          <p class="info">
+            Alcanzan para
+            <b>${c.days} ${c.days===1?'día':'días'}</b>
+            (${c.left} tomas).
+
+            ${
+              c.end
+                ?`<br>Última toma completa:
+                  <b>${fmt(c.end)}</b>.`
+                :'<br><b>Ya no alcanza para una toma.</b>'
+            }
+
+            <br>
+            Comprar:
+            <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.
+          </p>
+
+          <div class="consume-summary">
+            ${consumptionText(m)}
+          </div>
+
+          <button class="btn"
+            data-a="box"
+            data-i="${i}">
+            Compré más
+          </button>
+
+          <div class="row">
+            <button class="btn ghost small"
+              data-a="edit"
+              data-i="${i}">
+              Editar
+            </button>
+
+            <button class="btn ghost small"
+              data-a="fix"
+              data-i="${i}">
+              Corregir cantidad
+            </button>
+          </div>
+
+          <a class="btn cal small"
+            target="_blank"
+            rel="noopener"
+            href="${calUrl(
+              'Comprar '+m.name+' (aprox.)',
+              c.buy,
+              'Quedan '+num(c.rem)+' pastillas de '+m.name+
+              ' ('+P.name+').'
+            )}">
+            📅 Avisarme
+          </a>
+
+          <button class="link"
+            data-a="del"
+            data-i="${i}">
+            Borrar esta medicina
+          </button>
+
+        </article>`;
+
+      }).join('')
+
+      :`<p class="empty">
+          Aún no hay medicinas para ${esc(P.name)}.<br>
+          Toca “Agregar medicina”.
+        </p>`;
 }
 
 const dlg=$('#dlg');
+
 dlg.addEventListener('click',e=>{
-  const b=e.target.closest('.pbtn');if(!b)return;
-  const inp=document.getElementById(b.dataset.set);if(!inp)return;
+
+  const b=e.target.closest('.pbtn');
+
+  if(!b)return;
+
+  const inp=document.getElementById(b.dataset.set);
+
+  if(!inp)return;
+
   inp.value=b.dataset.val;
-  [...document.querySelectorAll('.pbtn[data-set="'+b.dataset.set+'"]')].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+
+  [
+    ...document.querySelectorAll(
+      '.pbtn[data-set="'+b.dataset.set+'"]'
+    )
+  ].forEach(x=>
+    x.setAttribute(
+      'aria-pressed',
+      String(x===b)
+    )
+  );
 });
 
-function fieldHTML(f){
-  if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt" style="margin-top:6px">+ Otra hora</button>`;
-  if(f.t==='schedule')return `<label>${f.l}</label>
-    <div class="schtabs" role="tablist" id="${f.id}-tabs">
-      <button type="button" class="stab" data-v="daily">Diario</button>
-      <button type="button" class="stab" data-v="weekdays">Días fijos</button>
-      <button type="button" class="stab" data-v="interval">Cada X días</button>
+/*
+  Crea el editor de horarios de un consumo.
+*/
+function scheduleHTML(id,v){
+
+  const f={
+    id,
+    v:v||{type:'daily'}
+  };
+
+  return`
+    <label>¿Cada cuándo se toma?</label>
+
+    <div class="schtabs"
+      role="tablist"
+      id="${id}-tabs">
+
+      <button type="button"
+        class="stab"
+        data-v="daily">
+        Diario
+      </button>
+
+      <button type="button"
+        class="stab"
+        data-v="weekdays">
+        Días fijos
+      </button>
+
+      <button type="button"
+        class="stab"
+        data-v="interval">
+        Cada X días
+      </button>
+
     </div>
-    <div class="schpane" id="${f.id}-daily"><p class="hint">Se toma todos los días.</p></div>
-    <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" id="${f.id}-wdbtns"></div></div>
-    <div class="schpane" id="${f.id}-interval" hidden>
-      <label for="${f.id}-n">¿Cada cuántos días? (1 = diario, 2 = un día sí y uno no...)</label>
-      <input id="${f.id}-n" type="number" min="1" step="1" value="${(f.v&&f.v.n)||2}">
+
+    <div class="schpane"
+      id="${id}-daily">
+      <p class="hint">
+        Se toma todos los días.
+      </p>
+    </div>
+
+    <div class="schpane"
+      id="${id}-weekdays"
+      hidden>
+
+      <div class="wdays"
+        id="${id}-wdbtns"></div>
+
+    </div>
+
+    <div class="schpane"
+      id="${id}-interval"
+      hidden>
+
+      <label for="${id}-n">
+        ¿Cada cuántos días?
+        (1 = diario, 2 = un día sí y uno no...)
+      </label>
+
+      <input
+        id="${id}-n"
+        type="number"
+        min="1"
+        step="1"
+        value="${(f.v&&f.v.n)||2}">
     </div>`;
-  return `<label for="${f.id}">${f.l}</label><input id="${f.id}" ${f.t==='text'?'':'inputmode="decimal"'} type="${f.t==='text'?'text':'number'}" step="any" min="0" value="${esc(f.v??'')}" placeholder="${esc(f.ph||'')}">${f.presets?`<div class="presets">${f.presets.map(p=>`<button type="button" class="pbtn" data-set="${f.id}" data-val="${p.v}" aria-pressed="${String(f.v)===p.v}">${p.l}</button>`).join('')}</div>`:''}${f.h?`<p class="hint">${f.h}</p>`:''}`;
 }
 
-function form(title,fields,ok,btn='Guardar'){
-  dlg.innerHTML=`<form method="dialog" id="f"><h2>${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err"></p>
-  <div class="stack"><button class="btn" type="submit">${btn}</button><button class="btn ghost" type="button" id="no">Cancelar</button></div></form>`;
-  $('#no').onclick=()=>dlg.close();
+/*
+  Inicializa el editor de un horario.
+*/
+function initSchedule(id,init){
 
-  const tf=fields.find(f=>f.t==='times');
-  if(tf){const box=$('#'+tf.id);const addRow=(v='')=>{const d=document.createElement('div');d.className='trow';d.innerHTML='<input type="time" aria-label="Hora de la toma"><button type="button" aria-label="Quitar hora">×</button>';d.querySelector('input').value=v;d.querySelector('button').onclick=()=>{if(box.children.length>1)d.remove()};box.appendChild(d)};(tf.v||['08:00']).forEach(addRow);$('#addt').onclick=()=>addRow('')}
+  init=init||{type:'daily'};
 
-  const sf=fields.find(f=>f.t==='schedule');
-  if(sf){
-    const init=sf.v||{type:'daily'};
-    const tabs=$('#'+sf.id+'-tabs');
-    const panes={daily:$('#'+sf.id+'-daily'),weekdays:$('#'+sf.id+'-weekdays'),interval:$('#'+sf.id+'-interval')};
-    const setTab=v=>{[...tabs.children].forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===v)));Object.entries(panes).forEach(([k,el])=>el.hidden=k!==v);tabs.dataset.cur=v};
-    tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setTab(b.dataset.v)});
-    setTab(init.type||'daily');
-    const wdbox=$('#'+sf.id+'-wdbtns');
-    const selDays=new Set(init.days||[]);
-    WD_SHORT.forEach((lbl,i)=>{
-      const b=document.createElement('button');b.type='button';b.className='wdaybtn';b.textContent=lbl[0].toUpperCase();b.setAttribute('aria-pressed',String(selDays.has(i)));
-      b.onclick=()=>{if(selDays.has(i))selDays.delete(i);else selDays.add(i);b.setAttribute('aria-pressed',String(selDays.has(i)))};
-      wdbox.appendChild(b);
+  const tabs=$('#'+id+'-tabs');
+
+  const panes={
+    daily:$('#'+id+'-daily'),
+    weekdays:$('#'+id+'-weekdays'),
+    interval:$('#'+id+'-interval')
+  };
+
+  const setTab=v=>{
+
+    [...tabs.children].forEach(b=>
+      b.setAttribute(
+        'aria-selected',
+        String(b.dataset.v===v)
+      )
+    );
+
+    Object.entries(panes).forEach(([k,el])=>{
+      el.hidden=k!==v;
     });
-    sf._selDays=selDays;
-    sf._start=init.start||Date.now();
+
+    tabs.dataset.cur=v;
+  };
+
+  tabs.addEventListener('click',e=>{
+
+    const b=e.target.closest('button');
+
+    if(!b)return;
+
+    setTab(b.dataset.v);
+  });
+
+  setTab(init.type||'daily');
+
+  const wdbox=$('#'+id+'-wdbtns');
+
+  const selDays=new Set(init.days||[]);
+
+  WD_SHORT.forEach((lbl,i)=>{
+
+    const b=document.createElement('button');
+
+    b.type='button';
+    b.className='wdaybtn';
+    b.textContent=lbl[0].toUpperCase();
+
+    b.setAttribute(
+      'aria-pressed',
+      String(selDays.has(i))
+    );
+
+    b.onclick=()=>{
+
+      if(selDays.has(i)){
+        selDays.delete(i);
+      }else{
+        selDays.add(i);
+      }
+
+      b.setAttribute(
+        'aria-pressed',
+        String(selDays.has(i))
+      );
+    };
+
+    wdbox.appendChild(b);
+  });
+
+  return{
+    get(){
+
+      const cur=tabs.dataset.cur;
+
+      if(cur==='weekdays'){
+
+        return{
+          type:'weekdays',
+          days:[...selDays].sort()
+        };
+
+      }
+
+      if(cur==='interval'){
+
+        return{
+          type:'interval',
+          n:Math.max(
+            1,
+            parseInt($('#'+id+'-n').value)||2
+          ),
+          start:init.start||Date.now()
+        };
+
+      }
+
+      return{type:'daily'};
+    },
+
+    selectedDays:selDays
+  };
+}
+
+/*
+  Editor completo de un consumo.
+*/
+function consumptionEditor(index,c={}){
+
+  const id='sch_'+index;
+
+  const div=document.createElement('div');
+
+  div.className='consume';
+
+  div.dataset.index=index;
+
+  div.innerHTML=`
+
+    <div class="consume-head">
+
+      <div class="consume-title">
+        Consumo ${index+1}
+      </div>
+
+      <button
+        type="button"
+        class="remove-consume"
+        aria-label="Quitar consumo">
+        ×
+      </button>
+
+    </div>
+
+    <label>
+      Pastillas por toma
+    </label>
+
+    <input
+      class="cdose"
+      type="number"
+      step="0.25"
+      min="0"
+      value="${esc(c.dose??'1')}">
+
+    <div class="presets">
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="0.25">¼</button>
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="0.5">½</button>
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="0.75">¾</button>
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="1">1</button>
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="1.5">1½</button>
+
+      <button type="button"
+        class="pbtn cdosepreset"
+        data-v="2">2</button>
+
+    </div>
+
+    <label>
+      Horas de las tomas
+    </label>
+
+    <div class="timesbox"></div>
+
+    <button
+      type="button"
+      class="btn ghost small addtime"
+      style="margin-top:6px">
+      + Otra hora
+    </button>
+
+    <div class="schedulebox">
+      ${scheduleHTML(id,c.schedule||{type:'daily'})}
+    </div>
+  `;
+
+  const timesBox=div.querySelector('.timesbox');
+
+  const addTime=v=>{
+
+    const row=document.createElement('div');
+
+    row.className='trow';
+
+    row.innerHTML=`
+      <input
+        type="time"
+        aria-label="Hora de la toma">
+
+      <button
+        type="button"
+        aria-label="Quitar hora">
+        ×
+      </button>
+    `;
+
+    row.querySelector('input').value=v||'';
+
+    row.querySelector('button').onclick=()=>{
+
+      if(timesBox.children.length>1){
+        row.remove();
+      }
+
+    };
+
+    timesBox.appendChild(row);
+  };
+
+  (c.times&&c.times.length
+    ?c.times
+    :['08:00']
+  ).forEach(addTime);
+
+  div.querySelector('.addtime').onclick=()=>{
+    addTime('');
+  };
+
+  div.querySelectorAll('.cdosepreset').forEach(b=>{
+
+    b.onclick=()=>{
+      div.querySelector('.cdose').value=b.dataset.v;
+
+      div.querySelectorAll('.cdosepreset').forEach(x=>
+        x.setAttribute(
+          'aria-pressed',
+          String(x===b)
+        )
+      );
+    };
+
+  });
+
+  const schedule=initSchedule(
+    id,
+    c.schedule||{type:'daily'}
+  );
+
+  div._getData=()=>{
+
+    const dose=pos(
+      div.querySelector('.cdose').value
+    );
+
+    const times=[
+      ...timesBox.querySelectorAll('input')
+    ].map(x=>x.value).filter(Boolean);
+
+    return{
+      dose,
+      times:parseTimes(times.join(',')),
+      schedule:schedule.get()
+    };
+  };
+
+  return div;
+}
+
+/*
+  Valida todos los consumos.
+*/
+function validateConsumptions(consumptions){
+
+  if(!consumptions.length){
+    return'Agrega al menos un consumo.';
   }
 
-  $('#f').onsubmit=e=>{
-    e.preventDefault();
-    const v={};
-    fields.forEach(f=>{
-      if(f.t==='times')v[f.id]=[...$('#'+f.id).querySelectorAll('input')].map(i=>i.value).filter(Boolean).join(',');
-      else if(f.t==='schedule'){
-        const cur=$('#'+f.id+'-tabs').dataset.cur;
-        if(cur==='weekdays')v[f.id]={type:'weekdays',days:[...f._selDays].sort()};
-        else if(cur==='interval')v[f.id]={type:'interval',n:Math.max(1,parseInt($('#'+f.id+'-n').value)||2),start:f._start};
-        else v[f.id]={type:'daily'};
-      }
-      else v[f.id]=$('#'+f.id).value;
-    });
-    const r=ok(v);if(r){$('#err').textContent=r}else dlg.close()
-  };
-  dlg.showModal();
-}
-function result(m){
-  const c=calc(m);
-  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} pastillas</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
-  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
-  $('#cl').onclick=()=>dlg.close();dlg.showModal();
-}
-const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
+  for(let i=0;i<consumptions.length;i++){
 
-// ---- Campos y validación compartidos entre "agregar" y "editar" ----
-function medFields(name,q,d,sch,times){
-  return [
-    {id:'n',l:'Nombre de la medicina',t:'text',ph:'Ej. Losartán',v:name},
-    {id:'q',l:'Pastillas que hay ahora',ph:'Ej. 30',v:q},
-    {id:'d',l:'Pastillas por toma',v:d,presets:[{l:'¼',v:'0.25'},{l:'½',v:'0.5'},{l:'¾',v:'0.75'},{l:'1',v:'1'},{l:'1½',v:'1.5'},{l:'2',v:'2'}]},
-    {id:'sch',l:'¿Cada cuándo se toma?',t:'schedule',v:sch},
-    {id:'h',l:'Horas de las tomas',t:'times',v:times}
-  ];
-}
-function validateMed(v){
-  const q=pos(v.q),d=pos(v.d),h=parseTimes(v.h);
-  if(!v.n.trim())return'Escribe el nombre de la medicina.';
-  if(!(q>=0)||v.q==='')return'Escribe cuántas pastillas hay.';
-  if(!(d>0))return'Escribe cuántas pastillas se toman cada vez (puede ser media, ¼, etc.).';
-  if(v.sch.type==='weekdays'&&(!v.sch.days||!v.sch.days.length))return'Elige al menos un día de la semana.';
-  if(!h||!h.length)return null===h?'Revisa el formato de las horas (ej. 08:00).':'Agrega al menos una hora.';
+    const c=consumptions[i];
+
+    if(!(c.dose>0)){
+      return`En el consumo ${i+1}, escribe cuántas pastillas se toman.`;
+    }
+
+    if(!c.times||!c.times.length){
+      return`En el consumo ${i+1}, agrega al menos una hora.`;
+    }
+
+    if(
+      c.schedule.type==='weekdays' &&
+      (!c.schedule.days||!c.schedule.days.length)
+    ){
+      return`En el consumo ${i+1}, elige al menos un día.`;
+    }
+  }
+
   return null;
 }
 
+function medForm(title,med,ok,buttonText){
+
+  const editing=!!med;
+
+  dlg.innerHTML=`
+
+    <form method="dialog" id="medForm">
+
+      <h2>${title}</h2>
+
+      <label for="medName">
+        Nombre de la medicina
+      </label>
+
+      <input
+        id="medName"
+        type="text"
+        value="${esc(med?.name||'')}"
+        placeholder="Ej. Losartán">
+
+      <label for="medBase">
+        Pastillas que hay ahora
+      </label>
+
+      <input
+        id="medBase"
+        type="number"
+        step="0.25"
+        min="0"
+        value="${esc(med?.base??'')}"
+        placeholder="Ej. 30">
+
+      <p class="hint">
+        Esta cantidad es el inventario total compartido
+        por todos los consumos de esta medicina.
+      </p>
+
+      <label>
+        Consumos
+      </label>
+
+      <p class="hint">
+        Cada consumo es independiente. Todos descuentan
+        del mismo inventario.
+      </p>
+
+      <div id="consumptions"></div>
+
+      <button
+        type="button"
+        class="btn ghost small add-consume"
+        id="addConsumption">
+        + Agregar otro consumo
+      </button>
+
+      <p class="err" id="medErr"></p>
+
+      <div class="stack">
+
+        <button class="btn" type="submit">
+          ${buttonText||'Guardar'}
+        </button>
+
+        <button
+          class="btn ghost"
+          type="button"
+          id="no">
+          Cancelar
+        </button>
+
+      </div>
+
+    </form>
+  `;
+
+  const box=$('#consumptions');
+
+  let consumptionData=
+    med?.consumptions?.length
+      ?JSON.parse(JSON.stringify(med.consumptions))
+      :[
+        {
+          dose:1,
+          schedule:{type:'daily'},
+          times:['08:00']
+        }
+      ];
+
+  const rebuildNumbers=()=>{
+
+    [...box.children].forEach((el,i)=>{
+      el.querySelector('.consume-title').textContent=
+        'Consumo '+(i+1);
+    });
+
+  };
+
+  const addConsumption=(data)=>{
+
+    const index=box.children.length;
+
+    const editor=consumptionEditor(
+      index,
+      data||{
+        dose:1,
+        schedule:{type:'daily'},
+        times:['08:00']
+      }
+    );
+
+    editor.querySelector('.remove-consume').onclick=()=>{
+
+      if(box.children.length<=1)return;
+
+      editor.remove();
+      rebuildNumbers();
+    };
+
+    box.appendChild(editor);
+
+  };
+
+  consumptionData.forEach(addConsumption);
+
+  $('#addConsumption').onclick=()=>{
+    addConsumption({
+      dose:1,
+      schedule:{type:'daily'},
+      times:['08:00']
+    });
+    rebuildNumbers();
+  };
+
+  $('#no').onclick=()=>{
+    dlg.close();
+  };
+
+  $('#medForm').onsubmit=e=>{
+
+    e.preventDefault();
+
+    const name=$('#medName').value.trim();
+
+    const base=pos($('#medBase').value);
+
+    if(!name){
+      $('#medErr').textContent=
+        'Escribe el nombre de la medicina.';
+      return;
+    }
+
+    if(!(base>=0)||$('#medBase').value===''){
+      $('#medErr').textContent=
+        'Escribe cuántas pastillas hay.';
+      return;
+    }
+
+    const consumptions=[
+      ...box.children
+    ].map(el=>el._getData());
+
+    const err=validateConsumptions(consumptions);
+
+    if(err){
+      $('#medErr').textContent=err;
+      return;
+    }
+
+    ok({
+      name,
+      base,
+      consumptions
+    });
+
+    dlg.close();
+  };
+
+  dlg.showModal();
+}
+
+function result(m){
+
+  const c=calc(m);
+
+  dlg.innerHTML=`
+
+    <h2>¡Listo!</h2>
+
+    <p>
+      ${esc(m.name)}: ahora hay
+      <b>${num(c.rem)} pastillas</b>.
+      <br>
+      Conviene comprar de nuevo
+      <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.
+    </p>
+
+    <div class="stack">
+
+      <a class="btn cal"
+        target="_blank"
+        rel="noopener"
+        href="${calUrl(
+          'Comprar '+m.name+' (aprox.)',
+          c.buy,
+          'Quedan '+num(c.rem)+
+          ' pastillas de '+m.name+'.'
+        )}">
+        📅 Avisarme en Calendario
+      </a>
+
+      <button class="btn ghost" id="cl">
+        Cerrar
+      </button>
+
+    </div>
+  `;
+
+  $('#cl').onclick=()=>dlg.close();
+
+  dlg.showModal();
+}
+
+const pos=v=>{
+  const n=parseFloat(
+    String(v).replace(',','.')
+  );
+
+  return isFinite(n)?n:NaN;
+};
+
 document.addEventListener('click',e=>{
-  const t=e.target.closest('button');if(!t)return;
+
+  const t=e.target.closest('button');
+
+  if(!t)return;
+
   const P=S.p[S.sel];
-  if(t.classList.contains('tab')){S.sel=+t.dataset.i;save();render()}
-  else if(t.id==='notif'){Notification.requestPermission().then(render)}
-  else if(t.id==='ren'){form('Nombre de la persona',[{id:'n',l:'Nombre',t:'text',v:P.name}],v=>{if(!v.n.trim())return'Escribe un nombre.';P.name=v.n.trim();save();render()})}
+
+  if(t.classList.contains('tab')){
+
+    S.sel=+t.dataset.i;
+    save();
+    render();
+
+  }
+
+  else if(t.id==='notif'){
+
+    Notification.requestPermission().then(render);
+
+  }
+
+  else if(t.id==='ren'){
+
+    dlg.innerHTML=`
+      <form method="dialog" id="renameForm">
+        <h2>Nombre de la persona</h2>
+
+        <label for="rename">
+          Nombre
+        </label>
+
+        <input
+          id="rename"
+          type="text"
+          value="${esc(P.name)}">
+
+        <p class="err" id="renameErr"></p>
+
+        <div class="stack">
+          <button class="btn" type="submit">
+            Guardar
+          </button>
+
+          <button
+            class="btn ghost"
+            type="button"
+            id="renameNo">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    `;
+
+    $('#renameNo').onclick=()=>dlg.close();
+
+    $('#renameForm').onsubmit=e=>{
+
+      e.preventDefault();
+
+      const n=$('#rename').value.trim();
+
+      if(!n){
+        $('#renameErr').textContent=
+          'Escribe un nombre.';
+        return;
+      }
+
+      P.name=n;
+      save();
+      render();
+      dlg.close();
+    };
+
+    dlg.showModal();
+
+  }
+
   else if(t.id==='share'){
-    const txt='Resumen de medicinas de '+P.name+':\n\n'+summaryText(P);
-    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+
+    const txt=
+      'Resumen de medicinas de '+
+      P.name+
+      ':\n\n'+
+      summaryText(P);
+
+    window.open(
+      'https://wa.me/?text='+
+      encodeURIComponent(txt),
+      '_blank'
+    );
+
   }
+
   else if(t.id==='exp'){
-    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+
+    const blob=new Blob(
+      [JSON.stringify(S,null,2)],
+      {type:'application/json'}
+    );
+
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='pastillas-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+    const a=document.createElement('a');
+
+    a.href=url;
+
+    a.download=
+      'pastillas-respaldo-'+
+      new Date().toISOString().slice(0,10)+
+      '.json';
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(
+      ()=>URL.revokeObjectURL(url),
+      2000
+    );
+
   }
-  else if(t.id==='imp'){$('#impFile').click()}
+
+  else if(t.id==='imp'){
+
+    $('#impFile').click();
+
+  }
+
   else if(t.id==='add'){
-    form('Agregar medicina',medFields('','','1',{type:'daily'},['08:00']),v=>{
-      const err=validateMed(v);if(err)return err;
-      P.meds.push({name:v.n.trim(),base:pos(v.q),dose:pos(v.d),times:parseTimes(v.h),schedule:v.sch,t0:Date.now()});save();render();
-    },'Agregar');
+
+    medForm(
+      'Agregar medicina',
+      null,
+      v=>{
+
+        const m={
+          name:v.name,
+          base:v.base,
+          consumptions:v.consumptions,
+          t0:Date.now()
+        };
+
+        P.meds.push(m);
+
+        save();
+        render();
+
+      },
+      'Agregar'
+    );
+
   }
+
   else if(t.dataset.a){
+
     const m=P.meds[+t.dataset.i];
+
     if(t.dataset.a==='box'){
-      form('Compré: '+esc(m.name),[
-        {id:'boxes',l:'¿Cuántas cajas/empaques compraste?',v:'1'},
-        {id:'q',l:'¿Cuántas pastillas trae cada una?',ph:'Ej. 30'}
-      ],v=>{
-        const boxes=pos(v.boxes),q=pos(v.q);
-        if(!(boxes>0))return'Escribe cuántas cajas compraste.';
-        if(!(q>0))return'Escribe cuántas pastillas trae cada caja.';
-        const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
-      },'Sumar pastillas');
-    }else if(t.dataset.a==='edit'){
+
+      dlg.innerHTML=`
+
+        <form method="dialog" id="buyForm">
+
+          <h2>
+            Compré: ${esc(m.name)}
+          </h2>
+
+          <label for="boxes">
+            ¿Cuántas cajas/empaques compraste?
+          </label>
+
+          <input
+            id="boxes"
+            type="number"
+            step="1"
+            min="1"
+            value="1">
+
+          <label for="boxQty">
+            ¿Cuántas pastillas trae cada una?
+          </label>
+
+          <input
+            id="boxQty"
+            type="number"
+            step="0.25"
+            min="0"
+            placeholder="Ej. 30">
+
+          <p class="err" id="buyErr"></p>
+
+          <div class="stack">
+
+            <button class="btn" type="submit">
+              Sumar pastillas
+            </button>
+
+            <button
+              class="btn ghost"
+              type="button"
+              id="buyNo">
+              Cancelar
+            </button>
+
+          </div>
+
+        </form>
+      `;
+
+      $('#buyNo').onclick=()=>dlg.close();
+
+      $('#buyForm').onsubmit=e=>{
+
+        e.preventDefault();
+
+        const boxes=pos($('#boxes').value);
+        const q=pos($('#boxQty').value);
+
+        if(!(boxes>0)){
+          $('#buyErr').textContent=
+            'Escribe cuántas cajas compraste.';
+          return;
+        }
+
+        if(!(q>0)){
+          $('#buyErr').textContent=
+            'Escribe cuántas pastillas trae cada caja.';
+          return;
+        }
+
+        const c=calc(m);
+
+        /*
+          El inventario actual ya está calculado.
+          Lo nuevo se suma a ese inventario.
+        */
+        m.base=c.rem+boxes*q;
+        m.t0=Date.now();
+
+        save();
+        render();
+
+        dlg.close();
+
+        setTimeout(
+          ()=>result(m),
+          50
+        );
+      };
+
+      dlg.showModal();
+
+    }
+
+    else if(t.dataset.a==='edit'){
+
       const c=calc(m);
-      form('Editar: '+esc(m.name),medFields(m.name,c.rem,m.dose,m.schedule||{type:'daily'},m.times),v=>{
-        const err=validateMed(v);if(err)return err;
-        m.name=v.n.trim();m.base=pos(v.q);m.dose=pos(v.d);m.times=parseTimes(v.h);m.schedule=v.sch;m.t0=Date.now();
-        save();render();
-      },'Guardar cambios');
-    }else if(t.dataset.a==='fix'){
-      form('Corregir cantidad: '+esc(m.name),[{id:'q',l:'Cuente las pastillas que hay y escriba el número',v:calc(m).rem}],v=>{
-        const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe un número.';
-        m.base=q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
-      },'Corregir');
-    }else if(t.dataset.a==='del'){
-      form('¿Borrar '+esc(m.name)+'?',[],()=>{P.meds.splice(+t.dataset.i,1);save();render()},'Sí, borrar');
+
+      /*
+        Al editar se parte del inventario actual.
+      */
+      const temp={
+        name:m.name,
+        base:c.rem,
+        consumptions:m.consumptions
+      };
+
+      medForm(
+        'Editar: '+m.name,
+        temp,
+        v=>{
+
+          m.name=v.name;
+          m.base=v.base;
+          m.consumptions=v.consumptions;
+          m.t0=Date.now();
+
+          save();
+          render();
+
+        },
+        'Guardar cambios'
+      );
+
+    }
+
+    else if(t.dataset.a==='fix'){
+
+      dlg.innerHTML=`
+
+        <form method="dialog" id="fixForm">
+
+          <h2>
+            Corregir cantidad: ${esc(m.name)}
+          </h2>
+
+          <label for="fixQty">
+            Cuente las pastillas que hay y escriba el número
+          </label>
+
+          <input
+            id="fixQty"
+            type="number"
+            step="0.25"
+            min="0"
+            value="${calc(m).rem}">
+
+          <p class="err" id="fixErr"></p>
+
+          <div class="stack">
+
+            <button class="btn" type="submit">
+              Corregir
+            </button>
+
+            <button
+              class="btn ghost"
+              type="button"
+              id="fixNo">
+              Cancelar
+            </button>
+
+          </div>
+
+        </form>
+      `;
+
+      $('#fixNo').onclick=()=>dlg.close();
+
+      $('#fixForm').onsubmit=e=>{
+
+        e.preventDefault();
+
+        const q=pos($('#fixQty').value);
+
+        if(!(q>=0)||$('#fixQty').value===''){
+          $('#fixErr').textContent=
+            'Escribe un número.';
+          return;
+        }
+
+        m.base=q;
+        m.t0=Date.now();
+
+        save();
+        render();
+
+        dlg.close();
+
+        setTimeout(
+          ()=>result(m),
+          50
+        );
+      };
+
+      dlg.showModal();
+
+    }
+
+    else if(t.dataset.a==='del'){
+
+      dlg.innerHTML=`
+
+        <form method="dialog" id="deleteForm">
+
+          <h2>
+            ¿Borrar ${esc(m.name)}?
+          </h2>
+
+          <p>
+            Se eliminará la medicina y todos sus consumos.
+          </p>
+
+          <div class="stack">
+
+            <button
+              class="btn"
+              type="submit">
+              Sí, borrar
+            </button>
+
+            <button
+              class="btn ghost"
+              type="button"
+              id="deleteNo">
+              Cancelar
+            </button>
+
+          </div>
+
+        </form>
+      `;
+
+      $('#deleteNo').onclick=()=>dlg.close();
+
+      $('#deleteForm').onsubmit=e=>{
+
+        e.preventDefault();
+
+        P.meds.splice(
+          +t.dataset.i,
+          1
+        );
+
+        save();
+        render();
+        dlg.close();
+      };
+
+      dlg.showModal();
     }
   }
 });
 
+/*
+  Importación con migración del formato anterior.
+*/
 $('#impFile').addEventListener('change',e=>{
-  const file=e.target.files[0];if(!file)return;
+
+  const file=e.target.files[0];
+
+  if(!file)return;
+
   const reader=new FileReader();
+
   reader.onload=()=>{
+
     let data;
-    try{data=JSON.parse(reader.result);if(!data||!Array.isArray(data.p))throw 0}
-    catch(err){
-      dlg.innerHTML='<h2>Archivo no válido</h2><p>Ese archivo no parece un respaldo de Mis pastillas.</p><div class="stack"><button class="btn ghost" id="cl2">Cerrar</button></div>';
-      $('#cl2').onclick=()=>dlg.close();dlg.showModal();return;
+
+    try{
+
+      data=JSON.parse(reader.result);
+
+      if(!data||!Array.isArray(data.p)){
+        throw 0;
+      }
+
+      /*
+        Convierte medicinas del formato viejo:
+          dose + schedule + times
+
+        al nuevo:
+          consumptions:[{dose,schedule,times}]
+      */
+      data.p.forEach(P=>{
+
+        (P.meds||[]).forEach(m=>{
+
+          if(!Array.isArray(m.consumptions)){
+
+            m.consumptions=[{
+              dose:+m.dose||1,
+              schedule:m.schedule||{type:'daily'},
+              times:m.times||['08:00']
+            }];
+
+            delete m.dose;
+            delete m.schedule;
+            delete m.times;
+          }
+
+        });
+
+      });
+
+    }catch(err){
+
+      dlg.innerHTML=`
+
+        <h2>Archivo no válido</h2>
+
+        <p>
+          Ese archivo no parece un respaldo
+          de Mis pastillas.
+        </p>
+
+        <div class="stack">
+
+          <button
+            class="btn ghost"
+            id="cl2">
+            Cerrar
+          </button>
+
+        </div>
+      `;
+
+      $('#cl2').onclick=()=>dlg.close();
+
+      dlg.showModal();
+
+      return;
     }
-    form('¿Restaurar este respaldo?',[],()=>{
-      S=data;if(typeof S.sel!=='number'||!S.p[S.sel])S.sel=0;if(typeof S.last!=='string')S.last='';
-      save();render();
-    },'Sí, restaurar (reemplaza todo)');
+
+    dlg.innerHTML=`
+
+      <form method="dialog" id="restoreForm">
+
+        <h2>
+          ¿Restaurar este respaldo?
+        </h2>
+
+        <p>
+          Esto reemplazará todos los datos actuales.
+        </p>
+
+        <div class="stack">
+
+          <button
+            class="btn"
+            type="submit">
+            Sí, restaurar
+          </button>
+
+          <button
+            class="btn ghost"
+            type="button"
+            id="restoreNo">
+            Cancelar
+          </button>
+
+        </div>
+
+      </form>
+    `;
+
+    $('#restoreNo').onclick=()=>dlg.close();
+
+    $('#restoreForm').onsubmit=e=>{
+
+      e.preventDefault();
+
+      S=data;
+
+      if(
+        typeof S.sel!=='number' ||
+        !S.p[S.sel]
+      ){
+        S.sel=0;
+      }
+
+      if(typeof S.last!=='string'){
+        S.last='';
+      }
+
+      save();
+      render();
+      dlg.close();
+    };
+
+    dlg.showModal();
   };
+
   reader.readAsText(file);
+
   e.target.value='';
 });
 
 render();
-setInterval(()=>{if(!dlg.open)render()},60000);
+
+setInterval(()=>{
+  if(!dlg.open)render();
+},60000);
 </script>
+
 </body>
 </html>
