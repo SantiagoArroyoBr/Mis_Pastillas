@@ -123,7 +123,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 </head>
 <body>
 <header>
-  <h1>🗓️ Cuidados <small style="font-size:13px;font-weight:700;opacity:.7">v7</small></h1>
+  <h1>🗓️ Cuidados <small style="font-size:13px;font-weight:700;opacity:.7">v8</small></h1>
   <div class="modes" id="modes"></div>
   <div class="tabs" role="tablist" id="tabs"></div>
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
@@ -316,7 +316,7 @@ const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente
 const WD_LONG=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const TIMES={full:'Tiempo completo',half:'Medio tiempo'};
-const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','Pagar ya'],gray:['–','Sin pagos']};
+const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','Se debe'],gray:['–','Sin configurar']};
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const pd=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d)};
 const fmtD=ds=>pd(ds).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
@@ -330,25 +330,36 @@ const nurList=i=>S.pay.nurses[i]||[];
 const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A'};
 const nextColor=i=>{const used=new Set(nurList(i).map(x=>x.c));return NPAL.find(c=>!used.has(c))||NPAL[nurList(i).length%NPAL.length]};
 
-// Cobertura: los días pagados (suma de todos los pagos) se van gastando, en orden, en los días con enfermero registrado desde la fecha de inicio
+// Cuenta: los días pagados (suma de todos los pagos) se gastan, en orden, en los días con enfermero registrado desde la fecha de inicio.
+// Lo que se debe = días con enfermero registrado, hasta hoy, que ya no alcanzan a cubrirse con lo pagado.
 function cover(i){
   const c=cfg(i);
   const total=c.pays.filter(x=>!x.old).reduce((s2,x)=>s2+x.n,0);
-  const out={has:false,total,dates:[],covered:new Set(),unpaid:[],unused:0,remaining:0,unpaidDue:[],st:'gray',msg:'',lastCovered:''};
-  if(!c.base||!total)return out;
+  const out={has:false,total,dates:[],covered:new Set(),unpaid:[],unused:0,remaining:0,unpaidDue:[],owed:0,future:0,st:'gray',msg:'',lastCovered:''};
+  if(!c.base)return out;
   const today=ymd(new Date());
   const dates=Object.keys(S.pay.v).filter(k=>k>=c.base&&ents(k,i).length).sort();
   const cov=dates.slice(0,total);
   const unpaid=dates.slice(total);
   const unused=Math.max(0,total-dates.length);
   const unpaidDue=unpaid.filter(k=>k<=today);
+  const owed=unpaidDue.length;
+  const future=unpaid.length-owed;
   const remaining=cov.filter(k=>k>=today).length+unused;
-  const n=unpaidDue.length;
-  let st,msg;
-  if(n){st='red';msg='hay '+n+' día'+(n>1?'s':'')+' con enfermero sin pagar'}
-  else if(remaining<=0){st='red';msg='ya no quedan días pagados'}
-  else{msg=remaining===1?'queda 1 día pagado':'quedan '+remaining+' días pagados';st=remaining<=1?'red':remaining<=c.lead?'amber':'green'}
-  return{has:true,total,dates,covered:new Set(cov),unpaid,unused,remaining,unpaidDue,st,msg,lastCovered:(unused===0&&cov.length)?cov[cov.length-1]:''};
+  const st=owed?'red':'green';
+  const msg=owed?'se deben '+owed+' día'+(owed>1?'s':''):'al corriente';
+  return{has:true,total,dates,covered:new Set(cov),unpaid,unused,remaining,unpaidDue,owed,future,st,msg,lastCovered:(unused===0&&cov.length)?cov[cov.length-1]:''};
+}
+
+// Lo que se debe, por enfermero
+function oweSummary(i){
+  const c=cfg(i),cv=cover(i);
+  const by=new Map();
+  cv.unpaidDue.forEach(k=>ents(k,i).forEach(e=>{
+    let o=by.get(e.n);if(!o){o={n:e.n,c:0,amt:0};by.set(e.n,o)}
+    o.c++;if(c.rate!=null)o.amt+=c.rate;
+  }));
+  return{rows:[...by.values()].sort((a,b)=>a.n.localeCompare(b.n,'es'))};
 }
 
 // Resumen por enfermero de los días cubiertos por el último pago
@@ -381,18 +392,7 @@ function pillEv(i){
   return map;
 }
 
-// Evento único en Calendario para cuando falten pocos días pagados (según los días registrados). No incluye montos.
-function payCalUrl(i){
-  const c=cfg(i),cv=cover(i);
-  if(!cv.lastCovered)return'';
-  const st=pd(cv.lastCovered);st.setDate(st.getDate()-c.lead);st.setHours(9,0,0,0);
-  if(st.getTime()<Date.now())return'';
-  const en=new Date(st.getTime()+30*60e3);
-  const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Pago de enfermería ('+S.p[i].name+'): se acaban los días pagados')+'&dates='+f(st)+'/'+f(en)+'&details='+encodeURIComponent('Quedan unos '+c.lead+' días pagados, según los días con enfermero registrados.');
-}
-
-// Pacientes con el pago por vencer o vencido
+// Pacientes a los que se les debe
 function payDue(){
   const out=[];
   S.p.forEach((p,i)=>{const c=cfg(i);if(!c.who)return;const cv=cover(i);if(cv.st==='red'||cv.st==='amber')out.push({p,i,c,cv})});
@@ -450,21 +450,22 @@ function calHTML(i){
   const title=first.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const pe=pillEv(i);
   const apS=new Set(S.appts.filter(a=>a.i===i).map(a=>a.d));
+  const unS=new Set(cv.unpaidDue);
   let cells=['L','M','M','J','V','S','D'].map(x=>`<div class="wh">${x}</div>`).join('');
   for(let k=0;k<lead;k++)cells+='<div></div>';
   for(let dn=1;dn<=dim;dn++){
     const d=new Date(y,m,dn),ds=ymd(d),es=ents(ds,i),ev=pe[ds];
-    const paid=cv.covered.has(ds),firstUnp=cv.has&&cv.unpaid[0]===ds;
+    const paid=cv.covered.has(ds),firstUnp=unS.has(ds);
     const hasA=apS.has(ds);
     const mk=[paid?'✓':'',firstUnp?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
     const chips=es.slice(0,3).map(e=>`<span class="chip" style="background:${nurColor(i,e.n)}">${esc(e.n)}</span>`).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
-    const notes=[paid?'día pagado':'',firstUnp?'primer día sin pagar':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
+    const notes=[paid?'día pagado':'',firstUnp?'día sin pagar':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
     const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.map(e=>e.n).join(', '):'');
     cells+=`<button class="cell${ds===todayS?' today':''}${paid?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
   }
   return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
-    <p class="hint">✓ día pagado (verde) · 💵 primer día sin pagar · 🛒 comprar medicinas o insumos · ⚠️ se acaban · 🩺 cita médica · los colores son los enfermeros (${TIMES[c.time].toLowerCase()}). Toca un día para ver el detalle y asignar.</p>`;
+    <p class="hint">✓ día pagado (verde) · 💵 día sin pagar · 🛒 comprar medicinas o insumos · ⚠️ se acaban · 🩺 cita médica · los colores son los enfermeros (${TIMES[c.time].toLowerCase()}). Toca un día para ver el detalle y asignar.</p>`;
 }
 
 // ---------- PAGOS (una tarjeta por paciente) ----------
@@ -477,31 +478,39 @@ function patientHTML(p,i){
   if(!conf){
     return `<article class="card gray">
       <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3></div>
-      <p class="info">Aún no hay un pago configurado para ${esc(p.name)}. Anota a quién se le paga y el tipo de turno de sus enfermeros.</p>
+      <p class="info">Aún no hay un pago configurado para ${esc(p.name)}. Anota a quién se le paga, el tipo de turno de sus enfermeros y desde cuándo se cuentan los días.</p>
       <button class="btn" data-pa="cfg" data-i="${i}">Configurar pago</button>
       ${nurH}${ren}
     </article>`;
   }
   const cv=cover(i),[ic,tx]=PLBL[cv.st];
-  const lp=lastPay(i);
+  const lp=lastPay(i),ow=oweSummary(i);
   const anyAmt=c.rate!=null||c.pays.some(x=>x.a!=null);
-  const hist=c.pays.map((x,k)=>({x,k})).slice(-5).reverse().map(({x,k})=>`<div class="vrow"><div>${x.d?esc(fmtD(x.d)):'—'} · <b>${x.n} día${x.n>1?'s':''}</b>${x.old?' <span class="hint">(conteo anterior)</span>':''}${x.a!=null?`<br><span class="amtv">${A(x.a)}</span>`:''}</div><button class="link" data-pa="pdel" data-i="${i}" data-k="${k}">Quitar</button></div>`).join('');
-  const url=payCalUrl(i);
+  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+  const head=cv.has
+    ? `<p class="big">${cv.owed} <small>${cv.owed===1?'día sin pagar':'días sin pagar'}</small></p>
+      ${c.rate!=null?`<p class="info">Se debe: <b>${A(cv.owed*c.rate)}</b> <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver monto'}</button></p>`:''}
+      <p class="info"><span class="hint">${cv.remaining>0?'Hay '+pl(cv.remaining,'día')+' pagado'+(cv.remaining===1?'':'s')+' por delante. ':''}${cv.future?'Hay '+pl(cv.future,'día')+' asignado'+(cv.future===1?'':'s')+' más adelante sin pagar. ':''}Se cuentan los días con enfermero registrado desde el ${esc(fmtD(c.base))}.</span></p>`
+    : '<p class="info">Indica desde cuándo se cuentan los días: toca “Editar pago”.</p>';
+  const oweH=(cv.has&&cv.owed)
+    ? `<p class="info" style="margin-top:6px"><b>Lo que se debe, por enfermero</b></p>`
+      +ow.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'día')}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
+    : '';
+  const hist=c.pays.map((x,k)=>({x,k})).slice(-5).reverse().map(({x,k})=>`<div class="vrow"><div>${x.d?esc(fmtD(x.d)):'—'} · <b>${pl(x.n,'día')}</b>${x.old?' <span class="hint">(conteo anterior)</span>':''}${x.a!=null?`<br><span class="amtv">${A(x.a)}</span>`:''}</div><button class="link" data-pa="pdel" data-i="${i}" data-k="${k}">Quitar</button></div>`).join('');
   const sumH=lp
-    ? `<p class="info" style="margin-top:14px"><b>Resumen del último pago</b> <span class="hint">(${lp.n} día${lp.n>1?'s':''})</span></p>`
+    ? `<p class="info" style="margin-top:14px"><b>Resumen del último pago</b> <span class="hint">(${pl(lp.n,'día')})</span></p>`
       +(lp.rows.length
-        ? lp.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${o.c} día${o.c>1?'s':''}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
+        ? lp.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'día')}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
           +(c.rate!=null?`<div class="vrow"><b>Total estimado</b><span class="amtv">${A(lp.total)}</span></div>`:'')
         : '<p class="hint">Aún no hay enfermeros registrados en esos días.</p>')
     : '';
   return `<article class="card ${cv.st}">
     <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><span class="badge">${ic} ${tx}</span></div>
     <p class="info">Se le paga a <b>${esc(c.who)}</b>. Enfermeros de <b>${TIMES[c.time].toLowerCase()}</b>.${c.note?'<br><span class="hint">'+esc(c.note)+'</span>':''}</p>
-    ${cv.has
-      ? `<p class="info"><b>${cv.msg.charAt(0).toUpperCase()+cv.msg.slice(1)}.</b>${cv.lastCovered?'<br>Lo registrado está pagado hasta el <b>'+esc(fmtD(cv.lastCovered))+'</b>.':''}<br><span class="hint">Cuenta los días con enfermero registrado.</span></p>`
-      : '<p class="info">Aún no hay pagos registrados.</p>'}
-    <button class="btn" data-pa="payreg" data-i="${i}">Registrar pago</button>
-    <div class="row"><button class="btn ghost small" data-pa="cfg" data-i="${i}">Editar pago</button>${url?`<a class="btn cal small" target="_blank" rel="noopener" href="${url}">📅 Avisarme</a>`:''}</div>
+    ${head}
+    ${oweH}
+    <button class="btn" style="margin-top:10px" data-pa="payreg" data-i="${i}">Registrar pago</button>
+    <div class="row"><button class="btn ghost small" data-pa="cfg" data-i="${i}">Editar pago</button></div>
     ${c.pays.length?`<p class="info" style="margin-top:14px"><b>Pagos registrados</b>${anyAmt?` <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button>`:''}</p>${hist}<button class="link" data-pa="creset" data-i="${i}">Empezar un conteo nuevo…</button>`:''}
     ${nurH}
     ${sumH}
@@ -518,8 +527,8 @@ function payForm(i){
   form((c.who?'Editar pago: ':'Configurar pago: ')+esc(p.name),[
     {id:'w',l:'¿A quién se le paga?',t:'text',ph:'Ej. enfermera jefa',v:c.who},
     {id:'tm',l:'Tipo de turno de los enfermeros de '+esc(p.name),t:'text',v:TIMES[c.time],presets:[{l:TIMES.full,v:TIMES.full},{l:TIMES.half,v:TIMES.half}],h:'Es fijo para todos sus enfermeros. Si cambia, cambia para todos.'},
-    {id:'rt',l:'Monto por día (opcional)',v:c.rate==null?'':c.rate,h:'Queda oculto en pantalla. Sirve para estimar totales.'},
-    {id:'ld',l:'Avisar cuando queden este número de días pagados',v:c.lead},
+    {id:'rt',l:'Monto por día (opcional)',v:c.rate==null?'':c.rate,h:'Queda oculto en pantalla. Con esto se calcula cuánto se debe.'},
+    {id:'fd',l:'Contar los días desde',t:'date',v:c.base||ymd(new Date()),h:'Se cuentan los días con enfermero registrado desde esta fecha. Lo ya pagado se va descontando en orden.'},
     {id:'nt',l:'Nota (opcional)',t:'text',ph:'Ej. se paga en efectivo',v:c.note}
   ],v=>{
     if(!v.w.trim())return'Escribe a quién se le paga.';
@@ -527,20 +536,19 @@ function payForm(i){
     if(!tm)return'Elige el tipo de turno con los botones.';
     let rate=null;
     if(String(v.rt).trim()!==''){rate=pos(v.rt);if(!(rate>=0))return'El monto por día debe ser un número (o déjalo vacío).'}
-    const ld=pos(v.ld);
-    if(!(ld>=1&&ld<=14&&Number.isInteger(ld)))return'El aviso debe ser un número de días entre 1 y 14.';
-    c.who=v.w.trim().slice(0,60);c.time=tm;c.rate=rate;c.lead=ld;c.note=v.nt.trim().slice(0,100);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
+    c.who=v.w.trim().slice(0,60);c.time=tm;c.rate=rate;c.base=v.fd;c.note=v.nt.trim().slice(0,100);
     save();render();
   },'Guardar');
   $('#tm').readOnly=true;
 }
 
-// Registrar un pago por adelantado: cuántos días cubre
+// Registrar un pago: cuántos días cubre (por defecto, los que se deben ahora; también puede ser por adelantado)
 function payRegForm(i){
-  const p=S.p[i],c=cfg(i);
+  const p=S.p[i],c=cfg(i),cv=cover(i);
   const fields=[
-    {id:'n',l:'¿Cuántos días se pagaron?',v:'',h:'Cuenta los días con enfermero registrado.'},
-    {id:'a',l:'Monto pagado (opcional)',v:'',h:'Queda oculto en pantalla.'}
+    {id:'n',l:'¿Cuántos días se pagaron?',v:cv.owed?String(cv.owed):'',h:cv.owed?'Se sugieren los '+cv.owed+' día'+(cv.owed===1?'':'s')+' que se deben ahora. Puede ser más si se paga por adelantado.':'Cuenta los días con enfermero registrado.'},
+    {id:'a',l:'Monto pagado (opcional)',v:(cv.owed&&c.rate!=null)?String(cv.owed*c.rate):'',h:'Queda oculto en pantalla.'}
   ];
   if(!c.base)fields.push({id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los días con enfermero registrado desde esta fecha se irán descontando de lo pagado.'});
   form('Registrar pago: '+esc(p.name),fields,v=>{
