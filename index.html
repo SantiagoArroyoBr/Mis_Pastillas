@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Mis pastillas</title>
+<title>Cuidados</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14284B">
 <link rel="manifest" href="manifest.json">
@@ -115,11 +115,15 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .cell.today{background:#EAF0FF}
 .cell.buy{border-color:var(--amber);border-width:3px}
 .cell.end{border-color:var(--red);border-width:3px}
+.cell.paid{background:#E3F4E8}
+.vrow.past{opacity:.65}
+.sidebtns{display:flex;flex-direction:column;gap:6px}
+.sidebtns .btn{width:auto;min-width:96px}
 </style>
 </head>
 <body>
 <header>
-  <h1>💊 Mis pastillas <small style="font-size:13px;font-weight:700;opacity:.7">v5 · aviso 2 días</small></h1>
+  <h1>🗓️ Cuidados <small style="font-size:13px;font-weight:700;opacity:.7">v7</small></h1>
   <div class="modes" id="modes"></div>
   <div class="tabs" role="tablist" id="tabs"></div>
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
@@ -131,6 +135,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
   <button class="btn ghost small share" id="share">📲 Compartir resumen por WhatsApp</button>
   <section id="list"></section>
   <button class="btn add" id="add">+ Agregar medicina</button>
+  <button class="btn add" id="addsup">+ Agregar insumo (pañales, gasas…)</button>
   </div>
   <div id="homeView" hidden></div>
   <div id="payView" hidden></div>
@@ -191,6 +196,32 @@ function migrate(d){
     return null;
   }).filter(Boolean):[]);
   if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
+  const defShifts=()=>[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
+  const normShifts=a=>{
+    const o=(Array.isArray(a)?a:[]).filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
+    return o.length?o:defShifts();
+  };
+  if(!Array.isArray(z.cfg)){ // formato anterior: un solo pago para todos; se copia a cada paciente
+    z.cfg=(d.p||[]).map(()=>({who:z.who,day:z.day,note:z.note,paid:z.paid,shifts:normShifts(z.shifts)}));
+  }
+  z.cfg=(d.p||[]).map((_,i)=>{
+    const c=(z.cfg[i]&&typeof z.cfg[i]==='object')?z.cfg[i]:{};
+    const pays=(Array.isArray(c.pays)?c.pays:[]).filter(x=>x&&Number.isInteger(+x.n)&&+x.n>=1).map(x=>({d:typeof x.d==='string'?x.d:'',n:+x.n,a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a,old:!!x.old}));
+    const ld=Math.floor(+c.lead);
+    const rt=(c.rate===null||c.rate===undefined||c.rate===''||!isFinite(+c.rate))?null:+c.rate;
+    return{
+      who:typeof c.who==='string'?c.who:'',
+      note:typeof c.note==='string'?c.note:'',
+      lead:(ld>=1&&ld<=14)?ld:2,
+      base:(typeof c.base==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.base))?c.base:'',
+      pays,
+      time:c.time==='half'?'half':'full',
+      rate:rt
+    };
+  });
+  delete z.who;delete z.day;delete z.note;delete z.paid;delete z.shifts;
+  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
+  (d.p||[]).forEach(p=>p.meds.forEach(m=>{if(m.kind!=='sup')delete m.kind}));
   if(!['home','meds','pay'].includes(d.mode))d.mode='home';
   return d;
 }
@@ -264,6 +295,7 @@ function calc(m,now=Date.now()){
 const fmt=ms=>new Date(ms).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
 const num=n=>String(n).replace('.',',');
 function consText(m){
+  if(m.kind==='sup'){const c=m.cons[0]||{dose:1};return 'Uso: '+num(c.dose)+' pieza'+(c.dose==1?'':'s')+' al día'}
   const one=m.cons.length===1;
   return m.cons.map(c=>(one?'':'• ')+'Toma '+num(c.dose)+' pastilla'+(c.dose==1?'':'s')+', '+schedText(c.schedule)+', a las '+c.times.join(', ')).join('<br>');
 }
@@ -279,56 +311,59 @@ function calUrl(title,buyMs,details){
 const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente']};
 
 // ================= PAGOS E INICIO (solo recordatorios; no se paga desde la app) =================
-// Un solo pago semanal a la jefa. Los enfermeros (con color) se crean en Pagos y se asignan a días en Inicio.
+// Se paga por adelantado un número de días que varía. Un día cuenta como día pagado cuando tiene un enfermero registrado.
+// Cada paciente tiene su pago, su tipo de turno fijo (tiempo completo o medio tiempo), sus enfermeros (con color) y su calendario.
 const WD_LONG=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-const PLBL={green:['✓','Bien'],amber:['!','Pagar pronto'],red:['✕','Hoy toca pagar'],paid:['✓','Pagado']};
+const TIMES={full:'Tiempo completo',half:'Medio tiempo'};
+const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','Pagar ya'],gray:['–','Sin pagos']};
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const pd=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d)};
+const fmtD=ds=>pd(ds).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
 const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
-const sd=d=>WD_SHORT[d.getDay()]+' '+d.getDate()+' '+MES[d.getMonth()];
-const cuando=dd=>dd===0?'hoy':dd===1?'mañana':'en '+dd+' días';
-let showT=0,payOff=0,calM=0,homeP=-1;
+let showT=0,calM=0,homeP=-1;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
-const shName=id=>{const x=S.pay.shifts.find(y=>y.id===id);return x?x.n:'(turno eliminado)'};
-const shIdx=id=>S.pay.shifts.findIndex(y=>y.id===id);
+const cfg=i=>S.pay.cfg[i]||(S.pay.cfg[i]={who:'',note:'',lead:2,base:'',pays:[],time:'full',rate:null});
 const ents=(ds,i)=>{const a=(S.pay.v[ds]||{})[i];return Array.isArray(a)?a.filter(e=>e&&typeof e.n==='string'):[]};
 const nurList=i=>S.pay.nurses[i]||[];
 const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A'};
 const nextColor=i=>{const used=new Set(nurList(i).map(x=>x.c));return NPAL.find(c=>!used.has(c))||NPAL[nurList(i).length%NPAL.length]};
 
-// Fecha fija: el próximo pago es el siguiente día elegido, se haya pagado o no
-function payInfo(now=new Date()){
-  const z=S.pay;
-  const t=new Date(now);t.setHours(0,0,0,0);
-  const dd=(z.day-t.getDay()+7)%7;
-  const due=new Date(t);due.setDate(due.getDate()+dd);
-  const ds=ymd(due);
-  const paid=z.paid===ds;
-  const st=paid?'green':dd===0?'red':dd<=2?'amber':'green';
-  return{dd,due,ds,paid,st};
+// Cobertura: los días pagados (suma de todos los pagos) se van gastando, en orden, en los días con enfermero registrado desde la fecha de inicio
+function cover(i){
+  const c=cfg(i);
+  const total=c.pays.filter(x=>!x.old).reduce((s2,x)=>s2+x.n,0);
+  const out={has:false,total,dates:[],covered:new Set(),unpaid:[],unused:0,remaining:0,unpaidDue:[],st:'gray',msg:'',lastCovered:''};
+  if(!c.base||!total)return out;
+  const today=ymd(new Date());
+  const dates=Object.keys(S.pay.v).filter(k=>k>=c.base&&ents(k,i).length).sort();
+  const cov=dates.slice(0,total);
+  const unpaid=dates.slice(total);
+  const unused=Math.max(0,total-dates.length);
+  const unpaidDue=unpaid.filter(k=>k<=today);
+  const remaining=cov.filter(k=>k>=today).length+unused;
+  const n=unpaidDue.length;
+  let st,msg;
+  if(n){st='red';msg='hay '+n+' día'+(n>1?'s':'')+' con enfermero sin pagar'}
+  else if(remaining<=0){st='red';msg='ya no quedan días pagados'}
+  else{msg=remaining===1?'queda 1 día pagado':'quedan '+remaining+' días pagados';st=remaining<=1?'red':remaining<=c.lead?'amber':'green'}
+  return{has:true,total,dates,covered:new Set(cov),unpaid,unused,remaining,unpaidDue,st,msg,lastCovered:(unused===0&&cov.length)?cov[cov.length-1]:''};
 }
 
-// Semana de pago: desde el día siguiente al último pago hasta hoy (si hoy es día de pago, los 7 días que terminan hoy)
-function periodDays(off){
-  const t=new Date();t.setHours(0,0,0,0);
-  const dd=(t.getDay()-S.pay.day+7)%7;
-  const end=new Date(t);let len;
-  if(off===0){len=dd===0?7:dd}
-  else{end.setDate(end.getDate()-dd-7*(off-1)-(dd===0?7:0));len=7}
-  const out=[];
-  for(let k=0;k<len;k++){const d=new Date(end);d.setDate(d.getDate()-k);out.push(d)}
-  return out; // del más reciente al más antiguo
-}
-
-function summary(i,days){
-  const by=new Map();let total=0,count=0;
-  days.forEach(d=>ents(ymd(d),i).forEach(e=>{
-    let o=by.get(e.n);if(!o){o={n:e.n,c:new Map(),amt:0};by.set(e.n,o)}
-    o.c.set(e.s,(o.c.get(e.s)||0)+1);count++;
-    const x=S.pay.shifts.find(y=>y.id===e.s);if(x&&x.a!=null){o.amt+=x.a;total+=x.a}
+// Resumen por enfermero de los días cubiertos por el último pago
+function lastPay(i){
+  const c=cfg(i),cv=cover(i);
+  const act=c.pays.filter(x=>!x.old);
+  if(!cv.has||!act.length)return null;
+  const n=act[act.length-1].n;
+  const dates=cv.dates.slice(Math.max(0,cv.total-n),cv.total);
+  const by=new Map();let total=0;
+  dates.forEach(k=>ents(k,i).forEach(e=>{
+    let o=by.get(e.n);if(!o){o={n:e.n,c:0,amt:0};by.set(e.n,o)}
+    o.c++;if(c.rate!=null){o.amt+=c.rate;total+=c.rate}
   }));
-  return{rows:[...by.values()].sort((a,b)=>a.n.localeCompare(b.n,'es')),total,count};
+  return{n,rows:[...by.values()].sort((a,b)=>a.n.localeCompare(b.n,'es')),total,days:dates.length};
 }
 
 // Fechas de compra y de agotamiento de las pastillas de una persona (con las dosis tomadas tal como están indicadas)
@@ -346,22 +381,27 @@ function pillEv(i){
   return map;
 }
 
-// Aviso 2 días antes, con repetición semanal. No incluye nombres ni montos.
-function payCalUrl(){
-  const inf=payInfo();
-  const st=new Date(inf.due);st.setDate(st.getDate()-2);st.setHours(9,0,0,0);
-  while(st.getTime()<Date.now())st.setDate(st.getDate()+7);
+// Evento único en Calendario para cuando falten pocos días pagados (según los días registrados). No incluye montos.
+function payCalUrl(i){
+  const c=cfg(i),cv=cover(i);
+  if(!cv.lastCovered)return'';
+  const st=pd(cv.lastCovered);st.setDate(st.getDate()-c.lead);st.setHours(9,0,0,0);
+  if(st.getTime()<Date.now())return'';
   const en=new Date(st.getTime()+30*60e3);
   const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Pago de enfermería en 2 días')+'&dates='+f(st)+'/'+f(en)+'&details='+encodeURIComponent('Recordatorio semanal. El pago es el '+WD_LONG[S.pay.day]+'.')+'&recur='+encodeURIComponent('RRULE:FREQ=WEEKLY');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Pago de enfermería ('+S.p[i].name+'): se acaban los días pagados')+'&dates='+f(st)+'/'+f(en)+'&details='+encodeURIComponent('Quedan unos '+c.lead+' días pagados, según los días con enfermero registrados.');
 }
 
+// Pacientes con el pago por vencer o vencido
+function payDue(){
+  const out=[];
+  S.p.forEach((p,i)=>{const c=cfg(i);if(!c.who)return;const cv=cover(i);if(cv.st==='red'||cv.st==='amber')out.push({p,i,c,cv})});
+  return out;
+}
 function payNotice(){
-  if(!S.pay.who)return'';
-  const inf=payInfo();
-  if(inf.paid||inf.dd>2)return'';
-  const t=inf.dd===0?'hoy toca pagar':inf.dd===1?'mañana toca pagar':'toca pagar en 2 días';
-  return `<div class="soon"><h2>💵 Pago de enfermería</h2><p style="margin:0 0 10px">Se le paga a <b>${esc(S.pay.who)}</b>: ${t}.</p><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>`;
+  const d=payDue();
+  if(!d.length)return'';
+  return `<div class="soon"><h2>💵 Pago de enfermería</h2><ul>${d.map(x=>`<li><b>${esc(x.p.name)}</b>: ${x.cv.msg} (a ${esc(x.c.who)})</li>`).join('')}</ul><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>`;
 }
 
 // ---------- INICIO ----------
@@ -375,18 +415,17 @@ function renderHome(){
   S.p.forEach((p,i)=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')buys.push({p,i,m,c})}));
   buys.sort((a,b)=>a.c.buy-b.c.buy);
   buys.forEach(x=>rows.push({o:x.c.st==='red'?0:1,h:`<div class="vrow todo ${x.c.st}"><div>🛒 Comprar <b>${esc(x.m.name)}</b> (${esc(x.p.name)}): ${x.c.st==='red'?'urgente':'antes del '+fmt(x.c.buy)}</div><button class="btn ghost small tbtn" data-pa="gomed" data-i="${x.i}">Ver</button></div>`}));
-  // pago
-  if(S.pay.who){
-    const inf=payInfo();
-    if(!inf.paid&&inf.dd<=2)rows.push({o:inf.dd===0?0:1,h:`<div class="vrow todo ${inf.dd===0?'red':'amber'}"><div>💵 Pagar a <b>${esc(S.pay.who)}</b>: ${cuando(inf.dd)}</div><button class="btn ghost small tbtn" data-pa="paid">Ya pagué</button></div>`});
-  }
-  // enfermeros de hoy y mañana
+  // pagos por adelantado (uno por paciente)
+  payDue().forEach(x=>rows.push({o:x.cv.st==='red'?0:1,h:`<div class="vrow todo ${x.cv.st}"><div>💵 <b>${esc(x.p.name)}</b> (a ${esc(x.c.who)}): ${x.cv.msg}</div><button class="btn ghost small tbtn" data-pa="payreg" data-i="${x.i}">Registrar pago</button></div>`}));
+  // citas médicas de hoy y de los próximos 2 días
+  apptDue().forEach(x=>rows.push({o:x.k===0?0:1,h:`<div class="vrow todo ${x.k===0?'red':'amber'}"><div>🩺 Cita de <b>${esc(S.p[x.a.i].name)}</b>: ${x.k===0?'hoy':x.k===1?'mañana':'en 2 días'}${x.a.t?' · '+esc(x.a.t):''}${x.a.w?' — '+esc(x.a.w):''}</div><button class="btn ghost small tbtn" data-pa="aedit" data-id="${esc(x.a.id)}">Detalle</button></div>`}));
+  // enfermeros de hoy y mañana (los domingos no se avisa que falta: es normal que no venga nadie)
   S.p.forEach((p,i)=>{
     if(!nurList(i).length)return;
     [[t0,'hoy'],[t1,'mañana']].forEach(([d,lab])=>{
       const ds=ymd(d),es=ents(ds,i);
-      if(es.length){if(lab==='hoy')rows.push({o:3,h:`<div class="vrow todo ok"><div>🧑‍⚕️ Hoy atiende a <b>${esc(p.name)}</b>: ${es.map(e=>`<span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b> (${esc(shName(e.s))})`).join(', ')}</div></div>`})}
-      else rows.push({o:lab==='hoy'?1:2,h:`<div class="vrow todo amber"><div>🧑‍⚕️ Falta asignar enfermero/a a <b>${esc(p.name)}</b> ${lab}</div><button class="btn ghost small tbtn" data-pa="day" data-i="${i}" data-d="${ds}">Asignar</button></div>`});
+      if(es.length){if(lab==='hoy')rows.push({o:3,h:`<div class="vrow todo ok"><div>🧑‍⚕️ Hoy atiende a <b>${esc(p.name)}</b>: ${es.map(e=>`<span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>`).join(', ')}</div></div>`})}
+      else if(d.getDay()!==0)rows.push({o:lab==='hoy'?1:2,h:`<div class="vrow todo amber"><div>🧑‍⚕️ Falta asignar enfermero/a a <b>${esc(p.name)}</b> ${lab}</div><button class="btn ghost small tbtn" data-pa="day" data-i="${i}" data-d="${ds}">Asignar</button></div>`});
     });
   });
   rows.sort((a,b)=>a.o-b.o);
@@ -398,10 +437,11 @@ function renderHome(){
       <div class="top"><h3 class="name">🗓️ Calendario</h3></div>
       <div class="psels">${S.p.map((p,i)=>`<button class="psel" aria-selected="${i===homeP}" data-pa="hp" data-i="${i}">${esc(p.name)}</button>`).join('')}</div>
       ${calHTML(homeP)}
-    </article>`;
+    </article>${apptsCard()}`;
 }
 
 function calHTML(i){
+  const c=cfg(i),cv=cover(i);
   const first=new Date();first.setHours(0,0,0,0);first.setDate(1);first.setMonth(first.getMonth()+calM);
   const y=first.getFullYear(),m=first.getMonth();
   const dim=new Date(y,m+1,0).getDate();
@@ -409,108 +449,124 @@ function calHTML(i){
   const t0=new Date();t0.setHours(0,0,0,0);const todayS=ymd(t0);
   const title=first.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const pe=pillEv(i);
+  const apS=new Set(S.appts.filter(a=>a.i===i).map(a=>a.d));
   let cells=['L','M','M','J','V','S','D'].map(x=>`<div class="wh">${x}</div>`).join('');
   for(let k=0;k<lead;k++)cells+='<div></div>';
   for(let dn=1;dn<=dim;dn++){
     const d=new Date(y,m,dn),ds=ymd(d),es=ents(ds,i),ev=pe[ds];
-    const mk=[S.pay.who&&d.getDay()===S.pay.day?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':''].join('');
-    const chips=es.slice(0,3).map(e=>`<span class="chip${shIdx(e.s)>0?' lite':''}" style="background:${nurColor(i,e.n)}">${esc(e.n)}</span>`).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
-    const lab=dn+' de '+title+(mk?' ('+[S.pay.who&&d.getDay()===S.pay.day?'día de pago':'',ev&&ev.buy.length?'comprar pastillas':'',ev&&ev.end.length?'se acaban pastillas':''].filter(Boolean).join(', ')+')':'')+(es.length?': '+es.map(e=>e.n+' ('+shName(e.s)+')').join(', '):'');
-    cells+=`<button class="cell${ds===todayS?' today':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
+    const paid=cv.covered.has(ds),firstUnp=cv.has&&cv.unpaid[0]===ds;
+    const hasA=apS.has(ds);
+    const mk=[paid?'✓':'',firstUnp?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
+    const chips=es.slice(0,3).map(e=>`<span class="chip" style="background:${nurColor(i,e.n)}">${esc(e.n)}</span>`).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
+    const notes=[paid?'día pagado':'',firstUnp?'primer día sin pagar':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
+    const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.map(e=>e.n).join(', '):'');
+    cells+=`<button class="cell${ds===todayS?' today':''}${paid?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
   }
   return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
-    <p class="hint">🛒 comprar pastillas · ⚠️ se acaban · 💵 día de pago · los colores son los enfermeros${S.pay.shifts.length>1?' (sólido: '+esc(S.pay.shifts[0].n)+', claro: otros turnos)':''}. Toca un día para ver el detalle y asignar.</p>`;
+    <p class="hint">✓ día pagado (verde) · 💵 primer día sin pagar · 🛒 comprar medicinas o insumos · ⚠️ se acaban · 🩺 cita médica · los colores son los enfermeros (${TIMES[c.time].toLowerCase()}). Toca un día para ver el detalle y asignar.</p>`;
 }
 
-// ---------- PAGOS ----------
-function patientHTML(p,i,range,sm,any){
+// ---------- PAGOS (una tarjeta por paciente) ----------
+function patientHTML(p,i){
+  const c=cfg(i),conf=!!c.who;
   const nur=nurList(i);
   const chips=nur.map((x,k)=>`<button class="nchip" style="background:${x.c}" data-pa="nedit" data-i="${i}" data-k="${k}">${esc(x.n)}</button>`).join('')+`<button class="nchip add" data-pa="nadd" data-i="${i}">+ Agregar enfermero/a</button>`;
-  let sumH='';
-  if(sm){
-    sumH=`<p class="info" style="margin-top:14px"><b>Resumen de la semana de pago</b><br><span class="hint">${range}</span></p>`+(sm.rows.length
-      ? sm.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${[...o.c].map(([id,c])=>c+' × '+esc(shName(id))).join(', ')}</span></div>${any?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
-        +(any?`<div class="vrow"><b>Total de ${esc(p.name)}</b><span class="amtv">${A(sm.total)}</span></div>`:'')
-      : '<p class="hint">Aún no hay turnos anotados en esos días.</p>');
+  const nurH=`<p class="info nurses"><b>Enfermeros</b> <span class="hint">· Los días se asignan en Inicio.</span></p><div class="nlist">${chips}</div>`;
+  const ren=`<div class="row" style="margin-top:8px"><button class="btn ghost small" data-pa="ren" data-i="${i}">Cambiar nombre</button></div>`;
+  if(!conf){
+    return `<article class="card gray">
+      <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3></div>
+      <p class="info">Aún no hay un pago configurado para ${esc(p.name)}. Anota a quién se le paga y el tipo de turno de sus enfermeros.</p>
+      <button class="btn" data-pa="cfg" data-i="${i}">Configurar pago</button>
+      ${nurH}${ren}
+    </article>`;
   }
-  return `<article class="card blue">
-    <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3></div>
-    <p class="info nurses"><b>Enfermeros</b> <span class="hint">· Los días se asignan en Inicio.</span></p>
-    <div class="nlist">${chips}</div>
+  const cv=cover(i),[ic,tx]=PLBL[cv.st];
+  const lp=lastPay(i);
+  const anyAmt=c.rate!=null||c.pays.some(x=>x.a!=null);
+  const hist=c.pays.map((x,k)=>({x,k})).slice(-5).reverse().map(({x,k})=>`<div class="vrow"><div>${x.d?esc(fmtD(x.d)):'—'} · <b>${x.n} día${x.n>1?'s':''}</b>${x.old?' <span class="hint">(conteo anterior)</span>':''}${x.a!=null?`<br><span class="amtv">${A(x.a)}</span>`:''}</div><button class="link" data-pa="pdel" data-i="${i}" data-k="${k}">Quitar</button></div>`).join('');
+  const url=payCalUrl(i);
+  const sumH=lp
+    ? `<p class="info" style="margin-top:14px"><b>Resumen del último pago</b> <span class="hint">(${lp.n} día${lp.n>1?'s':''})</span></p>`
+      +(lp.rows.length
+        ? lp.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${o.c} día${o.c>1?'s':''}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
+          +(c.rate!=null?`<div class="vrow"><b>Total estimado</b><span class="amtv">${A(lp.total)}</span></div>`:'')
+        : '<p class="hint">Aún no hay enfermeros registrados en esos días.</p>')
+    : '';
+  return `<article class="card ${cv.st}">
+    <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><span class="badge">${ic} ${tx}</span></div>
+    <p class="info">Se le paga a <b>${esc(c.who)}</b>. Enfermeros de <b>${TIMES[c.time].toLowerCase()}</b>.${c.note?'<br><span class="hint">'+esc(c.note)+'</span>':''}</p>
+    ${cv.has
+      ? `<p class="info"><b>${cv.msg.charAt(0).toUpperCase()+cv.msg.slice(1)}.</b>${cv.lastCovered?'<br>Lo registrado está pagado hasta el <b>'+esc(fmtD(cv.lastCovered))+'</b>.':''}<br><span class="hint">Cuenta los días con enfermero registrado.</span></p>`
+      : '<p class="info">Aún no hay pagos registrados.</p>'}
+    <button class="btn" data-pa="payreg" data-i="${i}">Registrar pago</button>
+    <div class="row"><button class="btn ghost small" data-pa="cfg" data-i="${i}">Editar pago</button>${url?`<a class="btn cal small" target="_blank" rel="noopener" href="${url}">📅 Avisarme</a>`:''}</div>
+    ${c.pays.length?`<p class="info" style="margin-top:14px"><b>Pagos registrados</b>${anyAmt?` <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button>`:''}</p>${hist}<button class="link" data-pa="creset" data-i="${i}">Empezar un conteo nuevo…</button>`:''}
+    ${nurH}
     ${sumH}
-    <div class="row" style="margin-top:8px"><button class="btn ghost small" data-pa="ren" data-i="${i}">Cambiar nombre</button></div>
+    ${ren}
   </article>`;
 }
 
 function renderPay(){
-  const z=S.pay,box=$('#payView');
-  let h,range='',sums=null,any=false;
-  if(!z.who){
-    h=`<article class="card gray"><div class="top"><h3 class="name">💵 Pago semanal</h3></div><p class="info">Aún no hay un pago configurado. Anota a quién se le paga y en qué día de la semana.</p><button class="btn" data-pa="cfg">Configurar pago</button></article>`;
-  }else{
-    const days=periodDays(payOff);
-    sums=S.p.map((p,i)=>summary(i,days));
-    any=z.shifts.some(x=>x.a!=null);
-    const grand=sums.reduce((a,x)=>a+x.total,0);
-    const inf=payInfo(),[ic,tx]=PLBL[inf.paid?'paid':inf.st];
-    range=sd(days[days.length-1])+' – '+sd(days[0]);
-    h=`<article class="card ${inf.st}">
-      <div class="top"><h3 class="name">💵 Pago semanal</h3><span class="badge">${ic} ${tx}</span></div>
-      <p class="info">Se le paga a <b>${esc(z.who)}</b> cada <b>${WD_LONG[z.day]}</b>.<br>Próximo pago: <b>${fmt(inf.due.getTime())}</b> (${cuando(inf.dd)}).${z.note?'<br><span class="hint">'+esc(z.note)+'</span>':''}</p>
-      ${any?`<p class="info">Total (${range}): <b>${A(grand)}</b> <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></p>`:''}
-      <button class="btn${inf.paid?' ghost':''}" data-pa="paid">${inf.paid?'✓ Pagado (tocar para deshacer)':'Ya pagué esta semana'}</button>
-      <div class="row"><button class="btn ghost small" data-pa="cfg">Editar pago</button><button class="btn ghost small" data-pa="shifts">Turnos y montos</button></div>
-      <a class="btn cal small" style="margin-top:8px" target="_blank" rel="noopener" href="${payCalUrl()}">📅 Avisarme cada semana</a>
-    </article>
-    <div class="pbar"><button class="btn ghost small" data-pa="off" data-s="1">◀ Anterior</button><div class="prange"><b>${range}</b><br><span class="hint">${payOff===0?'Semana de pago actual':'Hace '+payOff+(payOff===1?' semana':' semanas')}</span></div><button class="btn ghost small" data-pa="off" data-s="-1"${payOff===0?' disabled':''}>Siguiente ▶</button></div>`;
-  }
-  box.innerHTML=h+S.p.map((p,i)=>patientHTML(p,i,range,sums?sums[i]:null,any)).join('');
+  $('#payView').innerHTML=S.p.map((p,i)=>patientHTML(p,i)).join('');
 }
 
-function payForm(){
-  const z=S.pay;
-  form(z.who?'Editar pago':'Configurar pago',[
-    {id:'w',l:'¿A quién se le paga?',t:'text',ph:'Ej. enfermera jefa',v:z.who},
-    {id:'d',l:'Día de pago de cada semana',t:'wday',v:z.who?z.day:''},
-    {id:'nt',l:'Nota (opcional)',t:'text',ph:'Ej. se paga en efectivo',v:z.note}
+function payForm(i){
+  const p=S.p[i],c=cfg(i);
+  form((c.who?'Editar pago: ':'Configurar pago: ')+esc(p.name),[
+    {id:'w',l:'¿A quién se le paga?',t:'text',ph:'Ej. enfermera jefa',v:c.who},
+    {id:'tm',l:'Tipo de turno de los enfermeros de '+esc(p.name),t:'text',v:TIMES[c.time],presets:[{l:TIMES.full,v:TIMES.full},{l:TIMES.half,v:TIMES.half}],h:'Es fijo para todos sus enfermeros. Si cambia, cambia para todos.'},
+    {id:'rt',l:'Monto por día (opcional)',v:c.rate==null?'':c.rate,h:'Queda oculto en pantalla. Sirve para estimar totales.'},
+    {id:'ld',l:'Avisar cuando queden este número de días pagados',v:c.lead},
+    {id:'nt',l:'Nota (opcional)',t:'text',ph:'Ej. se paga en efectivo',v:c.note}
   ],v=>{
     if(!v.w.trim())return'Escribe a quién se le paga.';
-    if(v.d==='')return'Elige el día de la semana en que se paga.';
-    const day=+v.d;if(z.who&&z.day!==day)z.paid='';
-    z.who=v.w.trim().slice(0,60);z.day=day;z.note=v.nt.trim().slice(0,100);
+    const tm=v.tm.trim()===TIMES.half?'half':v.tm.trim()===TIMES.full?'full':'';
+    if(!tm)return'Elige el tipo de turno con los botones.';
+    let rate=null;
+    if(String(v.rt).trim()!==''){rate=pos(v.rt);if(!(rate>=0))return'El monto por día debe ser un número (o déjalo vacío).'}
+    const ld=pos(v.ld);
+    if(!(ld>=1&&ld<=14&&Number.isInteger(ld)))return'El aviso debe ser un número de días entre 1 y 14.';
+    c.who=v.w.trim().slice(0,60);c.time=tm;c.rate=rate;c.lead=ld;c.note=v.nt.trim().slice(0,100);
     save();render();
   },'Guardar');
+  $('#tm').readOnly=true;
 }
 
-function shiftsForm(){
-  form('Tipos de turno y montos',[],()=>{
-    const out=[];
-    for(const r of document.querySelectorAll('#shrows .trow')){
-      const [ni,ai]=r.querySelectorAll('input');
-      const n=ni.value.trim();if(!n)continue;
-      let a=null;
-      if(ai.value.trim()!==''){a=pos(ai.value);if(!(a>=0))return'Revisa los montos: deben ser números (o déjalos vacíos).'}
-      if(out.some(x=>x.n.toLowerCase()===n.toLowerCase()))return'Hay dos turnos con el mismo nombre: '+n+'.';
-      out.push({id:r.dataset.id||('s'+Math.random().toString(36).slice(2,8)),n:n.slice(0,40),a});
+// Registrar un pago por adelantado: cuántos días cubre
+function payRegForm(i){
+  const p=S.p[i],c=cfg(i);
+  const fields=[
+    {id:'n',l:'¿Cuántos días se pagaron?',v:'',h:'Cuenta los días con enfermero registrado.'},
+    {id:'a',l:'Monto pagado (opcional)',v:'',h:'Queda oculto en pantalla.'}
+  ];
+  if(!c.base)fields.push({id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los días con enfermero registrado desde esta fecha se irán descontando de lo pagado.'});
+  form('Registrar pago: '+esc(p.name),fields,v=>{
+    const n=pos(v.n);
+    if(!(n>=1)||!Number.isInteger(n))return'Escribe cuántos días (un número entero, 1 o más).';
+    if(n>366)return'Revisa el número de días.';
+    let a=null;
+    if(String(v.a).trim()!==''){a=pos(v.a);if(!(a>=0))return'El monto debe ser un número (o déjalo vacío).'}
+    if(!c.base){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
+      c.base=v.fd;
     }
-    if(!out.length)return'Deja al menos un tipo de turno.';
-    S.pay.shifts=out;save();render();
-  },'Guardar');
-  const box=document.createElement('div');box.id='shrows';
-  const addRow=x=>{
-    const r=document.createElement('div');r.className='trow';r.dataset.id=x.id||'';
-    r.innerHTML='<input type="text" aria-label="Nombre del turno" placeholder="Ej. Turno completo"><input type="number" inputmode="decimal" min="0" step="any" aria-label="Monto (opcional)" placeholder="Monto">'+'<button type="button" aria-label="Quitar turno">×</button>';
-    const [ni,ai]=r.querySelectorAll('input');ni.value=x.n||'';ai.value=x.a==null?'':x.a;
-    r.querySelector('button').onclick=()=>{if(box.children.length>1)r.remove()};
-    box.appendChild(r);
-  };
-  S.pay.shifts.forEach(addRow);
-  const h2=dlg.querySelector('h2');
-  h2.insertAdjacentElement('afterend',box);
-  box.insertAdjacentHTML('beforebegin','<p class="hint">Los montos son opcionales y se mantienen ocultos en pantalla.</p>');
-  box.insertAdjacentHTML('afterend','<button type="button" class="btn ghost small" id="addsh" style="margin-top:6px">+ Agregar tipo de turno</button>');
-  $('#addsh').onclick=()=>addRow({});
+    c.pays.push({d:ymd(new Date()),n,a,old:false});
+    save();render();
+  },'Guardar pago');
+}
+
+function resetForm(i){
+  const p=S.p[i],c=cfg(i);
+  form('Empezar un conteo nuevo: '+esc(p.name),[
+    {id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los pagos anteriores se quedan en el historial pero ya no se cuentan. Después registra el pago nuevo.'}
+  ],v=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige una fecha.';
+    c.pays.forEach(x=>{x.old=true});c.base=v.fd;
+    save();render();
+  },'Empezar de nuevo');
 }
 
 function nurseForm(i,k){
@@ -549,17 +605,20 @@ function renForm(i){
 // Detalle de un día: pastillas, pago y enfermeros (los enfermeros se crean en Pagos)
 function dayForm(i,ds){
   const p=S.p[i];if(!p)return;
-  const shifts=S.pay.shifts,nurses=nurList(i);
+  const c=cfg(i),cv=cover(i),nurses=nurList(i);
+  const dt=pd(ds);
   const [y,m,d]=ds.split('-').map(Number);
-  const dt=new Date(y,m-1,d);
   const label=dt.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   const ev=pillEv(i)[ds];
   let info='';
-  if(S.pay.who&&dt.getDay()===S.pay.day)info+=`<p class="info">💵 Día de pago: se le paga a <b>${esc(S.pay.who)}</b>.</p>`;
+  if(cv.covered.has(ds))info+='<p class="info">✓ Día pagado.</p>';
+  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">💵 Día con enfermero sin pagar.</p>';
+  S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</p>`});
+  if(dt.getDay()===0)info+='<p class="hint">Los domingos solo cuentan como día si hay un enfermero registrado.</p>';
   if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
   if(ev&&ev.end.length)info+=`<p class="info">⚠️ Se acaban: <b>${ev.end.map(x=>esc(x)).join(', ')}</b> (última toma completa ese día)</p>`;
   const cur=ents(ds,i);
-  const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b> · ${esc(shName(e.s))}</div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
+  const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b></div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
   const title=label+' · '+esc(p.name);
   if(!nurses.length){
     form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Ir a Pagos');
@@ -569,45 +628,127 @@ function dayForm(i,ds){
   const wdn=WD_LONG[dt.getDay()];
   const once='Solo este día',weekly='Cada '+wdn+' hasta fin de mes';
   form(title,[
-    {id:'nm',l:'Asignar enfermero o enfermera',t:'text',ph:'Toca un nombre',v:'',presets:nurses.map(x=>({l:esc(x.n),v:esc(x.n)}))},
-    {id:'sh',l:'Tipo de turno',t:'text',v:shifts[0].n,presets:shifts.map(x=>({l:esc(x.n),v:esc(x.n)}))},
+    {id:'nm',l:'Asignar enfermero o enfermera ('+TIMES[c.time].toLowerCase()+')',t:'text',ph:'Toca un nombre',v:'',presets:nurses.map(x=>({l:esc(x.n),v:esc(x.n)}))},
     {id:'rp',l:'¿Repetir?',t:'text',v:once,presets:[{l:once,v:once},{l:weekly,v:weekly}]}
   ],v=>{
     const n=v.nm.trim();
     if(!n)return;
     if(!nurses.some(x=>x.n===n))return'Elige un enfermero/a de los botones. Para agregar uno nuevo, ve a Pagos.';
-    const x=shifts.find(y2=>y2.n===v.sh.trim());
-    if(!x)return'Elige el tipo de turno con los botones.';
     const dates=[ds];
     if(v.rp.trim()===weekly){for(let k=1;;k++){const n2=new Date(y,m-1,d+7*k);if(n2.getMonth()!==m-1)break;dates.push(ymd(n2))}}
     dates.forEach(dk=>{
       const day=(S.pay.v[dk]=S.pay.v[dk]||{});
       const a=(day[i]=Array.isArray(day[i])?day[i]:[]);
-      if(!a.some(e=>e.n===n&&e.s===x.id))a.push({n,s:x.id});
+      if(!a.some(e=>e.n===n))a.push({n});
     });
     const cut=ymd(new Date(Date.now()-400*864e5));
     Object.keys(S.pay.v).forEach(k=>{if(k<cut)delete S.pay.v[k]});
     save();render();
   },'Asignar');
-  $('#nm').readOnly=true;$('#sh').readOnly=true;$('#rp').readOnly=true;
+  $('#nm').readOnly=true;$('#rp').readOnly=true;
   dlg.querySelectorAll('.pbtn[data-set="nm"]').forEach(b=>{b.classList.add('col');b.style.background=nurColor(i,b.dataset.val)});
   dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list);
 }
 
+// ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
+const supCons=u=>[{dose:u,times:['08:00'],schedule:{type:'daily'}}];
+function supForm(title,D,onSave,btn){
+  form(title,[
+    {id:'n',l:'Nombre del insumo',t:'text',ph:'Ej. Pañales',v:D.name},
+    {id:'q',l:'Piezas que hay ahora',ph:'Ej. 30',v:D.q},
+    {id:'u',l:'Piezas que se usan al día',ph:'Ej. 3',v:D.use,h:'Puede ser decimal: ½ equivale a una pieza cada dos días.'}
+  ],v=>{
+    if(!v.n.trim())return'Escribe el nombre del insumo.';
+    const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe cuántas piezas hay.';
+    const u=pos(v.u);if(!(u>0))return'Escribe cuántas piezas se usan al día.';
+    onSave(v.n.trim().slice(0,40),q,u);
+  },btn);
+}
+function supAdd(P){
+  supForm('Agregar insumo',{name:'',q:'',use:''},(name,q,u)=>{P.meds.push({name,base:q,cons:supCons(u),t0:Date.now(),kind:'sup'});save();render()},'Agregar');
+}
+function supEdit(m){
+  const c=calc(m);
+  supForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,use:(m.cons[0]||{}).dose||'1'},(name,q,u)=>{m.name=name;m.base=q;m.cons=supCons(u);m.t0=Date.now();save();render()},'Guardar cambios');
+}
+
+// ---------- CITAS MÉDICAS ----------
+const apptList=()=>S.appts.filter(a=>S.p[a.i]).slice().sort((a,b)=>(a.d+(a.t||'99:99')).localeCompare(b.d+(b.t||'99:99')));
+const apptWhen=a=>fmtD(a.d)+(a.t?' · '+a.t:'');
+function apptDue(){ // citas de hoy a 2 días
+  const t0=new Date();t0.setHours(0,0,0,0);
+  return apptList().map(a=>({a,k:Math.round((pd(a.d)-t0)/864e5)})).filter(x=>x.k>=0&&x.k<=2);
+}
+function apptCalUrl(a){
+  const p=S.p[a.i],day=pd(a.d);
+  const f2=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0');
+  let dates;
+  if(a.t){
+    const [h,mi]=a.t.split(':').map(Number);
+    const s0=new Date(day.getFullYear(),day.getMonth(),day.getDate(),h,mi),e0=new Date(s0.getTime()+60*60e3);
+    const g=x=>f2(x)+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
+    dates=g(s0)+'/'+g(e0);
+  }else{const nx=new Date(day);nx.setDate(nx.getDate()+1);dates=f2(day)+'/'+f2(nx)}
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Cita médica ('+p.name+')'+(a.w?': '+a.w:''))+'&dates='+dates+'&details='+encodeURIComponent(a.n||'');
+}
+function apptsCard(){
+  const today=ymd(new Date());
+  const all=apptList();
+  const up=all.filter(a=>a.d>=today),past=all.filter(a=>a.d<today).slice(-3).reverse();
+  const row=(a,cls)=>`<div class="vrow${cls}"><div>🩺 <b>${esc(S.p[a.i].name)}</b> · ${esc(apptWhen(a))}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}">Editar</button><a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}">📅</a></div></div>`;
+  return `<article class="card blue">
+    <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>
+    ${up.length?up.map(a=>row(a,'')).join(''):'<p class="hint">No hay citas próximas.</p>'}
+    ${past.length?'<p class="info" style="margin-top:12px"><b>Recientes</b></p>'+past.map(a=>row(a,' past')).join(''):''}
+    <button class="btn" style="margin-top:10px" data-pa="aadd">+ Agregar cita</button>
+  </article>`;
+}
+function apptForm(a){
+  const cur=a||null;
+  const pi=cur?cur.i:Math.min(Math.max(homeP,0),S.p.length-1);
+  form(cur?'Editar cita':'Agregar cita médica',[
+    {id:'ap_p',l:'¿De quién es la cita?',t:'text',v:S.p[pi].name,presets:S.p.map(x=>({l:esc(x.name),v:esc(x.name)}))},
+    {id:'ap_d',l:'Fecha',t:'date',v:cur?cur.d:ymd(new Date())},
+    {id:'ap_t',l:'Hora (opcional)',t:'time',v:cur?cur.t:''},
+    {id:'ap_w',l:'Médico o lugar',t:'text',ph:'Ej. Dr. Pérez, Hospital General',v:cur?cur.w:''},
+    {id:'ap_n',l:'Qué preguntar o llevar (opcional)',t:'text',ph:'Ej. llevar estudios y recetas',v:cur?cur.n:''}
+  ],v=>{
+    const i=S.p.findIndex(x=>x.name===v.ap_p);
+    if(i<0)return'Elige de quién es la cita con los botones.';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.ap_d))return'Elige la fecha de la cita.';
+    if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return'Revisa la hora.';
+    const o={i,d:v.ap_d,t:v.ap_t||'',w:v.ap_w.trim().slice(0,80),n:v.ap_n.trim().slice(0,200)};
+    if(cur)Object.assign(cur,o);
+    else S.appts.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o});
+    save();render();
+  },cur?'Guardar':'Agregar');
+  $('#ap_p').readOnly=true;
+  if(cur)$('#ap_n').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="adel" data-id="${esc(cur.id)}">Quitar esta cita</button>`);
+}
+
 function payAction(t){
   const pa=t.dataset.pa,i=+t.dataset.i,ds=t.dataset.d;
-  if(pa==='gopay'){S.mode='pay';save();render();window.scrollTo(0,0)}
+  if(pa==='aadd')apptForm(null);
+  else if(pa==='aedit'){const a=S.appts.find(x=>x.id===t.dataset.id);if(a)apptForm(a)}
+  else if(pa==='adel'){
+    const a=S.appts.find(x=>x.id===t.dataset.id);if(!a)return;
+    form('¿Quitar esta cita?',[],()=>{S.appts=S.appts.filter(x=>x.id!==a.id);save();render()},'Sí, quitar');
+  }
+  else if(pa==='gopay'){S.mode='pay';save();render();window.scrollTo(0,0)}
   else if(pa==='gomed'){S.mode='meds';S.sel=Math.min(i,S.p.length-1);save();render();window.scrollTo(0,0)}
   else if(pa==='hp'){homeP=i;render()}
-  else if(pa==='cfg')payForm();
-  else if(pa==='shifts')shiftsForm();
-  else if(pa==='paid'){const inf=payInfo();S.pay.paid=inf.paid?'':inf.ds;save();render()}
+  else if(pa==='cfg')payForm(i);
+  else if(pa==='payreg')payRegForm(i);
+  else if(pa==='creset')resetForm(i);
+  else if(pa==='pdel'){
+    const k=+t.dataset.k;if(!cfg(i).pays[k])return;
+    form('¿Quitar este pago del historial?',[],()=>{cfg(i).pays.splice(k,1);save();render()},'Sí, quitar');
+  }
   else if(pa==='show'){
     if(amtOn())showT=0;
     else{showT=Date.now()+8000;setTimeout(()=>{if(Date.now()>=showT-50){showT=0;render()}},8100)}
     render();
   }
-  else if(pa==='off'){payOff=Math.max(0,Math.min(8,payOff+(+t.dataset.s)));render()}
   else if(pa==='cm'){calM=Math.max(-12,Math.min(6,calM+(+t.dataset.s)));render()}
   else if(pa==='day')dayForm(i,ds);
   else if(pa==='nadd')nurseForm(i);
@@ -628,12 +769,13 @@ function payAction(t){
   }
 }
 
+const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 function summaryText(P){
   if(!P.meds.length)return'No hay medicinas registradas.';
   return P.meds.map(m=>{
     const c=calc(m);
     const when=c.st==='red'?'¡urgente, comprar ya!':c.st==='amber'?'comprar antes del '+fmt(c.buy):'bien por ahora';
-    return `• ${m.name}: quedan ${num(c.rem)} pastillas (${when})`;
+    return `• ${m.name}: quedan ${num(c.rem)} ${un(m)} (${when})`;
   }).join('\n');
 }
 
@@ -645,17 +787,18 @@ function notifyDaily(){
   const parts=[],names=[];
   S.p.forEach(p=>p.meds.forEach(m=>{if(calc(m).st!=='green')names.push(m.name)}));
   if(names.length)parts.push('Hay que comprar: '+names.join(', '));
-  if(S.pay.who){const inf=payInfo();if(!inf.paid&&inf.dd<=2)parts.push('Pago de enfermería: '+cuando(inf.dd))}
+  payDue().forEach(x=>parts.push('Pago de enfermería ('+x.p.name+'): '+x.cv.msg));
+  apptDue().forEach(x=>parts.push('Cita médica ('+S.p[x.a.i].name+'): '+(x.k===0?'hoy':x.k===1?'mañana':'en 2 días')));
   if(!parts.length)return;
   S.last=k;save();
-  try{new Notification('Mis pastillas',{body:parts.join(' · ')})}catch(e){}
+  try{new Notification('Cuidados',{body:parts.join(' · ')})}catch(e){}
 }
 
 function render(){
   const P=S.p[S.sel];
   const md=S.mode;
   notifyDaily();
-  $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Pastillas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-selected="${md===m}" data-m="${m}">${l}</button>`).join('');
+  $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Medicinas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-selected="${md===m}" data-m="${m}">${l}</button>`).join('');
   $('#tabs').hidden=md!=='meds';$('#ren').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
@@ -668,23 +811,23 @@ function render(){
   let h;
   if(!items.length){h=`<div class="soon ok">✓ Todo en orden: por ahora no hay que comprar nada.</div>`}
   else{
-    const det=items.map(i=>`${i.m.name} (${i.p}): quedan ${num(i.c.rem)} pastillas`).join('\n');
+    const det=items.map(i=>`${i.m.name} (${i.p}): quedan ${num(i.c.rem)} ${un(i.m)}`).join('\n');
     h=`<div class="soon"><h2>🛒 Comprar pronto</h2><ul>${items.map(i=>`<li><b>${esc(i.m.name)}</b> (${esc(i.p)}): ${i.c.st==='red'?'urgente':'antes del '+fmt(i.c.buy)}</li>`).join('')}</ul>
     <a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">📅 Avisarme en Calendario</a>
     ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
   }
   $('#soon').innerHTML=h;
-  $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>{
+  $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
     const c=calc(m),[ic,tx]=LBL[c.st];
     return `<article class="card ${c.st}">
-      <div class="top"><h3 class="name">${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
-      <p class="big">${num(c.rem)} <small>pastillas</small></p>
-      <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b> (${c.left} tomas).${c.end?`<br>Última toma completa: <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para una toma.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br><br>${consText(m)}</p>
+      <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
+      <p class="big">${num(c.rem)} <small>${un(m)}</small></p>
+      <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b>${m.kind==='sup'?'':` (${c.left} tomas)`}.${c.end?`<br>${m.kind==='sup'?'Alcanza hasta el':'Última toma completa:'} <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para '+(m.kind==='sup'?'un día de uso':'una toma')+'.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br><br>${consText(m)}</p>
       <button class="btn" data-a="box" data-i="${i}">Compré más</button>
       <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
       <button class="btn ghost small" data-a="fix" data-i="${i}">Corregir cantidad</button></div>
-      <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
-      <button class="link" data-a="del" data-i="${i}">Borrar esta medicina</button>
+      <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
+      <button class="link" data-a="del" data-i="${i}">${m.kind==='sup'?'Borrar este insumo':'Borrar esta medicina'}</button>
     </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`;
 }
 
@@ -700,6 +843,7 @@ function fieldHTML(f){
   if(f.t==='head')return `<div class="chead"><h3>Consumo ${f.k+1}</h3>${f.multi?`<button type="button" class="link rmc" data-k="${f.k}">Quitar</button>`:''}</div>`;
   if(f.t==='wday')return `<label>${f.l}</label><div class="wdays" id="${f.id}" data-v="${f.v===undefined||f.v===null?'':f.v}"></div>`;
   if(f.t==='color')return `<label>${f.l}</label><div class="swatches" id="${f.id}" data-v="${f.v||''}"></div>`;
+  if(f.t==='date'||f.t==='time')return `<label for="${f.id}">${f.l}</label><input id="${f.id}" type="${f.t}" value="${esc(f.v||'')}">${f.h?`<p class="hint">${f.h}</p>`:''}`;
   if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
   if(f.t==='schedule')return `<label>${f.l}</label>
     <div class="schtabs" role="tablist" id="${f.id}-tabs">
@@ -794,8 +938,8 @@ function form(title,fields,ok,btn='Guardar'){
 }
 function result(m){
   const c=calc(m);
-  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} pastillas</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
-  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' pastillas de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
+  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} ${un(m)}</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
+  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
   $('#cl').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
 }
 const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
@@ -855,7 +999,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='exp'){
     const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='pastillas-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
+    const a=document.createElement('a');a.href=url;a.download='cuidados-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   }
@@ -865,26 +1009,27 @@ document.addEventListener('click',e=>{
       P.meds.push({name,base:q,cons,t0:Date.now()});save();render();
     },'Agregar');
   }
+  else if(t.id==='addsup'){supAdd(P)}
   else if(t.dataset.pa){payAction(t)}
   else if(t.dataset.a){
     const m=P.meds[+t.dataset.i];
     if(t.dataset.a==='box'){
       form('Compré: '+esc(m.name),[
         {id:'boxes',l:'¿Cuántas cajas/empaques compraste?',v:'1'},
-        {id:'q',l:'¿Cuántas pastillas trae cada una?',ph:'Ej. 30'}
+        {id:'q',l:'¿Cuántas '+un(m)+' trae cada una?',ph:'Ej. 30'}
       ],v=>{
         const boxes=pos(v.boxes),q=pos(v.q);
         if(!(boxes>0))return'Escribe cuántas cajas compraste.';
-        if(!(q>0))return'Escribe cuántas pastillas trae cada caja.';
+        if(!(q>0))return'Escribe cuántas '+un(m)+' trae cada caja.';
         const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
-      },'Sumar pastillas');
-    }else if(t.dataset.a==='edit'){
+      },'Sumar '+un(m));
+    }else if(t.dataset.a==='edit'&&m.kind==='sup'){supEdit(m)}else if(t.dataset.a==='edit'){
       const c=calc(m);
       medForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,cons:JSON.parse(JSON.stringify(m.cons))},(name,q,cons)=>{
         m.name=name;m.base=q;m.cons=cons;m.t0=Date.now();save();render();
       },'Guardar cambios');
     }else if(t.dataset.a==='fix'){
-      form('Corregir cantidad: '+esc(m.name),[{id:'q',l:'Cuente las pastillas que hay y escriba el número',v:calc(m).rem}],v=>{
+      form('Corregir cantidad: '+esc(m.name),[{id:'q',l:'Cuente las '+un(m)+' que hay y escriba el número',v:calc(m).rem}],v=>{
         const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe un número.';
         m.base=q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
       },'Corregir');
@@ -901,7 +1046,7 @@ $('#impFile').addEventListener('change',e=>{
     let data;
     try{data=migrate(JSON.parse(reader.result));if(!data||!Array.isArray(data.p))throw 0}
     catch(err){
-      dlg.innerHTML='<h2>Archivo no válido</h2><p>Ese archivo no parece un respaldo de Mis pastillas.</p><div class="stack"><button class="btn ghost" id="cl2">Cerrar</button></div>';
+      dlg.innerHTML='<h2>Archivo no válido</h2><p>Ese archivo no parece un respaldo de Cuidados.</p><div class="stack"><button class="btn ghost" id="cl2">Cerrar</button></div>';
       $('#cl2').onclick=()=>dlg.close();dlg.showModal();return;
     }
     form('¿Restaurar este respaldo?',[],()=>{
