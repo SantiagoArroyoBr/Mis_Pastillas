@@ -1,7 +1,7 @@
 
 {
-  "name": "Mis Pastillas",
-  "short_name": "Pastillas",
+  "name": "Agenda de cuidados",
+  "short_name": "Cuidados",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
