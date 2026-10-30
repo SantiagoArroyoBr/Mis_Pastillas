@@ -123,7 +123,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 </head>
 <body>
 <header>
-  <h1>🗓️ Cuidados <small style="font-size:13px;font-weight:700;opacity:.7">v8</small></h1>
+  <h1>🗓️ Cuidados <small style="font-size:13px;font-weight:700;opacity:.7">v9</small></h1>
   <div class="modes" id="modes"></div>
   <div class="tabs" role="tablist" id="tabs"></div>
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
@@ -132,6 +132,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
   <section id="paysoon"></section>
   <div id="medsView">
   <section id="soon"></section>
+  <section id="spend"></section>
   <button class="btn ghost small share" id="share">📲 Compartir resumen por WhatsApp</button>
   <section id="list"></section>
   <button class="btn add" id="add">+ Agregar medicina</button>
@@ -221,7 +222,11 @@ function migrate(d){
   });
   delete z.who;delete z.day;delete z.note;delete z.paid;delete z.shifts;
   d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
-  (d.p||[]).forEach(p=>p.meds.forEach(m=>{if(m.kind!=='sup')delete m.kind}));
+  (d.p||[]).forEach(p=>p.meds.forEach(m=>{
+    if(m.kind!=='sup')delete m.kind;
+    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w.slice(0,40):''}));
+    if(!m.buys.length)delete m.buys;
+  }));
   if(!['home','meds','pay'].includes(d.mode))d.mode='home';
   return d;
 }
@@ -734,9 +739,81 @@ function apptForm(a){
   if(cur)$('#ap_n').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="adel" data-id="${esc(cur.id)}">Quitar esta cita</button>`);
 }
 
+// ---------- PRECIOS: se anotan a mano (lo que se pagó o lo que se vio en la farmacia) ----------
+const unit1=m=>m.kind==='sup'?'pieza':'pastilla';
+function addBuy(m,p,n,shop,d){
+  if(!Array.isArray(m.buys))m.buys=[];
+  m.buys.push({d:d||ymd(new Date()),p,n,w:String(shop||'').trim().slice(0,40)});
+  m.buys.sort((a,b)=>a.d.localeCompare(b.d));
+  if(m.buys.length>40)m.buys=m.buys.slice(-40);
+}
+const buyList=m=>(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&b.n>0&&isFinite(b.p));
+const unitPrice=b=>b.p/b.n;
+const usage30=m=>evs(m,Date.now(),Date.now()+30*864e5).reduce((s2,e)=>s2+e.d,0);
+function monthCost(m){const L=buyList(m);return L.length?unitPrice(L[L.length-1])*usage30(m):null}
+function bestShop(m){ // la tienda con el precio más bajo, según su última anotación
+  const by=new Map();
+  buyList(m).forEach(b=>{if(b.w)by.set(b.w.toLowerCase(),b)});
+  if(by.size<2)return null;
+  let best=null;by.forEach(b=>{if(!best||unitPrice(b)<unitPrice(best))best=b});
+  return best;
+}
+function shopPresets(){
+  const seen=[];
+  S.p.forEach(p=>p.meds.forEach(m=>buyList(m).slice().reverse().forEach(b=>{if(b.w&&!seen.includes(b.w))seen.push(b.w)})));
+  return seen.slice(0,6).map(x=>({l:esc(x),v:esc(x)}));
+}
+function priceLine(m){
+  const L=buyList(m);if(!L.length)return'';
+  const b=L[L.length-1],u=unitPrice(b),mo=monthCost(m);
+  let chg='';
+  if(L.length>1){const up=unitPrice(L[L.length-2]);if(up>0){const pc=Math.round((u-up)/up*100);if(pc!==0)chg=' · '+(pc>0?'↑ ':'↓ ')+Math.abs(pc)+'% frente a la anotación anterior'}}
+  const days=Math.round((Date.now()-pd(b.d).getTime())/864e5);
+  const when=days<=0?'hoy':days===1?'ayer':'hace '+days+' días';
+  const bs=bestShop(m);
+  const cheaper=(bs&&bs.w.toLowerCase()!==(b.w||'').toLowerCase())?' Más barata: '+esc(bs.w)+' ('+A(unitPrice(bs))+' por '+unit1(m)+').':'';
+  return `<p class="info">💲 <b>${A(u)}</b> por ${unit1(m)} · unos <b>${A(mo)}</b> al mes <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver'}</button><br><span class="hint">${b.w?esc(b.w)+' · ':''}${when}${chg}.${cheaper}</span></p>`;
+}
+function spendHTML(){
+  let any=false,missing=0;
+  const per=S.p.map(p=>{let t=0;p.meds.forEach(m=>{const c=monthCost(m);if(c===null)missing++;else{any=true;t+=c}});return t});
+  if(!any)return'';
+  const tot=per.reduce((a,b)=>a+b,0);
+  return `<article class="card blue"><div class="top"><h3 class="name">💲 Gasto al mes (aprox.)</h3></div>
+    ${S.p.map((p,i)=>`<div class="vrow"><div><b>${esc(p.name)}</b></div><span class="amtv">${A(per[i])}</span></div>`).join('')}
+    <div class="vrow"><b>Total</b><span class="amtv">${A(tot)}</span></div>
+    <p class="hint">Medicinas e insumos, con el último precio anotado y el consumo de los próximos 30 días.${missing?' Faltan precios de '+missing+'.':''}</p>
+    <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></article>`;
+}
+function priceForm(pi,mi){
+  const m=S.p[pi]&&S.p[pi].meds[mi];if(!m)return;
+  const rows=(m.buys||[]).map((b,k)=>({b,k})).filter(x=>x.b&&x.b.n>0&&isFinite(x.b.p)).slice(-8).reverse();
+  form('Precios: '+esc(m.name),[
+    {id:'pcost',l:'Precio total',ph:'Ej. 180'},
+    {id:'pun',l:'¿Para cuántas '+un(m)+'?',ph:'Ej. 30'},
+    {id:'pshop',l:'¿Dónde? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets()},
+    {id:'pdate',l:'Fecha',t:'date',v:ymd(new Date())}
+  ],v=>{
+    if(String(v.pcost).trim()===''&&String(v.pun).trim()==='')return;
+    const pr=pos(v.pcost),n=pos(v.pun);
+    if(String(v.pcost).trim()===''||!(pr>=0))return'Escribe el precio total.';
+    if(!(n>0))return'Escribe para cuántas '+un(m)+' es ese precio.';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.pdate))return'Elige la fecha.';
+    addBuy(m,pr,n,v.pshop,v.pdate);save();render();
+  },'Anotar precio');
+  const list=rows.length
+    ? '<div>'+rows.map(({b,k})=>`<div class="vrow"><div><b>${esc(fmtD(b.d))}</b>${b.w?' · '+esc(b.w):''}<br><span class="hint">${money(b.p)} por ${num(b.n)} ${un(m)} · ${money(unitPrice(b))} por ${unit1(m)}</span></div><button type="button" class="link" data-pa="prm" data-i="${pi}" data-m="${mi}" data-k="${k}">Quitar</button></div>`).join('')+'</div>'
+    : '<p class="hint">Aún no hay precios anotados. Anota lo que pagaste o lo que viste en la farmacia.</p>';
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',list);
+}
+
 function payAction(t){
   const pa=t.dataset.pa,i=+t.dataset.i,ds=t.dataset.d;
-  if(pa==='aadd')apptForm(null);
+  if(pa==='prm'){
+    const m=S.p[i]&&S.p[i].meds[+t.dataset.m];
+    if(m&&Array.isArray(m.buys)){m.buys.splice(+t.dataset.k,1);if(!m.buys.length)delete m.buys;save();render();setTimeout(()=>priceForm(i,+t.dataset.m),30)}
+  }
+  else if(pa==='aadd')apptForm(null);
   else if(pa==='aedit'){const a=S.appts.find(x=>x.id===t.dataset.id);if(a)apptForm(a)}
   else if(pa==='adel'){
     const a=S.appts.find(x=>x.id===t.dataset.id);if(!a)return;
@@ -825,15 +902,18 @@ function render(){
     ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
   }
   $('#soon').innerHTML=h;
+  $('#spend').innerHTML=spendHTML();
   $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
     const c=calc(m),[ic,tx]=LBL[c.st];
     return `<article class="card ${c.st}">
       <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
       <p class="big">${num(c.rem)} <small>${un(m)}</small></p>
       <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b>${m.kind==='sup'?'':` (${c.left} tomas)`}.${c.end?`<br>${m.kind==='sup'?'Alcanza hasta el':'Última toma completa:'} <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para '+(m.kind==='sup'?'un día de uso':'una toma')+'.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br><br>${consText(m)}</p>
+      ${priceLine(m)}
       <button class="btn" data-a="box" data-i="${i}">Compré más</button>
       <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
       <button class="btn ghost small" data-a="fix" data-i="${i}">Corregir cantidad</button></div>
+      <button class="btn ghost small" style="margin-top:8px" data-a="price" data-i="${i}">💲 Precios</button>
       <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
       <button class="link" data-a="del" data-i="${i}">${m.kind==='sup'?'Borrar este insumo':'Borrar esta medicina'}</button>
     </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`;
@@ -1024,12 +1104,18 @@ document.addEventListener('click',e=>{
     if(t.dataset.a==='box'){
       form('Compré: '+esc(m.name),[
         {id:'boxes',l:'¿Cuántas cajas/empaques compraste?',v:'1'},
-        {id:'q',l:'¿Cuántas '+un(m)+' trae cada una?',ph:'Ej. 30'}
+        {id:'q',l:'¿Cuántas '+un(m)+' trae cada una?',ph:'Ej. 30'},
+        {id:'pcost',l:'¿Cuánto costó en total? (opcional)',ph:'Ej. 180',h:'Queda oculto en pantalla.'},
+        {id:'pshop',l:'¿Dónde la compraste? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets()}
       ],v=>{
         const boxes=pos(v.boxes),q=pos(v.q);
         if(!(boxes>0))return'Escribe cuántas cajas compraste.';
         if(!(q>0))return'Escribe cuántas '+un(m)+' trae cada caja.';
-        const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
+        let pr=null;
+        if(String(v.pcost).trim()!==''){pr=pos(v.pcost);if(!(pr>=0))return'El costo debe ser un número (o déjalo vacío).'}
+        const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();
+        if(pr!==null)addBuy(m,pr,boxes*q,v.pshop);
+        save();render();setTimeout(()=>result(m),50);
       },'Sumar '+un(m));
     }else if(t.dataset.a==='edit'&&m.kind==='sup'){supEdit(m)}else if(t.dataset.a==='edit'){
       const c=calc(m);
@@ -1041,7 +1127,7 @@ document.addEventListener('click',e=>{
         const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe un número.';
         m.base=q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
       },'Corregir');
-    }else if(t.dataset.a==='del'){
+    }else if(t.dataset.a==='price'){priceForm(S.sel,+t.dataset.i)}else if(t.dataset.a==='del'){
       form('¿Borrar '+esc(m.name)+'?',[],()=>{P.meds.splice(+t.dataset.i,1);save();render()},'Sí, borrar');
     }
   }
