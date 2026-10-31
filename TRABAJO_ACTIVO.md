@@ -13,7 +13,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 | ID | Área / chat | Tarea | Rama | Archivos previstos | Estado | Inicio | Última actualización |
 |---|---|---|---|---|---|---|---|
 | BACKEND-001 | Backend y datos | Protección de persistencia inicial, restauración JSON en modo protegido, validación de integridad de migraciones y pruebas de integración en navegador | `development` | `index.html`, `tests/persistence.spec.js`, `package.json` y `package-lock.json` solo si son necesarios; registro: `TRABAJO_ACTIVO.md` | Probada e incorporada en `development`; cierre documental registrado | 2026-10-30 | 2026-10-30 |
-| CSS-001 | Frontend y diseño | Extraer el bloque CSS existente a `styles.css` y precargarlo offline con una nueva versión de caché | `task/css-001-external-stylesheet` | `index.html`, `styles.css` (nuevo), `sw.js`; registro: `SOLICITUDES.md`, `CENTRO_DE_COORDINACION.md`, `TRABAJO_ACTIVO.md` | En curso | 2026-10-30 | 2026-10-30 |
+| CSS-001 | Frontend y diseño | Extraer el bloque CSS existente a `styles.css` y precargarlo offline con una nueva versión de caché | `task/css-001-external-stylesheet` | `index.html`, `styles.css` (nuevo), `sw.js`; registro: `SOLICITUDES.md`, `CENTRO_DE_COORDINACION.md`, `TRABAJO_ACTIVO.md` | Probada en rama de tarea; pendiente integración. Commit `773be22c87d7ac19a68fe085295dbce9d4fd0704`. Suite: 13/13; navegador: caché/offline, navegación, alta ficticia de insumo, exportación JSON y persistencia correctas. Sin comparación de capturas. | 2026-10-30 | 2026-10-30 |
 
 ## Plantilla para registrar una tarea aprobada
 
