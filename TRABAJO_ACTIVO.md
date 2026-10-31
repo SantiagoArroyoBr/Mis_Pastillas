@@ -16,6 +16,18 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 | CSS-001 | Frontend y diseño | Extraer el CSS existente a `styles.css` y precargarlo offline con una nueva versión de caché | `development` (integrada desde `task/css-001-external-stylesheet`) | `index.html`, `styles.css`, `sw.js`; registros: `SOLICITUDES.md`, `CENTRO_DE_COORDINACION.md`, `TRABAJO_ACTIVO.md` | Incorporada en `development` mediante PR #1; merge `4d3ee998f7ec94d49fc858d1834c2202489053d6`; no desplegada | 2026-10-30 | 2026-10-30 |
 | MOD-001 | Dirección general / Arquitectura y planificación («Direccion general») | Extraer literalmente el JavaScript en línea de `index.html` a `app.js`, conservar inicialización, datos y PWA; formalizar el diagnóstico basado en `fa78806b53f601ce6aa070e75573df065043f4d3` | `task/mod-001-external-javascript` | `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, `app.js`, `sw.js`, `tests/persistence.spec.js` solo para MIME; cuatro registros de coordinación | Incorporada en `development` mediante PR #2; merge `327ad8d5a16434095948a84d1ca49a00207f0429`; no desplegada | 2026-10-30 | 2026-10-30 |
 | COORD-001 | Dirección general («Direccion general») | Actualizar las reglas para lectura inicial, detección de solicitudes/tareas equivalentes, registro previo y separación entre solicitud registrada y aprobación | `development` | `REGLAS_GENERALES.md`, `CENTRO_DE_COORDINACION.md`, `SOLICITUDES.md`, `TRABAJO_ACTIVO.md`, `DECISIONES_TECNICAS.md` | Implementada en `development`; sin cambios de aplicación ni producción | 2026-10-30 | 2026-10-30 |
+| MOD-002 | Dirección general / Arquitectura y planificación («Direccion general») | Extraer cinco utilidades independientes con carga global y precarga offline, preservando comportamiento | `task/mod-002-independent-utilities` desde `development` (`d39c054d9a39477b552346241df0b28328b4e1a3`) | `js/utils.js` (nuevo), `app.js`, `index.html`, `sw.js`, `tests/persistence.spec.js` solo si es necesario; `README.md` si documenta el archivo | Aprobada explícitamente; en curso; no integrada ni desplegada | 2026-10-31 | 2026-10-31 |
+
+## Registro aprobado — MOD-002
+
+- **Solicitud aprobada:** MOD-002; aprobación explícita del propietario el 2026-10-31 en «Direccion general» y reiterada en la instrucción de ejecución de esta tarea.
+- **Objetivo:** extraer `parseTimes`, `pos`, `num`, `money` y `esc` de `app.js` a `js/utils.js`, manteniendo nombres, resultados y disponibilidad global.
+- **Rama de trabajo:** `task/mod-002-independent-utilities`, creada desde `development` en `d39c054d9a39477b552346241df0b28328b4e1a3`.
+- **Archivos autorizados:** `js/utils.js` (nuevo), `app.js`, `index.html`, `sw.js`; `tests/persistence.spec.js` solo si hace falta para cubrir MIME/regresión. `README.md` para documentar la extracción si corresponde; registros: este archivo, `SOLICITUDES.md`, `CENTRO_DE_COORDINACION.md` y `DECISIONES_TECNICAS.md`.
+- **Exclusiones:** ninguna otra extracción; reglas de negocio, fechas, almacenamiento/esquema/migraciones, importación/exportación, dependencias, UX, `main`, integración a `development`, PR y despliegue.
+- **Criterios de aceptación:** comparativa de utilidades, casos de seguridad de `esc`, suite de regresión, formularios, MIME JavaScript y funcionamiento offline con datos ficticios; registrar resultados y limitaciones reales.
+- **Estado:** en curso.
+- **Inicio y última actualización:** 2026-10-31.
 
 ## Plantilla para registrar una tarea aprobada
 
