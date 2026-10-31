@@ -24,6 +24,14 @@
 3. Para restaurarlo, elige el JSON desde la opción de importación y revisa la confirmación. Restaurar reemplaza toda la información local del perfil actual por el contenido del archivo.
 4. Si no estás seguro de que el archivo sea correcto, cancela. No uses una importación para combinar datos de dispositivos distintos.
 
+## Privacidad y seguridad local
+
+La información de Acompaña se guarda en el perfil local del navegador mediante `localStorage`. `localStorage` no cifra los datos por sí mismo: una persona con acceso al perfil o código ejecutándose en el mismo origen podría leerlos. En dispositivos compartidos, usa perfiles separados y bloqueo de pantalla; cierra el perfil cuando termines y mantén actualizado el navegador y el sistema operativo.
+
+El respaldo JSON contiene la información de cuidado guardada en la aplicación y tampoco está cifrado por Acompaña. Guárdalo en una ubicación privada que controles, conserva una copia protegida y evita carpetas compartidas, chats, correo o sincronización ajena a tu control. La descarga del respaldo actual antes de restaurar puede ayudarte a recuperar los datos que ya estaban en ese perfil.
+
+Las notificaciones muestran avisos generales; abre la aplicación para consultar los detalles. WhatsApp y Google Calendar son servicios externos: antes de continuar, revisa y edita el mensaje o evento. Solo el contenido que confirmes se abrirá en el servicio seleccionado.
+
 La exportación y restauración sintéticas se probaron en el navegador aislado descrito en DAT-003. Eso no demuestra que un respaldo particular de una familia esté completo ni sustituye una copia custodiada por sus responsables.
 
 ## Uso sin conexión y límites

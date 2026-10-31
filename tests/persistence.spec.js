@@ -15,7 +15,7 @@ const CHROME = process.env.CHROME_BIN || [
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
 ].find(fs.existsSync);
 
-let server, serverUrl, browser, browserProfile, cdp, fixtureDir;
+let server, serverUrl, browser, browserProfile, cdp, fixtureDir, swUpdateVariant = false;
 
 class DevTools {
   constructor(wsUrl) {
@@ -56,6 +56,7 @@ const initScript = String.raw`(() => {
   const state = {
     failGet: query.has('failGet'),
     failSet: query.has('failSet'),
+    errors: [],
     writes: 0,
     exportBlob: null,
     seed(value) {
@@ -76,13 +77,14 @@ const initScript = String.raw`(() => {
     return nativeSet.call(this, name, value);
   };
   Object.defineProperty(window, '__persistenceTest', { value: state });
+  window.addEventListener('error', event => state.errors.push(event.message));
   const createObjectURL = URL.createObjectURL.bind(URL);
   URL.createObjectURL = blob => { state.exportBlob = blob; return createObjectURL(blob); };
 })();`;
 
 function evaluate(expression) {
   return cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }).then(result => {
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
   });
 }
@@ -97,7 +99,8 @@ async function waitFor(expression, message = expression, timeout = 5000) {
 async function navigate(query = '') {
   await cdp.send('Page.navigate', { url: serverUrl + '/' + query });
   await waitFor("document.readyState === 'complete'", 'carga del documento');
-  await waitFor("typeof persistenceReady !== 'undefined'", 'inicialización de Acompaña');
+  try { await waitFor("typeof persistenceReady !== 'undefined'", 'inicialización de Acompaña'); }
+  catch (error) { throw new Error(error.message + ' Errores JS: ' + JSON.stringify(await evaluate('__persistenceTest.errors'))); }
 }
 async function seed(raw) {
   await evaluate('window.__persistenceTest.seed(' + (raw === null ? 'null' : JSON.stringify(raw)) + ')');
@@ -109,6 +112,11 @@ async function uploadJson(data, name = 'respaldo-prueba.json') {
   const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#impFile' });
   await cdp.send('DOM.setFileInputFiles', { files: [file], nodeId });
 }
+async function continueRestore() {
+  await waitFor("document.querySelector('#continueRestore')", 'vista previa del respaldo');
+  await evaluate("document.querySelector('#continueRestore').click()");
+  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación explícita de restauración');
+}
 function validBackup(name = 'Paciente ficticio restaurado') {
   return { sel: 0, last: '', mode: 'home', p: [{ name, meds: [] }], appts: [], pay: {} };
 }
@@ -119,8 +127,17 @@ before(async () => {
     const requested = new URL(req.url, 'http://localhost').pathname;
     const file = requested === '/' ? path.join(ROOT, 'index.html') : path.join(ROOT, requested);
     if (!file.startsWith(ROOT) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404).end(); return; }
-    const contentType = file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'application/octet-stream';
+    const contentType = file.endsWith('.html') ? 'text/html; charset=utf-8'
+      : file.endsWith('.js') ? 'text/javascript; charset=utf-8'
+        : file.endsWith('.css') ? 'text/css; charset=utf-8'
+          : file.endsWith('.json') ? 'application/json; charset=utf-8'
+            : file.endsWith('.png') ? 'image/png'
+            : file.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
+    if (file.endsWith(path.sep + 'sw.js') && swUpdateVariant) {
+      res.end(fs.readFileSync(file, 'utf8') + '\n// cambio sintético para verificar actualización\n');
+      return;
+    }
     fs.createReadStream(file).pipe(res);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -170,6 +187,50 @@ test('instalación nueva habilita persistencia y operaciones normales', async ()
   assert.equal(await evaluate('save()'), true);
   assert.ok(await evaluate("__persistenceTest.read() !== null"));
 });
+test('el módulo de dominio comparte cálculos puros sin cambiar persistencia', async () => {
+  const before = await evaluate('__persistenceTest.read()');
+  assert.deepEqual(await evaluate("AcompanaDomain.parseTimes('8;08:00;20')"), ['08:00', '20:00']);
+  assert.equal(await evaluate("AcompanaDomain.schedText({type:'interval',n:3})"), 'cada 3 días');
+  const result = await evaluate("AcompanaDomain.calc({base:1,t0:new Date(2030,0,1,7).getTime(),cons:[{dose:1,times:['08:00'],schedule:{type:'daily'}}]},new Date(2030,0,1,7).getTime())");
+  assert.equal(result.rem, 1);
+  assert.equal(result.left, 1);
+  assert.equal(await evaluate('__persistenceTest.read()'), before);
+});
+test('los formularios anuncian errores de validación a tecnologías de asistencia', async () => {
+  await seed(null); await navigate();
+  await evaluate("S.mode='meds'; save(); render(); document.querySelector('#add').click()");
+  await waitFor("document.querySelector('#err')", 'formulario de medicina');
+  assert.equal(await evaluate("document.querySelector('#err').getAttribute('role')"), 'alert');
+  assert.equal(await evaluate("document.querySelector('#err').getAttribute('aria-live')"), 'polite');
+  await evaluate("document.querySelector('#f').requestSubmit()");
+  await waitFor("document.querySelector('#err').textContent.includes('Escribe el nombre')", 'mensaje de validación accesible');
+});
+test('la vista se adapta a seis anchuras móviles y conserva los datos locales', async () => {
+  const before = await evaluate('__persistenceTest.read()');
+  try {
+    for (const width of [320, 360, 375, 390, 430, 768]) {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: true });
+      await waitFor(`document.documentElement.clientWidth === ${width}`, `viewport de ${width} px`);
+      const view = await evaluate("({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,direction:getComputedStyle(document.querySelector('.backup')).flexDirection,bg:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()})");
+      assert.equal(view.width, width);
+      assert.ok(view.scroll <= view.width, `sin desbordamiento horizontal a ${width} px`);
+      assert.equal(view.direction, width <= 360 ? 'column' : 'row');
+      assert.equal(view.bg, '#F4EBDD');
+    }
+    assert.equal(await evaluate('__persistenceTest.read()'), before);
+  } finally {
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+  }
+});
+test('los nombres mostrados desde los datos se tratan como texto, no como HTML', async () => {
+  const backup = validBackup('<img src=x onerror=alert(1)>');
+  backup.mode = 'meds';
+  backup.p[0].meds.push({ name: '<img src=x onerror=alert(1)>', base: 4, cons: [{ dose: 1, times: ['08:00'], schedule: { type: 'daily' } }], t0: Date.now() });
+  await seed(JSON.stringify(backup)); await navigate();
+  assert.equal(await evaluate("document.querySelector('#tabs img, #list img') === null"), true);
+  assert.equal((await evaluate("document.querySelector('#list').textContent")).includes('<img src=x onerror=alert(1)>'), true);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'), []);
+});
 test('datos válidos se cargan sin activar el modo protegido', async () => {
   await seed(JSON.stringify(validBackup('Paciente ficticio válido'))); await navigate();
   assert.equal(await evaluate('persistenceReady'), true);
@@ -216,7 +277,7 @@ test('migración histórica válida conserva turnos, enfermeros y asignaciones',
 });
 test('restauración válida recupera una carga bloqueada y no escribe antes de confirmar', async () => {
   const raw = '{"p":'; await seed(raw); await navigate(); await uploadJson(validBackup());
-  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación de restauración');
+  await continueRestore();
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.equal(await evaluate('persistenceReady'), false);
   await evaluate("document.querySelector('#restoreConfirm').click()");
@@ -241,7 +302,7 @@ test('cancelar la restauración no realiza escrituras', async () => {
 });
 test('fallo de escritura durante restauración conserva almacenamiento y estado anteriores', async () => {
   const raw = '{"p":'; await seed(raw); await navigate('?failSet=1'); await uploadJson(validBackup());
-  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación de restauración');
+  await continueRestore();
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceFailure === 'write'", 'fallo de escritura de restauración');
@@ -253,7 +314,7 @@ test('la restauración también recupera un fallo de lectura de localStorage', a
   await seed(null); await navigate('?failGet=1');
   assert.equal(await evaluate('persistenceReady'), false);
   await uploadJson(validBackup('Recuperado tras fallo de lectura'));
-  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación tras fallo de lectura');
+  await continueRestore();
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Recuperado tras fallo de lectura'", 'recuperación tras fallo de lectura');
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Recuperado tras fallo de lectura');
@@ -271,9 +332,126 @@ test('el respaldo JSON exportado puede restaurarse en el perfil aislado', async 
   assert.equal(parsed.p[0].meds[0].base, 12);
 
   await uploadJson(exported, 'respaldo-exportado-ficticio.json');
-  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación de restauración del respaldo exportado');
+  await continueRestore();
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Cuidadora ficticia de prueba'", 'restauración del respaldo exportado');
   assert.deepEqual(await evaluate("JSON.parse(__persistenceTest.read())"), parsed);
+});
+
+test('el límite de importación rechaza archivos de más de 10 MiB antes de escribir', async () => {
+  const original = JSON.stringify(validBackup('Datos locales ficticios conservados'));
+  await seed(original); await navigate();
+  await uploadJson(' '.repeat(10 * 1024 * 1024 + 1), 'respaldo-demasiado-grande.json');
+  await waitFor("document.querySelector('#closeImportMessage')", 'aviso por tamaño excesivo');
+  assert.equal(await evaluate('__persistenceTest.read()'), original);
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"), /10 MiB/);
+});
+
+test('la vista previa presenta conteos validados y requiere confirmación adicional', async () => {
+  const backup = validBackup('Paciente ficticio de vista previa');
+  backup.p[0].meds = [{ name: 'Medicamento ficticio', base: 5, cons: [], t0: 1000 }];
+  backup.exportedAt = '2026-10-30T12:00:00Z';
+  await seed(JSON.stringify(validBackup('Estado actual ficticio'))); await navigate(); await uploadJson(backup);
+  await waitFor("document.querySelector('#continueRestore')", 'vista previa');
+  const preview = await evaluate("document.querySelector('#dlg').textContent");
+  assert.match(preview, /1 persona/);
+  assert.match(preview, /1 medicinas o insumos/);
+  assert.match(preview, /30\/10\/2026/);
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  assert.equal(await evaluate("document.querySelector('#restoreConfirm') === null"), true);
+  await evaluate("document.querySelector('#exportBeforeRestore').click()");
+  await waitFor('__persistenceTest.exportBlob !== null', 'exportación del estado actual');
+  assert.equal(await evaluate("__persistenceTest.exportBlob.text().then(x=>JSON.parse(x).p[0].name)"), 'Estado actual ficticio');
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  await continueRestore();
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  await evaluate("document.querySelector('#cancelRestore').click()");
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Estado actual ficticio');
+});
+
+test('las notificaciones no contienen nombres ni detalles personales', async () => {
+  await seed(JSON.stringify(validBackup('Paciente privado ficticio'))); await navigate();
+  await evaluate(`window.__notificationCapture=[]; window.Notification=class { static permission='granted'; constructor(title,options){window.__notificationCapture.push({title,body:options.body})} }; S.last=''; S.p[0].meds.push({name:'Medicamento privado ficticio',base:0,cons:[{dose:1,times:['08:00'],schedule:{type:'daily'}}],t0:Date.now()}); notifyDaily()`);
+  const notifications = await evaluate('__notificationCapture');
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].body, 'Hay pendientes de reposición.');
+  assert.doesNotMatch(JSON.stringify(notifications), /Paciente privado|Medicamento privado/);
+});
+
+test('WhatsApp muestra y permite editar el mensaje antes de abrir el servicio', async () => {
+  await seed(JSON.stringify(validBackup('Paciente ficticio para compartir'))); await navigate();
+  await evaluate("window.__openedExternal=''; window.open=url=>(window.__openedExternal=url); document.querySelector('#share').click()");
+  await waitFor("document.querySelector('#externalText')", 'previsualización de WhatsApp');
+  await evaluate("document.querySelector('#externalText').value='Resumen genérico ficticio'; document.querySelector('#externalContinue').click()");
+  const opened = await evaluate('__openedExternal');
+  assert.equal(new URL(opened).searchParams.get('text'), 'Resumen genérico ficticio');
+});
+
+test('Calendar intercepta el enlace real, permite editar y cancelar sin abrirlo', async () => {
+  const backup = validBackup('Paciente ficticio para Calendar');
+  backup.appts = [{ id: 'cita-ficticia', i: 0, d: '2030-11-15', t: '10:00', w: 'Centro ficticio', n: 'Nota ficticia' }];
+  await seed(JSON.stringify(backup)); await navigate();
+  await evaluate("window.__openedExternal=[]; window.open=(url,target,features)=>{window.__openedExternal.push({url,target,features});return null}");
+
+  await evaluate("document.querySelector('#homeView a.btn.cal[href*=' + JSON.stringify('calendar.google.com') + ']').click()");
+  await waitFor("document.querySelector('#externalTitle')", 'previsualización desde el enlace Calendar renderizado');
+  const preview = await evaluate("({title:document.querySelector('#externalTitle').value,details:document.querySelector('#externalDetails').value})");
+  assert.match(preview.title, /Cita médica \(Paciente ficticio para Calendar\)/);
+  assert.equal(preview.details, 'Nota ficticia');
+  assert.equal(await evaluate('__openedExternal.length'), 0);
+  await evaluate("document.querySelector('#externalCancel').click()");
+  await waitFor("!document.querySelector('#dlg').open", 'cancelación de Calendar');
+  assert.equal(await evaluate('__openedExternal.length'), 0);
+
+  await evaluate("document.querySelector('#homeView a.btn.cal[href*=' + JSON.stringify('calendar.google.com') + ']').click()");
+  await waitFor("document.querySelector('#externalTitle')", 'segunda previsualización de Calendar');
+  await evaluate("document.querySelector('#externalTitle').value='Evento revisado ficticio'; document.querySelector('#externalDetails').value='Detalle revisado ficticio'; document.querySelector('#externalContinue').click()");
+  assert.equal(await evaluate('__openedExternal.length'), 1);
+  const opened = new URL((await evaluate('__openedExternal'))[0].url);
+  assert.equal(opened.searchParams.get('text'), 'Evento revisado ficticio');
+  assert.equal(opened.searchParams.get('details'), 'Detalle revisado ficticio');
+  assert.equal(opened.searchParams.get('dates'), '20301115T100000/20301115T110000');
+});
+
+test('el service worker limpia solo sus cachés y sirve / y /index.html offline', async () => {
+  await seed(null); await navigate();
+  await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
+  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v9');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
+  assert.ok(cached.names.includes('acompanha-v9'));
+  for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/Nunito[wght].ttf']) {
+    assert.ok(cached.keys.some(key => key.endsWith(asset)), `Falta en caché ${asset}`);
+  }
+  await evaluate("fetch('/private-data').catch(()=>null)");
+  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v9');return Boolean(await c.match('/private-data'))})()");
+  assert.equal(privateCached, false);
+
+  await evaluate(`Promise.all(['acompanha-v8','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+  try {
+    for (const route of ['/', '/index.html']) {
+      await cdp.send('Page.navigate', { url: serverUrl + route });
+      await waitFor("document.readyState === 'complete' && typeof persistenceReady !== 'undefined'", `carga offline de ${route}`);
+      assert.equal(await evaluate('typeof S !== "undefined" && persistenceReady'), true);
+      assert.equal(await evaluate("[...document.styleSheets].some(sheet=>sheet.href&&sheet.href.endsWith('/styles.css'))"), true);
+      assert.equal(await evaluate("document.fonts.load('600 18px Nunito').then(fonts=>fonts.length>0&&fonts[0].status==='loaded')"), true);
+      assert.equal(await evaluate("performance.getEntriesByType('resource').some(entry=>/fonts\\.(googleapis|gstatic)\\.com/.test(entry.name))"), false);
+    }
+  } finally {
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  }
+  swUpdateVariant = true;
+  const update = await evaluate(`new Promise((resolve,reject)=>{navigator.serviceWorker.getRegistration().then(r=>{const timeout=setTimeout(()=>reject(new Error('Tiempo agotado esperando la nueva versión del service worker')),10000);r.addEventListener('updatefound',()=>{const worker=r.installing;worker.addEventListener('statechange',()=>{if(worker.state==='activated'){clearTimeout(timeout);resolve(worker.state)}})});r.update().catch(reject)}).catch(reject)})`);
+  assert.equal(update, 'activated');
+  swUpdateVariant = false;
+  const remainingCaches = await evaluate('caches.keys()');
+  assert.ok(remainingCaches.includes('acompanha-v9'));
+  assert.ok(!remainingCaches.includes('acompanha-v8'));
+  assert.ok(!remainingCaches.includes('cuidados-v8'));
+  assert.ok(remainingCaches.includes('other-component-v1'));
+  const otherComponentEntry = await evaluate("(async()=>{const c=await caches.open('other-component-v1');return Boolean(await c.match(location.origin+'/fixture-other-component-v1'))})()");
+  assert.equal(otherComponentEntry, true);
 });

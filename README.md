@@ -6,13 +6,15 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 
 - Aplicación: https://pastillas-1.vercel.app/
 - Repositorio: https://github.com/SantiagoArroyoBr/Mis_Pastillas
-- Código de la aplicación: `index.html`, `styles.css`, `app.js`, `sw.js` y `manifest.json`.
+- Código de la aplicación: `index.html`, `styles.css`, `app.js`, módulos JavaScript locales, `sw.js` y `manifest.json`. La fuente Nunito se sirve desde `fonts/` para conservar la presentación offline.
 
 ## Documentación del proyecto
 
 - [Plan de desarrollo](PLAN_DESARROLLO.md): fuente única de tareas, objetivos, dependencias, prioridades y estados.
 - [Arquitectura](ARQUITECTURA.md): estado comprobado del sistema, reglas técnicas permanentes y propuestas diferenciadas.
 - [Inventario funcional AUD-001](docs/auditorias/AUD-001-inventario-funcional.md): funcionalidades, reglas observadas, cobertura y vacíos comprobados en el código.
+- [Auditoría de seguridad y privacidad AUD-003](docs/auditorias/AUD-003-seguridad-privacidad.md): hallazgos AUD-003–AUD-012, verificaciones, tipografía local y riesgos residuales aceptados expresamente para el contexto familiar y controlado actual.
+- [Revisión independiente AUD-011](docs/auditorias/AUD-011-revision-independiente.md): registra los hallazgos y el seguimiento de corrección/verificación AUD-012.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
 - [Evaluación DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md): compara alternativas de backend/Auth, controles, costos y condiciones; recomienda mantener por ahora la PWA local.
 - [Diseño DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md): validación de exportación/restauración sintética completada; no sustituye la comprobación privada del respaldo familiar previa a cualquier migración.

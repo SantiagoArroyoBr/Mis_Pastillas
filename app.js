@@ -2,279 +2,13 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 }
 const $=s=>document.querySelector(s);
+const {parseTimes,at,dayMatches,schedText,evs,calc,fmt,num,consText,calUrl,ymd,pd,fmtD,money}=window.AcompanaDomain;
 
-// Convierte medicinas del formato viejo (dose/times/schedule) al nuevo (cons = lista de consumos)
-const NPAL=['#C92A2A','#1864AB','#2B8A3E','#862E9C','#A61E4D','#0B7285','#B45309','#5F3DC4'];
-const NPALN=['Rojo','Azul','Verde','Morado','Rosa','Turquesa','Naranja','Índigo'];
-function migrate(d){
-  (d.p||[]).forEach(p=>{
-    if(!Array.isArray(p.meds))p.meds=[];
-    p.meds.forEach(m=>{
-      if(!Array.isArray(m.cons)){
-        m.cons=[{dose:+m.dose||1,times:(Array.isArray(m.times)&&m.times.length)?m.times:['08:00'],schedule:m.schedule||{type:'daily'}}];
-        delete m.dose;delete m.times;delete m.schedule;
-      }
-    });
-  });
-  if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay))d.pay={};
-  const z=d.pay;
-  if(Array.isArray(z.w)){ // formato anterior: un pago por paciente
-    const w0=z.w.find(x=>x&&x.who);
-    if(w0&&!z.who){z.who=w0.who;z.day=w0.day;z.note=w0.note||'';z.paid=w0.paid||''}
-    if(!Array.isArray(z.nurses))z.nurses=[];
-    if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
-    z.w.forEach((w,i)=>{
-      if(!w||!w.v)return;
-      Object.keys(w.v).forEach(k=>{
-        const n=w.v[k];if(!n||typeof n!=='string')return;
-        (z.v[k]=z.v[k]||{})[i]=[{n,s:'full'}];
-        z.nurses[i]=Array.isArray(z.nurses[i])?z.nurses[i]:[];
-        if(!z.nurses[i].includes(n))z.nurses[i].push(n);
-      });
-    });
-    delete z.w;
-  }
-  if(typeof z.who!=='string')z.who='';
-  z.day=+z.day;if(!(z.day>=0&&z.day<=6))z.day=5;
-  if(typeof z.note!=='string')z.note='';
-  if(typeof z.paid!=='string')z.paid='';
-  if(Array.isArray(z.shifts))z.shifts=z.shifts.filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
-  if(!Array.isArray(z.shifts)||!z.shifts.length)z.shifts=[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
-  if(!Array.isArray(z.nurses))z.nurses=[];
-  z.nurses=z.nurses.map(a=>Array.isArray(a)?a.map((x,k)=>{
-    if(typeof x==='string'&&x)return{n:x,c:NPAL[k%NPAL.length]};
-    if(x&&typeof x.n==='string'&&x.n)return{n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length]};
-    return null;
-  }).filter(Boolean):[]);
-  if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
-  const defShifts=()=>[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
-  const normShifts=a=>{
-    const o=(Array.isArray(a)?a:[]).filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
-    return o.length?o:defShifts();
-  };
-  if(!Array.isArray(z.cfg)){ // formato anterior: un solo pago para todos; se copia a cada paciente
-    z.cfg=(d.p||[]).map(()=>({who:z.who,day:z.day,note:z.note,paid:z.paid,shifts:normShifts(z.shifts)}));
-  }
-  z.cfg=(d.p||[]).map((_,i)=>{
-    const c=(z.cfg[i]&&typeof z.cfg[i]==='object')?z.cfg[i]:{};
-    const pays=(Array.isArray(c.pays)?c.pays:[]).filter(x=>x&&Number.isInteger(+x.n)&&+x.n>=1).map(x=>({d:typeof x.d==='string'?x.d:'',n:+x.n,a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a,old:!!x.old}));
-    const ld=Math.floor(+c.lead);
-    const rt=(c.rate===null||c.rate===undefined||c.rate===''||!isFinite(+c.rate))?null:+c.rate;
-    return{
-      who:typeof c.who==='string'?c.who:'',
-      note:typeof c.note==='string'?c.note:'',
-      lead:(ld>=1&&ld<=14)?ld:2,
-      base:(typeof c.base==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.base))?c.base:'',
-      pays,
-      time:c.time==='half'?'half':'full',
-      rate:rt
-    };
-  });
-  delete z.who;delete z.day;delete z.note;delete z.paid;delete z.shifts;
-  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
-  (d.p||[]).forEach(p=>p.meds.forEach(m=>{
-    if(m.kind!=='sup')delete m.kind;
-    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w.slice(0,40):''}));
-    if(!m.buys.length)delete m.buys;
-  }));
-  if(!['home','meds','pay'].includes(d.mode))d.mode='home';
-  return d;
-}
+const {NPAL,NPALN,migrate,defaultState,validateStoredState,validateMigrationInput,assertMigrationIntegrity,prepareMigratedState,validateMigratedState}=window.AcompanaCompatibility;
 const STORAGE_KEY='pastillas-v1';
+const MAX_IMPORT_BYTES=10*1024*1024;
 let persistenceReady=false;
 let persistenceFailure='';
-
-function defaultState(){
-  return migrate({sel:0,last:'',p:[{name:'Persona 1',meds:[]},{name:'Persona 2',meds:[]}],pay:{},appts:[],mode:'home'});
-}
-
-function validateStoredState(d){
-  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
-  const fail=msg=>{throw new Error(msg)};
-  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p))fail('Estructura principal no válida.');
-  d.p.forEach((p,i)=>{
-    if(!p||typeof p!=='object'||Array.isArray(p)||!Array.isArray(p.meds))fail('Lista de medicinas no válida en el paciente '+(i+1)+'.');
-    p.meds.forEach((m,j)=>{
-      if(!m||typeof m!=='object'||Array.isArray(m))fail('Registro de medicina no válido.');
-      if(own(m,'cons')){
-        if(!Array.isArray(m.cons))fail('Lista de consumos no válida.');
-        m.cons.forEach(c=>{
-          if(!c||typeof c!=='object'||Array.isArray(c)||!Array.isArray(c.times))fail('Consumo de medicina incompleto.');
-        });
-      }
-      if(own(m,'buys')){
-        if(!Array.isArray(m.buys))fail('Historial de compras no válido.');
-        m.buys.forEach(b=>{
-          if(!b||typeof b!=='object'||!/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')||!isFinite(+b.p)||+b.p<0||!isFinite(+b.n)||+b.n<=0)fail('Registro de compra incompleto.');
-        });
-      }
-    });
-  });
-  if(own(d,'appts')){
-    if(!Array.isArray(d.appts))fail('Lista de citas no válida.');
-    d.appts.forEach(a=>{
-      if(!a||typeof a!=='object'||typeof a.d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(a.d)||!Number.isInteger(+a.i)||+a.i<0||+a.i>=d.p.length)fail('Registro de cita incompleto.');
-    });
-  }
-  if(own(d,'pay')){
-    const z=d.pay;
-    if(!z||typeof z!=='object'||Array.isArray(z))fail('Datos de pagos no válidos.');
-    ['w','shifts','nurses','cfg'].forEach(k=>{if(own(z,k)&&!Array.isArray(z[k]))fail('Estructura de pagos no válida: '+k+'.')});
-    if(own(z,'v')&&(!z.v||typeof z.v!=='object'||Array.isArray(z.v)))fail('Asignaciones de pagos no válidas.');
-    if(Array.isArray(z.shifts))z.shifts.forEach(s=>{if(!s||typeof s!=='object'||s.id===undefined||s.id==='')fail('Registro de turno incompleto.')});
-    if(Array.isArray(z.cfg))z.cfg.forEach(c=>{
-      if(!c||typeof c!=='object'||Array.isArray(c))fail('Configuración de pagos no válida.');
-      if(own(c,'pays')){
-        if(!Array.isArray(c.pays))fail('Historial de pagos no válido.');
-        c.pays.forEach(p=>{if(!p||typeof p!=='object'||!Number.isInteger(+p.n)||+p.n<1)fail('Registro de pago incompleto.')});
-      }
-    });
-    if(Array.isArray(z.nurses))z.nurses.forEach(n=>{
-      if(!Array.isArray(n))fail('Lista de enfermeros no válida.');
-      n.forEach(x=>{if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.')});
-    });
-  }
-  return d;
-}
-
-// Comprueba todos los registros que migrate() podría filtrar, sustituir o descartar.
-// La validación se ejecuta antes de migrar para impedir pérdidas silenciosas.
-function validateMigrationInput(d){
-  validateStoredState(d);
-  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
-  const fail=msg=>{throw new Error('Migración rechazada: '+msg)};
-  const validDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v);
-  const validAmount=v=>v===null||v===undefined||v===''||Number.isFinite(+v);
-  const validTimes=a=>Array.isArray(a)&&a.length>0&&a.every(t=>{
-    if(typeof t!=='string'||!/^\d{2}:\d{2}$/.test(t))return false;
-    const [h,m]=t.split(':').map(Number);
-    return h>=0&&h<=23&&m>=0&&m<=59;
-  });
-  const validSchedule=sch=>{
-    if(sch===undefined||sch===null)return true;
-    if(typeof sch!=='object'||Array.isArray(sch))return false;
-    if(sch.type!==undefined&&!['daily','weekdays','interval'].includes(sch.type))return false;
-    if(sch.type==='weekdays')return Array.isArray(sch.days)&&sch.days.length>0&&sch.days.every(x=>Number.isInteger(+x)&&+x>=0&&+x<=6);
-    if(sch.type==='interval')return Number.isInteger(+sch.n)&&+sch.n>=1;
-    return true;
-  };
-  d.p.forEach((p,i)=>p.meds.forEach((m,j)=>{
-    if(own(m,'kind')&&m.kind!=='sup')fail('tipo de registro desconocido en paciente '+(i+1)+', elemento '+(j+1)+'.');
-    if(Array.isArray(m.cons)){
-      m.cons.forEach((c,k)=>{
-        if(!Number.isFinite(+c.dose)||+c.dose<=0||!validTimes(c.times)||!validSchedule(c.schedule))fail('consumo incompleto en paciente '+(i+1)+', elemento '+(j+1)+', consumo '+(k+1)+'.');
-      });
-    }else{
-      if(own(m,'dose')&&(!Number.isFinite(+m.dose)||+m.dose<=0))fail('dosis histórica no válida en paciente '+(i+1)+', elemento '+(j+1)+'.');
-      if(own(m,'times')&&!validTimes(m.times))fail('horarios históricos no válidos en paciente '+(i+1)+', elemento '+(j+1)+'.');
-      if(own(m,'schedule')&&!validSchedule(m.schedule))fail('frecuencia histórica no válida en paciente '+(i+1)+', elemento '+(j+1)+'.');
-    }
-    if(Array.isArray(m.buys))m.buys.forEach((b,k)=>{
-      if(own(b,'w')&&typeof b.w!=='string')fail('la tienda de la compra '+(k+1)+' no es texto.');
-    });
-  }));
-  if(Array.isArray(d.appts))d.appts.forEach((a,i)=>{
-    if(own(a,'id')&&typeof a.id!=='string')fail('el identificador de la cita '+(i+1)+' no es texto.');
-    if(own(a,'t')&&a.t!==''&&!/^\d{2}:\d{2}$/.test(a.t))fail('la hora de la cita '+(i+1)+' no se puede conservar.');
-    if(own(a,'w')&&typeof a.w!=='string')fail('el lugar o profesional de la cita '+(i+1)+' no es texto.');
-    if(own(a,'n')&&typeof a.n!=='string')fail('las notas de la cita '+(i+1)+' no son texto.');
-  });
-  const z=d.pay||{};
-  if(own(z,'who')&&typeof z.who!=='string')fail('el responsable histórico del pago no es texto.');
-  if(own(z,'day')&&(!Number.isInteger(+z.day)||+z.day<0||+z.day>6))fail('el día de pago histórico no es válido.');
-  if(own(z,'note')&&typeof z.note!=='string')fail('la nota histórica de pago no es texto.');
-  if(own(z,'paid')&&typeof z.paid!=='string')fail('la fecha histórica de pago no es texto.');
-  if(Array.isArray(z.shifts))z.shifts.forEach((x,i)=>{
-    if(!x||typeof x!=='object'||x.id===undefined||x.id==='')fail('el turno '+(i+1)+' no tiene identificador y sería descartado.');
-    if(own(x,'n')&&typeof x.n!=='string')fail('el nombre del turno '+(i+1)+' no se puede conservar.');
-    if(own(x,'a')&&!validAmount(x.a))fail('el importe del turno '+(i+1)+' no se puede conservar.');
-  });
-  if(Array.isArray(z.nurses))z.nurses.forEach((list,i)=>list.forEach((n,j)=>{
-    if(n&&typeof n==='object'&&own(n,'c')&&!NPAL.includes(n.c))fail('el color del enfermero '+(j+1)+' del paciente '+(i+1)+' no es reconocido.');
-  }));
-  if(Array.isArray(z.cfg)){
-    if(z.cfg.length>d.p.length)fail('hay configuraciones de pago adicionales que la migración descartaría.');
-    z.cfg.forEach((c,i)=>{
-      ['who','note'].forEach(k=>{if(own(c,k)&&typeof c[k]!=='string')fail('el campo '+k+' de la configuración '+(i+1)+' no se puede conservar.')});
-      if(own(c,'lead')&&(!Number.isInteger(+c.lead)||+c.lead<1||+c.lead>14))fail('el plazo de aviso de la configuración '+(i+1)+' no es válido.');
-      if(own(c,'base')&&c.base!==''&&!validDate(c.base))fail('la fecha base de la configuración '+(i+1)+' no es válida.');
-      if(own(c,'time')&&!['full','half'].includes(c.time))fail('el tipo de turno de la configuración '+(i+1)+' no es válido.');
-      if(own(c,'rate')&&!validAmount(c.rate))fail('la tarifa de la configuración '+(i+1)+' no se puede conservar.');
-      if(Array.isArray(c.pays))c.pays.forEach((p,j)=>{
-        if(own(p,'d')&&typeof p.d!=='string')fail('la fecha del pago '+(j+1)+' de la configuración '+(i+1)+' no es texto.');
-        if(own(p,'a')&&!validAmount(p.a))fail('el importe del pago '+(j+1)+' de la configuración '+(i+1)+' no se puede conservar.');
-      });
-    });
-  }
-  if(Array.isArray(z.w)){
-    const seen=new Set();
-    z.w.forEach((w,i)=>{
-      if(!w||typeof w!=='object'||!w.v||typeof w.v!=='object'||Array.isArray(w.v))fail('el registro histórico de pagos '+(i+1)+' no puede convertirse íntegramente.');
-      if(own(w,'who')&&typeof w.who!=='string')fail('el responsable del registro histórico '+(i+1)+' no se puede conservar.');
-      if(own(w,'day')&&(!Number.isInteger(+w.day)||+w.day<0||+w.day>6))fail('el día del registro histórico '+(i+1)+' no es válido.');
-      if(own(w,'note')&&typeof w.note!=='string')fail('la nota del registro histórico '+(i+1)+' no se puede conservar.');
-      if(own(w,'paid')&&typeof w.paid!=='string')fail('la fecha pagada del registro histórico '+(i+1)+' no se puede conservar.');
-      Object.entries(w.v).forEach(([day,name])=>{
-        if(typeof name!=='string'||!name.trim())fail('hay una asignación histórica sin nombre que sería descartada.');
-        const key=day+':'+i;
-        if(seen.has(key))fail('hay asignaciones históricas duplicadas.');
-        seen.add(key);
-        const existing=z.v&&z.v[day]&&z.v[day][i];
-        if(existing!==undefined&&existing!==null&&(!Array.isArray(existing)||existing.length))fail('una asignación histórica entraría en conflicto con una asignación existente.');
-      });
-    });
-  }
-  return d;
-}
-function assertMigrationIntegrity(before,after){
-  const fail=msg=>{throw new Error('La migración alteraría registros: '+msg)};
-  if(before.p.length!==after.p.length)fail('cambió la cantidad de pacientes.');
-  before.p.forEach((p,i)=>{
-    if(p.meds.length!==after.p[i].meds.length)fail('cambió la cantidad de registros del paciente '+(i+1)+'.');
-    p.meds.forEach((m,j)=>{
-      const migrated=after.p[i].meds[j];
-      const beforeBuys=Array.isArray(m.buys)?m.buys.length:0;
-      const afterBuys=Array.isArray(migrated.buys)?migrated.buys.length:0;
-      if(beforeBuys!==afterBuys)fail('cambió el historial de compras del registro '+(j+1)+'.');
-      if(Array.isArray(m.cons)&&m.cons.length!==migrated.cons.length)fail('cambió la cantidad de consumos del registro '+(j+1)+'.');
-    });
-  });
-  const beforeAppts=Array.isArray(before.appts)?before.appts.length:0;
-  if(beforeAppts!==after.appts.length)fail('cambió la cantidad de citas.');
-  const oldPay=before.pay||{},newPay=after.pay;
-  if(Array.isArray(oldPay.shifts)&&oldPay.shifts.length&&oldPay.shifts.length!==newPay.shifts.length)fail('cambió la cantidad de turnos.');
-  if(Array.isArray(oldPay.cfg))oldPay.cfg.forEach((c,i)=>{
-    const a=Array.isArray(c.pays)?c.pays.length:0;
-    const b=Array.isArray(newPay.cfg[i]&&newPay.cfg[i].pays)?newPay.cfg[i].pays.length:0;
-    if(a!==b)fail('cambió el historial de pagos del paciente '+(i+1)+'.');
-  });
-  if(Array.isArray(oldPay.nurses))oldPay.nurses.forEach((list,i)=>{
-    const a=Array.isArray(list)?list.length:0;
-    const b=Array.isArray(newPay.nurses[i])?newPay.nurses[i].length:0;
-    if(b<a)fail('se redujo la lista de enfermeros del paciente '+(i+1)+'.');
-  });
-  return after;
-}
-
-function prepareMigratedState(parsed){
-  validateMigrationInput(parsed);
-  const before=JSON.parse(JSON.stringify(parsed));
-  const candidate=migrate(JSON.parse(JSON.stringify(parsed)));
-  if(typeof candidate.sel!=='number'||!candidate.p[candidate.sel])candidate.sel=0;
-  if(typeof candidate.last!=='string')candidate.last='';
-  validateMigratedState(candidate);
-  assertMigrationIntegrity(before,candidate);
-  return candidate;
-}
-
-function validateMigratedState(d){
-  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p)||!d.p.length||!Number.isInteger(d.sel)||d.sel<0||d.sel>=d.p.length)throw new Error('La migración no produjo una estructura válida.');
-  if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v))throw new Error('La migración de pagos no se completó.');
-  if(!Array.isArray(d.appts))throw new Error('La migración de citas no se completó.');
-  d.p.forEach(p=>{if(!p||typeof p!=='object'||!Array.isArray(p.meds))throw new Error('La migración de pacientes no se completó.')});
-  return d;
-}
-
 function showPersistenceWarning(){
   const box=document.getElementById('persistenceWarning');
   if(!box)return;
@@ -328,85 +62,6 @@ document.addEventListener('submit',e=>{
   showPersistenceWarning();
 },true);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-function parseTimes(txt){
-  const out=[];
-  for(const t of txt.split(/[,;]+/)){
-    const m=t.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
-    if(!m)return null;
-    const h=+m[1],mi=+(m[2]||0);
-    if(h>23||mi>59)return null;
-    out.push(String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'));
-  }
-  return [...new Set(out)].sort();
-}
-const at=(d,t)=>{const[h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x.getTime()};
-
-// ---- Frecuencia ----
-function dayMatches(sch,d){
-  if(!sch||sch.type==='daily')return true;
-  if(sch.type==='weekdays')return (sch.days||[]).includes(d.getDay());
-  if(sch.type==='interval'){
-    const start=new Date(sch.start||Date.now());start.setHours(0,0,0,0);
-    const cur=new Date(d);cur.setHours(0,0,0,0);
-    const diff=Math.round((cur-start)/86400000);
-    return diff>=0 && diff%Math.max(1,sch.n||1)===0;
-  }
-  return true;
-}
-const WD_SHORT=['dom','lun','mar','mié','jue','vie','sáb'];
-function schedText(sch){
-  if(!sch||sch.type==='daily')return'todos los días';
-  if(sch.type==='weekdays'){
-    const d=(sch.days||[]).slice().sort();
-    return d.length?d.map(i=>WD_SHORT[i]).join(', '):'todos los días';
-  }
-  if(sch.type==='interval')return'cada '+(sch.n||1)+' días';
-  return'todos los días';
-}
-
-// ---- Todas las tomas de TODOS los consumos entre a y b, en orden ----
-function evs(m,a,b){
-  const o=[];
-  for(const c of m.cons){
-    const d=new Date(a);d.setHours(0,0,0,0);
-    while(d.getTime()<=b){
-      if(dayMatches(c.schedule,d))for(const t of c.times){const x=at(d,t);if(x>a&&x<=b)o.push({t:x,d:c.dose})}
-      d.setDate(d.getDate()+1);
-    }
-  }
-  return o.sort((x,y)=>x.t-y.t);
-}
-function calc(m,now=Date.now()){
-  const used=evs(m,m.t0,now).reduce((s,e)=>s+e.d,0);
-  const rem=Math.max(0,+(m.base-used).toFixed(2));
-  let stock=rem,left=0,end=null;
-  for(const e of evs(m,now,now+1000*864e5)){
-    if(stock+1e-9<e.d)break;
-    stock=+(stock-e.d).toFixed(2);left++;end=e.t;
-  }
-  const WARN=2*864e5,URGENT=1*864e5;
-  const buy=end?Math.max(now,end-WARN):now;
-  const st=(!end||end<=now+URGENT)?'red':end<=now+WARN?'amber':'green';
-  const days=end?Math.max(0,Math.ceil((end-now)/864e5)):0;
-  return{rem,left,end,buy,st,days,now:buy<=now+3600e3};
-}
-const fmt=ms=>new Date(ms).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-const num=n=>String(n).replace('.',',');
-function consText(m){
-  if(m.kind==='sup'){const c=m.cons[0]||{dose:1};return 'Uso: '+num(c.dose)+' pieza'+(c.dose==1?'':'s')+' al día'}
-  const one=m.cons.length===1;
-  return m.cons.map(c=>(one?'':'• ')+'Toma '+num(c.dose)+' pastilla'+(c.dose==1?'':'s')+', '+schedText(c.schedule)+', a las '+c.times.join(', ')).join('<br>');
-}
-
-function calUrl(title,buyMs,details){
-  let d=new Date(buyMs);
-  if(buyMs<=Date.now()+3600e3){d=new Date();if(d.getHours()<9){d.setHours(9,0,0,0)}else{d=new Date(Date.now()+15*60e3)}}
-  else d.setHours(9,0,0,0);
-  const e=new Date(d.getTime()+30*60e3);
-  const f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+f(d)+'/'+f(e)+'&details='+encodeURIComponent(details);
-}
 const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente']};
 
 // ================= PAGOS E INICIO (solo recordatorios; no se paga desde la app) =================
@@ -416,10 +71,6 @@ const WD_LONG=['domingo','lunes','martes','miércoles','jueves','viernes','sába
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const TIMES={full:'Tiempo completo',half:'Medio tiempo'};
 const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','Se debe'],gray:['–','Sin configurar']};
-const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const pd=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d)};
-const fmtD=ds=>pd(ds).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
 let showT=0,calM=0,homeP=-1;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
@@ -429,74 +80,7 @@ const nurList=i=>S.pay.nurses[i]||[];
 const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A'};
 const nextColor=i=>{const used=new Set(nurList(i).map(x=>x.c));return NPAL.find(c=>!used.has(c))||NPAL[nurList(i).length%NPAL.length]};
 
-// Cuenta: los días pagados (suma de todos los pagos) se gastan, en orden, en los días con enfermero registrado desde la fecha de inicio.
-// Lo que se debe = días con enfermero registrado, hasta hoy, que ya no alcanzan a cubrirse con lo pagado.
-function cover(i){
-  const c=cfg(i);
-  const total=c.pays.filter(x=>!x.old).reduce((s2,x)=>s2+x.n,0);
-  const out={has:false,total,dates:[],covered:new Set(),unpaid:[],unused:0,remaining:0,unpaidDue:[],owed:0,future:0,st:'gray',msg:'',lastCovered:''};
-  if(!c.base)return out;
-  const today=ymd(new Date());
-  const dates=Object.keys(S.pay.v).filter(k=>k>=c.base&&ents(k,i).length).sort();
-  const cov=dates.slice(0,total);
-  const unpaid=dates.slice(total);
-  const unused=Math.max(0,total-dates.length);
-  const unpaidDue=unpaid.filter(k=>k<=today);
-  const owed=unpaidDue.length;
-  const future=unpaid.length-owed;
-  const remaining=cov.filter(k=>k>=today).length+unused;
-  const st=owed?'red':'green';
-  const msg=owed?'se deben '+owed+' día'+(owed>1?'s':''):'al corriente';
-  return{has:true,total,dates,covered:new Set(cov),unpaid,unused,remaining,unpaidDue,owed,future,st,msg,lastCovered:(unused===0&&cov.length)?cov[cov.length-1]:''};
-}
-
-// Lo que se debe, por enfermero
-function oweSummary(i){
-  const c=cfg(i),cv=cover(i);
-  const by=new Map();
-  cv.unpaidDue.forEach(k=>ents(k,i).forEach(e=>{
-    let o=by.get(e.n);if(!o){o={n:e.n,c:0,amt:0};by.set(e.n,o)}
-    o.c++;if(c.rate!=null)o.amt+=c.rate;
-  }));
-  return{rows:[...by.values()].sort((a,b)=>a.n.localeCompare(b.n,'es'))};
-}
-
-// Resumen por enfermero de los días cubiertos por el último pago
-function lastPay(i){
-  const c=cfg(i),cv=cover(i);
-  const act=c.pays.filter(x=>!x.old);
-  if(!cv.has||!act.length)return null;
-  const n=act[act.length-1].n;
-  const dates=cv.dates.slice(Math.max(0,cv.total-n),cv.total);
-  const by=new Map();let total=0;
-  dates.forEach(k=>ents(k,i).forEach(e=>{
-    let o=by.get(e.n);if(!o){o={n:e.n,c:0,amt:0};by.set(e.n,o)}
-    o.c++;if(c.rate!=null){o.amt+=c.rate;total+=c.rate}
-  }));
-  return{n,rows:[...by.values()].sort((a,b)=>a.n.localeCompare(b.n,'es')),total,days:dates.length};
-}
-
-// Fechas de compra y de agotamiento de las pastillas de una persona (con las dosis tomadas tal como están indicadas)
-function pillEv(i){
-  const map={};
-  const add=(ds,k,n)=>{(map[ds]=map[ds]||{buy:[],end:[]})[k].push(n)};
-  const p=S.p[i];if(!p)return map;
-  const today=ymd(new Date());
-  p.meds.forEach(m=>{
-    const c=calc(m);
-    if(!c.end){add(today,'buy',m.name);add(today,'end',m.name);return}
-    add(ymd(new Date(c.buy)),'buy',m.name);
-    add(ymd(new Date(c.end)),'end',m.name);
-  });
-  return map;
-}
-
-// Pacientes a los que se les debe
-function payDue(){
-  const out=[];
-  S.p.forEach((p,i)=>{const c=cfg(i);if(!c.who)return;const cv=cover(i);if(cv.st==='red'||cv.st==='amber')out.push({p,i,c,cv})});
-  return out;
-}
+const {cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue}=window.AcompanaPayments.create({getState:()=>S,config:cfg,entries:ents,calc,ymd});
 function payNotice(){
   const d=payDue();
   if(!d.length)return'';
@@ -568,339 +152,6 @@ function calHTML(i){
 }
 
 // ---------- PAGOS (una tarjeta por paciente) ----------
-function patientHTML(p,i){
-  const c=cfg(i),conf=!!c.who;
-  const nur=nurList(i);
-  const chips=nur.map((x,k)=>`<button class="nchip" style="background:${x.c}" data-pa="nedit" data-i="${i}" data-k="${k}">${esc(x.n)}</button>`).join('')+`<button class="nchip add" data-pa="nadd" data-i="${i}">+ Agregar enfermero/a</button>`;
-  const nurH=`<p class="info nurses"><b>Enfermeros</b> <span class="hint">· Los días se asignan en Inicio.</span></p><div class="nlist">${chips}</div>`;
-  const ren=`<div class="row" style="margin-top:8px"><button class="btn ghost small" data-pa="ren" data-i="${i}">Cambiar nombre</button></div>`;
-  if(!conf){
-    return `<article class="card gray">
-      <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3></div>
-      <p class="info">Aún no hay un pago configurado para ${esc(p.name)}. Anota a quién se le paga, el tipo de turno de sus enfermeros y desde cuándo se cuentan los días.</p>
-      <button class="btn" data-pa="cfg" data-i="${i}">Configurar pago</button>
-      ${nurH}${ren}
-    </article>`;
-  }
-  const cv=cover(i),[ic,tx]=PLBL[cv.st];
-  const lp=lastPay(i),ow=oweSummary(i);
-  const anyAmt=c.rate!=null||c.pays.some(x=>x.a!=null);
-  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
-  const head=cv.has
-    ? `<p class="big">${cv.owed} <small>${cv.owed===1?'día sin pagar':'días sin pagar'}</small></p>
-      ${c.rate!=null?`<p class="info">Se debe: <b>${A(cv.owed*c.rate)}</b> <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver monto'}</button></p>`:''}
-      <p class="info"><span class="hint">${cv.remaining>0?'Hay '+pl(cv.remaining,'día')+' pagado'+(cv.remaining===1?'':'s')+' por delante. ':''}${cv.future?'Hay '+pl(cv.future,'día')+' asignado'+(cv.future===1?'':'s')+' más adelante sin pagar. ':''}Se cuentan los días con enfermero registrado desde el ${esc(fmtD(c.base))}.</span></p>`
-    : '<p class="info">Indica desde cuándo se cuentan los días: toca “Editar pago”.</p>';
-  const oweH=(cv.has&&cv.owed)
-    ? `<p class="info" style="margin-top:6px"><b>Lo que se debe, por enfermero</b></p>`
-      +ow.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'día')}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
-    : '';
-  const hist=c.pays.map((x,k)=>({x,k})).slice(-5).reverse().map(({x,k})=>`<div class="vrow"><div>${x.d?esc(fmtD(x.d)):'—'} · <b>${pl(x.n,'día')}</b>${x.old?' <span class="hint">(conteo anterior)</span>':''}${x.a!=null?`<br><span class="amtv">${A(x.a)}</span>`:''}</div><button class="link" data-pa="pdel" data-i="${i}" data-k="${k}">Quitar</button></div>`).join('');
-  const sumH=lp
-    ? `<p class="info" style="margin-top:14px"><b>Resumen del último pago</b> <span class="hint">(${pl(lp.n,'día')})</span></p>`
-      +(lp.rows.length
-        ? lp.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'día')}</span></div>${c.rate!=null?`<span class="amtv">${A(o.amt)}</span>`:''}</div>`).join('')
-          +(c.rate!=null?`<div class="vrow"><b>Total estimado</b><span class="amtv">${A(lp.total)}</span></div>`:'')
-        : '<p class="hint">Aún no hay enfermeros registrados en esos días.</p>')
-    : '';
-  return `<article class="card ${cv.st}">
-    <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><span class="badge">${ic} ${tx}</span></div>
-    <p class="info">Se le paga a <b>${esc(c.who)}</b>. Enfermeros de <b>${TIMES[c.time].toLowerCase()}</b>.${c.note?'<br><span class="hint">'+esc(c.note)+'</span>':''}</p>
-    ${head}
-    ${oweH}
-    <button class="btn" style="margin-top:10px" data-pa="payreg" data-i="${i}">Registrar pago</button>
-    <div class="row"><button class="btn ghost small" data-pa="cfg" data-i="${i}">Editar pago</button></div>
-    ${c.pays.length?`<p class="info" style="margin-top:14px"><b>Pagos registrados</b>${anyAmt?` <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button>`:''}</p>${hist}<button class="link" data-pa="creset" data-i="${i}">Empezar un conteo nuevo…</button>`:''}
-    ${nurH}
-    ${sumH}
-    ${ren}
-  </article>`;
-}
-
-function renderPay(){
-  $('#payView').innerHTML=S.p.map((p,i)=>patientHTML(p,i)).join('');
-}
-
-function payForm(i){
-  const p=S.p[i],c=cfg(i);
-  form((c.who?'Editar pago: ':'Configurar pago: ')+esc(p.name),[
-    {id:'w',l:'¿A quién se le paga?',t:'text',ph:'Ej. enfermera jefa',v:c.who},
-    {id:'tm',l:'Tipo de turno de los enfermeros de '+esc(p.name),t:'text',v:TIMES[c.time],presets:[{l:TIMES.full,v:TIMES.full},{l:TIMES.half,v:TIMES.half}],h:'Es fijo para todos sus enfermeros. Si cambia, cambia para todos.'},
-    {id:'rt',l:'Monto por día (opcional)',v:c.rate==null?'':c.rate,h:'Queda oculto en pantalla. Con esto se calcula cuánto se debe.'},
-    {id:'fd',l:'Contar los días desde',t:'date',v:c.base||ymd(new Date()),h:'Se cuentan los días con enfermero registrado desde esta fecha. Lo ya pagado se va descontando en orden.'},
-    {id:'nt',l:'Nota (opcional)',t:'text',ph:'Ej. se paga en efectivo',v:c.note}
-  ],v=>{
-    if(!v.w.trim())return'Escribe a quién se le paga.';
-    const tm=v.tm.trim()===TIMES.half?'half':v.tm.trim()===TIMES.full?'full':'';
-    if(!tm)return'Elige el tipo de turno con los botones.';
-    let rate=null;
-    if(String(v.rt).trim()!==''){rate=pos(v.rt);if(!(rate>=0))return'El monto por día debe ser un número (o déjalo vacío).'}
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
-    c.who=v.w.trim().slice(0,60);c.time=tm;c.rate=rate;c.base=v.fd;c.note=v.nt.trim().slice(0,100);
-    save();render();
-  },'Guardar');
-  $('#tm').readOnly=true;
-}
-
-// Registrar un pago: cuántos días cubre (por defecto, los que se deben ahora; también puede ser por adelantado)
-function payRegForm(i){
-  const p=S.p[i],c=cfg(i),cv=cover(i);
-  const fields=[
-    {id:'n',l:'¿Cuántos días se pagaron?',v:cv.owed?String(cv.owed):'',h:cv.owed?'Se sugieren los '+cv.owed+' día'+(cv.owed===1?'':'s')+' que se deben ahora. Puede ser más si se paga por adelantado.':'Cuenta los días con enfermero registrado.'},
-    {id:'a',l:'Monto pagado (opcional)',v:(cv.owed&&c.rate!=null)?String(cv.owed*c.rate):'',h:'Queda oculto en pantalla.'}
-  ];
-  if(!c.base)fields.push({id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los días con enfermero registrado desde esta fecha se irán descontando de lo pagado.'});
-  form('Registrar pago: '+esc(p.name),fields,v=>{
-    const n=pos(v.n);
-    if(!(n>=1)||!Number.isInteger(n))return'Escribe cuántos días (un número entero, 1 o más).';
-    if(n>366)return'Revisa el número de días.';
-    let a=null;
-    if(String(v.a).trim()!==''){a=pos(v.a);if(!(a>=0))return'El monto debe ser un número (o déjalo vacío).'}
-    if(!c.base){
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
-      c.base=v.fd;
-    }
-    c.pays.push({d:ymd(new Date()),n,a,old:false});
-    save();render();
-  },'Guardar pago');
-}
-
-function resetForm(i){
-  const p=S.p[i],c=cfg(i);
-  form('Empezar un conteo nuevo: '+esc(p.name),[
-    {id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los pagos anteriores se quedan en el historial pero ya no se cuentan. Después registra el pago nuevo.'}
-  ],v=>{
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige una fecha.';
-    c.pays.forEach(x=>{x.old=true});c.base=v.fd;
-    save();render();
-  },'Empezar de nuevo');
-}
-
-function nurseForm(i,k){
-  const p=S.p[i],cur=k===undefined?null:nurList(i)[k];
-  if(k!==undefined&&!cur)return;
-  form(cur?'Editar a '+esc(cur.n):'Agregar enfermero/a de '+esc(p.name),[
-    {id:'nn',l:'Nombre',t:'text',ph:'Ej. María',v:cur?cur.n:''},
-    {id:'nc',l:'Color en el calendario',t:'color',v:cur?cur.c:nextColor(i)}
-  ],v=>{
-    const n=v.nn.trim().slice(0,40);
-    if(!n)return'Escribe el nombre.';
-    if(!NPAL.includes(v.nc))return'Elige un color.';
-    if(nurList(i).some((x,j)=>j!==k&&x.n.toLowerCase()===n.toLowerCase()))return'Ya hay un enfermero/a con ese nombre.';
-    if(cur){
-      if(cur.n!==n){
-        Object.keys(S.pay.v).forEach(dk=>{const a=S.pay.v[dk][i];if(Array.isArray(a))a.forEach(e=>{if(e.n===cur.n)e.n=n})});
-        cur.n=n;
-      }
-      cur.c=v.nc;
-    }else{
-      const L=(S.pay.nurses[i]=Array.isArray(S.pay.nurses[i])?S.pay.nurses[i]:[]);
-      L.push({n,c:v.nc});
-    }
-    save();render();
-  },'Guardar');
-  if(cur)$('#nc').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="nrm" data-i="${i}" data-k="${k}">Quitar de la lista</button>`);
-}
-
-function renForm(i){
-  form('Nombre del paciente',[{id:'n',l:'Nombre',t:'text',v:S.p[i].name}],v=>{
-    if(!v.n.trim())return'Escribe un nombre.';
-    S.p[i].name=v.n.trim();save();render();
-  });
-}
-
-// Detalle de un día: pastillas, pago y enfermeros (los enfermeros se crean en Pagos)
-function dayForm(i,ds){
-  const p=S.p[i];if(!p)return;
-  const c=cfg(i),cv=cover(i),nurses=nurList(i);
-  const dt=pd(ds);
-  const [y,m,d]=ds.split('-').map(Number);
-  const label=dt.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  const ev=pillEv(i)[ds];
-  let info='';
-  if(cv.covered.has(ds))info+='<p class="info">✓ Día pagado.</p>';
-  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">💵 Día con enfermero sin pagar.</p>';
-  S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</p>`});
-  if(dt.getDay()===0)info+='<p class="hint">Los domingos solo cuentan como día si hay un enfermero registrado.</p>';
-  if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
-  if(ev&&ev.end.length)info+=`<p class="info">⚠️ Se acaban: <b>${ev.end.map(x=>esc(x)).join(', ')}</b> (última toma completa ese día)</p>`;
-  const cur=ents(ds,i);
-  const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b></div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
-  const title=label+' · '+esc(p.name);
-  if(!nurses.length){
-    form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Ir a Pagos');
-    dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Aún no hay enfermeros para ${esc(p.name)}. Agrégalos en la pestaña Pagos y luego asígnalos aquí.</p>`);
-    return;
-  }
-  const wdn=WD_LONG[dt.getDay()];
-  const once='Solo este día',weekly='Cada '+wdn+' hasta fin de mes';
-  form(title,[
-    {id:'nm',l:'Asignar enfermero o enfermera ('+TIMES[c.time].toLowerCase()+')',t:'text',ph:'Toca un nombre',v:'',presets:nurses.map(x=>({l:esc(x.n),v:esc(x.n)}))},
-    {id:'rp',l:'¿Repetir?',t:'text',v:once,presets:[{l:once,v:once},{l:weekly,v:weekly}]}
-  ],v=>{
-    const n=v.nm.trim();
-    if(!n)return;
-    if(!nurses.some(x=>x.n===n))return'Elige un enfermero/a de los botones. Para agregar uno nuevo, ve a Pagos.';
-    const dates=[ds];
-    if(v.rp.trim()===weekly){for(let k=1;;k++){const n2=new Date(y,m-1,d+7*k);if(n2.getMonth()!==m-1)break;dates.push(ymd(n2))}}
-    dates.forEach(dk=>{
-      const day=(S.pay.v[dk]=S.pay.v[dk]||{});
-      const a=(day[i]=Array.isArray(day[i])?day[i]:[]);
-      if(!a.some(e=>e.n===n))a.push({n});
-    });
-    const cut=ymd(new Date(Date.now()-400*864e5));
-    Object.keys(S.pay.v).forEach(k=>{if(k<cut)delete S.pay.v[k]});
-    save();render();
-  },'Asignar');
-  $('#nm').readOnly=true;$('#rp').readOnly=true;
-  dlg.querySelectorAll('.pbtn[data-set="nm"]').forEach(b=>{b.classList.add('col');b.style.background=nurColor(i,b.dataset.val)});
-  dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list);
-}
-
-// ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
-const supCons=u=>[{dose:u,times:['08:00'],schedule:{type:'daily'}}];
-function supForm(title,D,onSave,btn){
-  form(title,[
-    {id:'n',l:'Nombre del insumo',t:'text',ph:'Ej. Pañales',v:D.name},
-    {id:'q',l:'Piezas que hay ahora',ph:'Ej. 30',v:D.q},
-    {id:'u',l:'Piezas que se usan al día',ph:'Ej. 3',v:D.use,h:'Puede ser decimal: ½ equivale a una pieza cada dos días.'}
-  ],v=>{
-    if(!v.n.trim())return'Escribe el nombre del insumo.';
-    const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe cuántas piezas hay.';
-    const u=pos(v.u);if(!(u>0))return'Escribe cuántas piezas se usan al día.';
-    onSave(v.n.trim().slice(0,40),q,u);
-  },btn);
-}
-function supAdd(P){
-  supForm('Agregar insumo',{name:'',q:'',use:''},(name,q,u)=>{P.meds.push({name,base:q,cons:supCons(u),t0:Date.now(),kind:'sup'});save();render()},'Agregar');
-}
-function supEdit(m){
-  const c=calc(m);
-  supForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,use:(m.cons[0]||{}).dose||'1'},(name,q,u)=>{m.name=name;m.base=q;m.cons=supCons(u);m.t0=Date.now();save();render()},'Guardar cambios');
-}
-
-// ---------- CITAS MÉDICAS ----------
-const apptList=()=>S.appts.filter(a=>S.p[a.i]).slice().sort((a,b)=>(a.d+(a.t||'99:99')).localeCompare(b.d+(b.t||'99:99')));
-const apptWhen=a=>fmtD(a.d)+(a.t?' · '+a.t:'');
-function apptDue(){ // citas de hoy a 2 días
-  const t0=new Date();t0.setHours(0,0,0,0);
-  return apptList().map(a=>({a,k:Math.round((pd(a.d)-t0)/864e5)})).filter(x=>x.k>=0&&x.k<=2);
-}
-function apptCalUrl(a){
-  const p=S.p[a.i],day=pd(a.d);
-  const f2=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0');
-  let dates;
-  if(a.t){
-    const [h,mi]=a.t.split(':').map(Number);
-    const s0=new Date(day.getFullYear(),day.getMonth(),day.getDate(),h,mi),e0=new Date(s0.getTime()+60*60e3);
-    const g=x=>f2(x)+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
-    dates=g(s0)+'/'+g(e0);
-  }else{const nx=new Date(day);nx.setDate(nx.getDate()+1);dates=f2(day)+'/'+f2(nx)}
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Cita médica ('+p.name+')'+(a.w?': '+a.w:''))+'&dates='+dates+'&details='+encodeURIComponent(a.n||'');
-}
-function apptsCard(){
-  const today=ymd(new Date());
-  const all=apptList();
-  const up=all.filter(a=>a.d>=today),past=all.filter(a=>a.d<today).slice(-3).reverse();
-  const row=(a,cls)=>`<div class="vrow${cls}"><div>🩺 <b>${esc(S.p[a.i].name)}</b> · ${esc(apptWhen(a))}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}">Editar</button><a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}">📅</a></div></div>`;
-  return `<article class="card blue">
-    <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>
-    ${up.length?up.map(a=>row(a,'')).join(''):'<p class="hint">No hay citas próximas.</p>'}
-    ${past.length?'<p class="info" style="margin-top:12px"><b>Recientes</b></p>'+past.map(a=>row(a,' past')).join(''):''}
-    <button class="btn" style="margin-top:10px" data-pa="aadd">+ Agregar cita</button>
-  </article>`;
-}
-function apptForm(a){
-  const cur=a||null;
-  const pi=cur?cur.i:Math.min(Math.max(homeP,0),S.p.length-1);
-  form(cur?'Editar cita':'Agregar cita médica',[
-    {id:'ap_p',l:'¿De quién es la cita?',t:'text',v:S.p[pi].name,presets:S.p.map(x=>({l:esc(x.name),v:esc(x.name)}))},
-    {id:'ap_d',l:'Fecha',t:'date',v:cur?cur.d:ymd(new Date())},
-    {id:'ap_t',l:'Hora (opcional)',t:'time',v:cur?cur.t:''},
-    {id:'ap_w',l:'Médico o lugar',t:'text',ph:'Ej. Dr. Pérez, Hospital General',v:cur?cur.w:''},
-    {id:'ap_n',l:'Qué preguntar o llevar (opcional)',t:'text',ph:'Ej. llevar estudios y recetas',v:cur?cur.n:''}
-  ],v=>{
-    const i=S.p.findIndex(x=>x.name===v.ap_p);
-    if(i<0)return'Elige de quién es la cita con los botones.';
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.ap_d))return'Elige la fecha de la cita.';
-    if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return'Revisa la hora.';
-    const o={i,d:v.ap_d,t:v.ap_t||'',w:v.ap_w.trim().slice(0,80),n:v.ap_n.trim().slice(0,200)};
-    if(cur)Object.assign(cur,o);
-    else S.appts.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o});
-    save();render();
-  },cur?'Guardar':'Agregar');
-  $('#ap_p').readOnly=true;
-  if(cur)$('#ap_n').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="adel" data-id="${esc(cur.id)}">Quitar esta cita</button>`);
-}
-
-// ---------- PRECIOS: se anotan a mano (lo que se pagó o lo que se vio en la farmacia) ----------
-const unit1=m=>m.kind==='sup'?'pieza':'pastilla';
-function addBuy(m,p,n,shop,d){
-  if(!Array.isArray(m.buys))m.buys=[];
-  m.buys.push({d:d||ymd(new Date()),p,n,w:String(shop||'').trim().slice(0,40)});
-  m.buys.sort((a,b)=>a.d.localeCompare(b.d));
-  if(m.buys.length>40)m.buys=m.buys.slice(-40);
-}
-const buyList=m=>(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&b.n>0&&isFinite(b.p));
-const unitPrice=b=>b.p/b.n;
-const usage30=m=>evs(m,Date.now(),Date.now()+30*864e5).reduce((s2,e)=>s2+e.d,0);
-function monthCost(m){const L=buyList(m);return L.length?unitPrice(L[L.length-1])*usage30(m):null}
-function bestShop(m){ // la tienda con el precio más bajo, según su última anotación
-  const by=new Map();
-  buyList(m).forEach(b=>{if(b.w)by.set(b.w.toLowerCase(),b)});
-  if(by.size<2)return null;
-  let best=null;by.forEach(b=>{if(!best||unitPrice(b)<unitPrice(best))best=b});
-  return best;
-}
-function shopPresets(){
-  const seen=[];
-  S.p.forEach(p=>p.meds.forEach(m=>buyList(m).slice().reverse().forEach(b=>{if(b.w&&!seen.includes(b.w))seen.push(b.w)})));
-  return seen.slice(0,6).map(x=>({l:esc(x),v:esc(x)}));
-}
-function priceLine(m){
-  const L=buyList(m);if(!L.length)return'';
-  const b=L[L.length-1],u=unitPrice(b),mo=monthCost(m);
-  let chg='';
-  if(L.length>1){const up=unitPrice(L[L.length-2]);if(up>0){const pc=Math.round((u-up)/up*100);if(pc!==0)chg=' · '+(pc>0?'↑ ':'↓ ')+Math.abs(pc)+'% frente a la anotación anterior'}}
-  const days=Math.round((Date.now()-pd(b.d).getTime())/864e5);
-  const when=days<=0?'hoy':days===1?'ayer':'hace '+days+' días';
-  const bs=bestShop(m);
-  const cheaper=(bs&&bs.w.toLowerCase()!==(b.w||'').toLowerCase())?' Más barata: '+esc(bs.w)+' ('+A(unitPrice(bs))+' por '+unit1(m)+').':'';
-  return `<p class="info">💲 <b>${A(u)}</b> por ${unit1(m)} · unos <b>${A(mo)}</b> al mes <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver'}</button><br><span class="hint">${b.w?esc(b.w)+' · ':''}${when}${chg}.${cheaper}</span></p>`;
-}
-function spendHTML(){
-  let any=false,missing=0;
-  const per=S.p.map(p=>{let t=0;p.meds.forEach(m=>{const c=monthCost(m);if(c===null)missing++;else{any=true;t+=c}});return t});
-  if(!any)return'';
-  const tot=per.reduce((a,b)=>a+b,0);
-  return `<article class="card blue"><div class="top"><h3 class="name">💲 Gasto al mes (aprox.)</h3></div>
-    ${S.p.map((p,i)=>`<div class="vrow"><div><b>${esc(p.name)}</b></div><span class="amtv">${A(per[i])}</span></div>`).join('')}
-    <div class="vrow"><b>Total</b><span class="amtv">${A(tot)}</span></div>
-    <p class="hint">Medicinas e insumos, con el último precio anotado y el consumo de los próximos 30 días.${missing?' Faltan precios de '+missing+'.':''}</p>
-    <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></article>`;
-}
-function priceForm(pi,mi){
-  const m=S.p[pi]&&S.p[pi].meds[mi];if(!m)return;
-  const rows=(m.buys||[]).map((b,k)=>({b,k})).filter(x=>x.b&&x.b.n>0&&isFinite(x.b.p)).slice(-8).reverse();
-  form('Precios: '+esc(m.name),[
-    {id:'pcost',l:'Precio total',ph:'Ej. 180'},
-    {id:'pun',l:'¿Para cuántas '+un(m)+'?',ph:'Ej. 30'},
-    {id:'pshop',l:'¿Dónde? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets()},
-    {id:'pdate',l:'Fecha',t:'date',v:ymd(new Date())}
-  ],v=>{
-    if(String(v.pcost).trim()===''&&String(v.pun).trim()==='')return;
-    const pr=pos(v.pcost),n=pos(v.pun);
-    if(String(v.pcost).trim()===''||!(pr>=0))return'Escribe el precio total.';
-    if(!(n>0))return'Escribe para cuántas '+un(m)+' es ese precio.';
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.pdate))return'Elige la fecha.';
-    addBuy(m,pr,n,v.pshop,v.pdate);save();render();
-  },'Anotar precio');
-  const list=rows.length
-    ? '<div>'+rows.map(({b,k})=>`<div class="vrow"><div><b>${esc(fmtD(b.d))}</b>${b.w?' · '+esc(b.w):''}<br><span class="hint">${money(b.p)} por ${num(b.n)} ${un(m)} · ${money(unitPrice(b))} por ${unit1(m)}</span></div><button type="button" class="link" data-pa="prm" data-i="${pi}" data-m="${mi}" data-k="${k}">Quitar</button></div>`).join('')+'</div>'
-    : '<p class="hint">Aún no hay precios anotados. Anota lo que pagaste o lo que viste en la farmacia.</p>';
-  dlg.querySelector('h2').insertAdjacentHTML('afterend',list);
-}
-
 function payAction(t){
   const pa=t.dataset.pa,i=+t.dataset.i,ds=t.dataset.d;
   if(pa==='prm'){
@@ -948,7 +199,6 @@ function payAction(t){
   }
 }
 
-const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 function summaryText(P){
   if(!P.meds.length)return'No hay medicinas registradas.';
   return P.meds.map(m=>{
@@ -963,11 +213,10 @@ function notifyDaily(){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   const k=new Date().toDateString();
   if(S.last===k)return;
-  const parts=[],names=[];
-  S.p.forEach(p=>p.meds.forEach(m=>{if(calc(m).st!=='green')names.push(m.name)}));
-  if(names.length)parts.push('Hay que comprar: '+names.join(', '));
-  payDue().forEach(x=>parts.push('Pago de enfermería ('+x.p.name+'): '+x.cv.msg));
-  apptDue().forEach(x=>parts.push('Cita médica ('+S.p[x.a.i].name+'): '+(x.k===0?'hoy':x.k===1?'mañana':'en 2 días')));
+  const parts=[];
+  if(S.p.some(p=>p.meds.some(m=>calc(m).st!=='green')))parts.push('Hay pendientes de reposición.');
+  if(payDue().length)parts.push('Hay pagos de cuidado próximos.');
+  if(apptDue().length)parts.push('Hay citas próximas.');
   if(!parts.length)return;
   S.last=k;save();
   try{new Notification('Cuidados',{body:parts.join(' · ')})}catch(e){}
@@ -1015,6 +264,12 @@ function render(){
 }
 
 const dlg=$('#dlg');
+const externalPreview=window.AcompanaSharing.create({
+  dialog:dlg,
+  query:$,
+  escape:esc,
+  openWindow:url=>window.open(url,'_blank','noopener')
+});
 dlg.addEventListener('click',e=>{
   const b=e.target.closest('.pbtn');if(!b)return;
   const inp=document.getElementById(b.dataset.set);if(!inp)return;
@@ -1022,151 +277,11 @@ dlg.addEventListener('click',e=>{
   [...document.querySelectorAll('.pbtn[data-set="'+b.dataset.set+'"]')].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
 });
 
-function fieldHTML(f){
-  if(f.t==='head')return `<div class="chead"><h3>Consumo ${f.k+1}</h3>${f.multi?`<button type="button" class="link rmc" data-k="${f.k}">Quitar</button>`:''}</div>`;
-  if(f.t==='wday')return `<label>${f.l}</label><div class="wdays" id="${f.id}" data-v="${f.v===undefined||f.v===null?'':f.v}"></div>`;
-  if(f.t==='color')return `<label>${f.l}</label><div class="swatches" id="${f.id}" data-v="${f.v||''}"></div>`;
-  if(f.t==='date'||f.t==='time')return `<label for="${f.id}">${f.l}</label><input id="${f.id}" type="${f.t}" value="${esc(f.v||'')}">${f.h?`<p class="hint">${f.h}</p>`:''}`;
-  if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
-  if(f.t==='schedule')return `<label>${f.l}</label>
-    <div class="schtabs" role="tablist" id="${f.id}-tabs">
-      <button type="button" class="stab" data-v="daily">Diario</button>
-      <button type="button" class="stab" data-v="weekdays">Días fijos</button>
-      <button type="button" class="stab" data-v="interval">Cada X días</button>
-    </div>
-    <div class="schpane" id="${f.id}-daily"><p class="hint">Se toma todos los días.</p></div>
-    <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" id="${f.id}-wdbtns"></div></div>
-    <div class="schpane" id="${f.id}-interval" hidden>
-      <label for="${f.id}-n">¿Cada cuántos días? (1 = diario, 2 = un día sí y uno no...)</label>
-      <input id="${f.id}-n" type="number" min="1" step="1" value="${(f.v&&f.v.n)||2}">
-    </div>`;
-  return `<label for="${f.id}">${f.l}</label><input id="${f.id}" ${f.t==='text'?'':'inputmode="decimal"'} type="${f.t==='text'?'text':'number'}" step="any" min="0" value="${esc(f.v??'')}" placeholder="${esc(f.ph||'')}">${f.presets?`<div class="presets">${f.presets.map(p=>`<button type="button" class="pbtn" data-set="${f.id}" data-val="${p.v}" aria-pressed="${String(f.v)===p.v}">${p.l}</button>`).join('')}</div>`:''}${f.h?`<p class="hint">${f.h}</p>`:''}`;
-}
-
-function form(title,fields,ok,btn='Guardar'){
-  dlg.innerHTML=`<form method="dialog" id="f"><h2>${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err"></p>
-  <div class="stack"><button class="btn" type="submit">${btn}</button><button class="btn ghost" type="button" id="no">Cancelar</button></div></form>`;
-  $('#no').onclick=()=>dlg.close();
-
-  fields.filter(f=>f.t==='times').forEach(tf=>{
-    const box=$('#'+tf.id);
-    const addRow=(v='')=>{const d=document.createElement('div');d.className='trow';d.innerHTML='<input type="time" aria-label="Hora de la toma"><button type="button" aria-label="Quitar hora">×</button>';d.querySelector('input').value=v;d.querySelector('button').onclick=()=>{if(box.children.length>1)d.remove()};box.appendChild(d)};
-    (tf.v||['08:00']).forEach(addRow);
-    $('#addt-'+tf.id).onclick=()=>addRow('');
-  });
-
-  fields.filter(f=>f.t==='schedule').forEach(sf=>{
-    const init=sf.v||{type:'daily'};
-    const tabs=$('#'+sf.id+'-tabs');
-    const panes={daily:$('#'+sf.id+'-daily'),weekdays:$('#'+sf.id+'-weekdays'),interval:$('#'+sf.id+'-interval')};
-    const setTab=v=>{[...tabs.children].forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===v)));Object.entries(panes).forEach(([k,el])=>el.hidden=k!==v);tabs.dataset.cur=v};
-    tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setTab(b.dataset.v)});
-    setTab(init.type||'daily');
-    const wdbox=$('#'+sf.id+'-wdbtns');
-    const selDays=new Set(init.days||[]);
-    WD_SHORT.forEach((lbl,i)=>{
-      const b=document.createElement('button');b.type='button';b.className='wdaybtn';b.textContent=lbl[0].toUpperCase();b.setAttribute('aria-pressed',String(selDays.has(i)));
-      b.onclick=()=>{if(selDays.has(i))selDays.delete(i);else selDays.add(i);b.setAttribute('aria-pressed',String(selDays.has(i)))};
-      wdbox.appendChild(b);
-    });
-    sf._selDays=selDays;
-    sf._start=init.start||Date.now();
-  });
-
-  fields.filter(f=>f.t==='wday').forEach(wf=>{
-    const box=$('#'+wf.id);const cur=box.dataset.v;
-    [1,2,3,4,5,6,0].forEach(i=>{
-      const b=document.createElement('button');b.type='button';b.className='wdaybtn w';b.dataset.i=String(i);b.textContent=WD_SHORT[i];
-      b.setAttribute('aria-pressed',String(String(i)===cur));
-      b.onclick=()=>{box.dataset.v=String(i);[...box.children].forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.i===String(i))))};
-      box.appendChild(b);
-    });
-  });
-
-  fields.filter(f=>f.t==='color').forEach(cf=>{
-    const box=$('#'+cf.id);
-    NPAL.forEach((c,k)=>{
-      const b=document.createElement('button');b.type='button';b.className='swbtn';b.dataset.c=c;b.style.background=c;b.setAttribute('aria-label',NPALN[k]);
-      b.setAttribute('aria-pressed',String(c===box.dataset.v));
-      b.onclick=()=>{box.dataset.v=c;[...box.children].forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.c===c)))};
-      box.appendChild(b);
-    });
-  });
-
-  // Lee todos los campos del formulario actual
-  const collect=()=>{
-    const v={};
-    fields.forEach(f=>{
-      if(f.t==='head')return;
-      if(f.t==='wday'||f.t==='color')v[f.id]=$('#'+f.id).dataset.v||'';
-      else if(f.t==='times')v[f.id]=[...$('#'+f.id).querySelectorAll('input')].map(i=>i.value).filter(Boolean).join(',');
-      else if(f.t==='schedule'){
-        const cur=$('#'+f.id+'-tabs').dataset.cur;
-        if(cur==='weekdays')v[f.id]={type:'weekdays',days:[...f._selDays].sort()};
-        else if(cur==='interval')v[f.id]={type:'interval',n:Math.max(1,parseInt($('#'+f.id+'-n').value)||2),start:f._start};
-        else v[f.id]={type:'daily'};
-      }
-      else v[f.id]=$('#'+f.id).value;
-    });
-    return v;
-  };
-  dlg._collect=collect;
-
-  $('#f').onsubmit=e=>{
-    e.preventDefault();
-    const r=ok(collect());
-    if(r){$('#err').textContent=r}else dlg.close();
-  };
-  if(!dlg.open)dlg.showModal();
-}
-function result(m){
-  const c=calc(m);
-  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} ${un(m)}</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
-  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
-  $('#cl').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
-}
-const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
-
-// ---- Formulario de medicina con varios consumos (agregar y editar) ----
-const PRE=[{l:'¼',v:'0.25'},{l:'½',v:'0.5'},{l:'¾',v:'0.75'},{l:'1',v:'1'},{l:'1½',v:'1.5'},{l:'2',v:'2'}];
-const newCons=()=>({dose:'1',schedule:{type:'daily'},times:['08:00']});
-
-// D = {name, q, cons:[{dose,schedule,times}]} ; onSave(name, cantidad, consumosLimpios)
-function medForm(title,D,onSave,btn){
-  const f=[
-    {id:'n',l:'Nombre de la medicina',t:'text',ph:'Ej. Losartán',v:D.name},
-    {id:'q',l:'Pastillas que hay ahora',ph:'Ej. 30',v:D.q}
-  ];
-  D.cons.forEach((c,k)=>{
-    f.push({t:'head',id:'c'+k,k,multi:D.cons.length>1},
-      {id:'d'+k,l:'Pastillas por toma',v:c.dose,presets:PRE},
-      {id:'sch'+k,l:'¿Cada cuándo se toma?',t:'schedule',v:c.schedule},
-      {id:'h'+k,l:'Horas de las tomas',t:'times',v:c.times});
-  });
-  form(title,f,v=>{
-    if(!v.n.trim())return'Escribe el nombre de la medicina.';
-    const q=pos(v.q);
-    if(!(q>=0)||v.q==='')return'Escribe cuántas pastillas hay.';
-    const cons=[];
-    for(let k=0;k<D.cons.length;k++){
-      const d=pos(v['d'+k]),h=parseTimes(v['h'+k]),s=v['sch'+k],tag='Consumo '+(k+1)+': ';
-      if(!(d>0))return tag+'escribe cuántas pastillas se toman cada vez (puede ser ½, ¼, etc.).';
-      if(s.type==='weekdays'&&(!s.days||!s.days.length))return tag+'elige al menos un día de la semana.';
-      if(!h||!h.length)return tag+(h===null?'revisa el formato de las horas (ej. 08:00).':'agrega al menos una hora.');
-      cons.push({dose:d,times:h,schedule:s});
-    }
-    onSave(v.n.trim(),q,cons);
-  },btn);
-
-  // Lee lo que ya escribió el usuario para no perderlo al agregar/quitar consumos
-  const read=()=>{
-    const v=dlg._collect();
-    return{name:v.n,q:v.q,cons:D.cons.map((_,k)=>({dose:v['d'+k],schedule:v['sch'+k],times:parseTimes(v['h'+k])||['08:00']}))};
-  };
-  $('#err').insertAdjacentHTML('beforebegin','<button type="button" class="btn ghost" id="addc" style="margin-top:16px">+ Agregar otro consumo</button>');
-  $('#addc').onclick=()=>{const r=read();r.cons.push(newCons());medForm(title,r,onSave,btn)};
-  dlg.querySelectorAll('.rmc').forEach(b=>b.onclick=()=>{const r=read();r.cons.splice(+b.dataset.k,1);medForm(title,r,onSave,btn)});
-}
+const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes,weekDays:window.AcompanaDomain.WD_SHORT,palette:NPAL,paletteNames:NPALN});
+const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
+const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
+const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
+const {patientHTML,renderPay,payForm,payRegForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
@@ -1177,7 +292,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='ren'){form('Nombre de la persona',[{id:'n',l:'Nombre',t:'text',v:P.name}],v=>{if(!v.n.trim())return'Escribe un nombre.';P.name=v.n.trim();save();render()})}
   else if(t.id==='share'){
     const txt='Resumen de medicinas de '+P.name+':\n\n'+summaryText(P);
-    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+    externalPreview('Compartir resumen por WhatsApp','https://wa.me/',{text:txt,kind:'whatsapp'});
   }
   else if(t.id==='exp'){
     const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
@@ -1235,7 +350,24 @@ function importMessage(title,message){
 }
 
 function confirmRestore(candidate){
-  dlg.innerHTML='<h2>¿Restaurar este respaldo?</h2><p>Se reemplazará toda la información local de Acompaña por los datos del archivo validado. Esta operación requiere tu confirmación y no se realizará si cancelas.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar (reemplaza todo)</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  const meds=candidate.p.reduce((n,p)=>n+p.meds.length,0);
+  const appts=candidate.appts.length;
+  const nurses=(candidate.pay.nurses||[]).reduce((n,list)=>n+list.length,0);
+  const rawDate=candidate.exportedAt;
+  const datePart=typeof rawDate==='string'&&rawDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  const dateValid=Boolean(datePart&&new Date(datePart+'T00:00:00Z').toISOString().slice(0,10)===datePart);
+  const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
+  const backupDate=dateValid&&(rawDate===datePart||timestampValid)
+    ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
+  dlg.innerHTML='<h2>Revisa el respaldo</h2><p>Fecha del respaldo: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>La restauración reemplazará todos los datos locales actuales. Si puedes, descarga primero un respaldo de lo que tienes ahora.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  $('#cancelRestore').onclick=()=>dlg.close();
+  $('#exportBeforeRestore').onclick=()=>document.querySelector('#exp').click();
+  $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate);
+  if(!dlg.open)dlg.showModal();
+}
+
+function showRestoreConfirmation(candidate){
+  dlg.innerHTML='<h2>¿Reemplazar los datos locales?</h2><p>Se reemplazará toda la información local de Acompaña por los datos del respaldo revisado. Esta acción requiere confirmación explícita.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>dlg.close();
   $('#restoreConfirm').onclick=()=>{
     let serialized;
@@ -1261,6 +393,11 @@ function confirmRestore(candidate){
 
 $('#impFile').addEventListener('change',e=>{
   const file=e.target.files[0];if(!file)return;
+  if(file.size>MAX_IMPORT_BYTES){
+    e.target.value='';
+    importMessage('Respaldo demasiado grande','El archivo supera el límite de 10 MiB. No se leyó ni se modificó la información guardada.');
+    return;
+  }
   const reader=new FileReader();
   reader.onload=()=>{
     let candidate;
