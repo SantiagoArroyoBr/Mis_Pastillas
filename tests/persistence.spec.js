@@ -116,7 +116,8 @@ before(async () => {
     const requested = new URL(req.url, 'http://localhost').pathname;
     const file = requested === '/' ? path.join(ROOT, 'index.html') : path.join(ROOT, requested);
     if (!file.startsWith(ROOT) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404).end(); return; }
-    res.writeHead(200, { 'Content-Type': file.endsWith('.html') ? 'text/html; charset=utf-8' : 'application/octet-stream', 'Cache-Control': 'no-store' });
+    const contentType = file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     fs.createReadStream(file).pipe(res);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
