@@ -362,13 +362,17 @@ function validateMigrationInput(d){
     const seen=new Set();
     z.w.forEach((w,i)=>{
       if(!w||typeof w!=='object'||!w.v||typeof w.v!=='object'||Array.isArray(w.v))fail('el registro histórico de pagos '+(i+1)+' no puede convertirse íntegramente.');
+      if(own(w,'who')&&typeof w.who!=='string')fail('el responsable del registro histórico '+(i+1)+' no se puede conservar.');
+      if(own(w,'day')&&(!Number.isInteger(+w.day)||+w.day<0||+w.day>6))fail('el día del registro histórico '+(i+1)+' no es válido.');
+      if(own(w,'note')&&typeof w.note!=='string')fail('la nota del registro histórico '+(i+1)+' no se puede conservar.');
+      if(own(w,'paid')&&typeof w.paid!=='string')fail('la fecha pagada del registro histórico '+(i+1)+' no se puede conservar.');
       Object.entries(w.v).forEach(([day,name])=>{
         if(typeof name!=='string'||!name.trim())fail('hay una asignación histórica sin nombre que sería descartada.');
         const key=day+':'+i;
         if(seen.has(key))fail('hay asignaciones históricas duplicadas.');
         seen.add(key);
         const existing=z.v&&z.v[day]&&z.v[day][i];
-        if(Array.isArray(existing)&&existing.length)fail('una asignación histórica entraría en conflicto con una asignación existente.');
+        if(existing!==undefined&&existing!==null&&(!Array.isArray(existing)||existing.length))fail('una asignación histórica entraría en conflicto con una asignación existente.');
       });
     });
   }
