@@ -4,10 +4,16 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const CHROME = process.env.CHROME_BIN || ['/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/chromium-browser'].find(fs.existsSync);
+const CHROME = process.env.CHROME_BIN || [
+  '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/chromium-browser',
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+].find(fs.existsSync);
 
 let server, serverUrl, browser, browserProfile, cdp, fixtureDir;
 
@@ -135,16 +141,22 @@ before(async () => {
   await cdp.ready;
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
-  await cdp.send('Page.setBypassServiceWorker', { bypass: true });
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
   await navigate();
 });
 after(async () => {
   if (cdp) cdp.close();
-  if (browser && !browser.killed) browser.kill('SIGTERM');
+  if (browser && browser.exitCode === null) {
+    if (process.platform === 'win32' && browser.pid) spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { stdio: 'ignore' });
+    else browser.kill('SIGTERM');
+    await Promise.race([
+      new Promise(resolve => browser.once('exit', resolve)),
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]);
+  }
   if (server) await new Promise(resolve => server.close(resolve));
-  if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true });
-  if (browserProfile) fs.rmSync(browserProfile, { recursive: true, force: true });
+  if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  if (browserProfile) fs.rmSync(browserProfile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
 test('instalación nueva habilita persistencia y operaciones normales', async () => {
