@@ -290,7 +290,7 @@ function validateStoredState(d){
 }
 
 function validateMigratedState(d){
-  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p))throw new Error('La migración no produjo una estructura válida.');
+  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p)||!d.p.length||!Number.isInteger(d.sel)||d.sel<0||d.sel>=d.p.length)throw new Error('La migración no produjo una estructura válida.');
   if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v))throw new Error('La migración de pagos no se completó.');
   if(!Array.isArray(d.appts))throw new Error('La migración de citas no se completó.');
   d.p.forEach(p=>{if(!p||typeof p!=='object'||!Array.isArray(p.meds))throw new Error('La migración de pacientes no se completó.')});
