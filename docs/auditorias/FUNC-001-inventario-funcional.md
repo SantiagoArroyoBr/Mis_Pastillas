@@ -15,10 +15,12 @@ Se inspeccionaron `index.html`, `app.js`, `compatibility.js`, `domain.js`, `paym
 - **Estado:** parcialmente implementado como fichas locales. Hay dos fichas iniciales; se puede cambiar el nombre y cambiar la ficha seleccionada. No hay alta, baja, reordenamiento, cuentas ni perfiles autenticados.
 - **Módulos:** `app.js` (estado, navegación y selección), `care-ui.js` (presentación de pagos/enfermería), `appointments.js` (referencia de citas), `compatibility.js` (estado y migración).
 - **Reglas:** las fichas viven en `S.p`; citas y partes del estado de pagos se relacionan con la posición numérica de la ficha.
-- **Límites:** los nombres pueden coincidir. En una cita nueva, `appointments.js` busca la primera ficha cuyo nombre coincide con el texto elegido; nombres duplicados pueden enlazarla a la ficha equivocada.
-- **Mejora posible:** usar el índice de ficha como valor interno de la selección de paciente de la cita y mostrar el nombre solo como etiqueta. Conservar la forma persistida actual.
-- **Dependencias/riesgo:** no requiere backend ni migración. Riesgo de datos medio si no se prueba con nombres duplicados; la corrección propuesta evita nuevas asociaciones incorrectas, sin reparar citas antiguas automáticamente.
-- **Evidencia:** `compatibility.js` (`defaultState`, validación/migración); `app.js` (carga del estado y pestañas); `appointments.js` (`apptForm`).
+- **Límites:** el modelo no tiene ID estable de paciente; usa índices de ficha. No existe UI para crear, eliminar ni reordenar pacientes. La referencia por posición requeriría revisión si en el futuro se introduce reordenamiento o eliminación.
+- **Mejora aplicada en DEV-001:** la lista usa el índice de ficha como valor interno y muestra “Ficha N” cuando hay nombres repetidos; conserva `a.i` y el formato de respaldo actual. Citas anteriores siguen editables y no se reasocian automáticamente.
+- **Dependencias/riesgo:** no requiere backend ni migración. DEV-001 agrega regresión con nombres duplicados, recarga y JSON para evitar nuevas asociaciones erróneas.
+- **Evidencia:** `compatibility.js` (`defaultState`, validación/migración); `app.js` (carga del estado y pestañas); `appointments.js` (`apptForm`); `forms.js` (campo `select`).
+
+**Seguimiento DEV-001 (2026-10-31):** la selección por nombre se reemplazó por un selector cuyo valor es el índice de ficha ya utilizado en `cita.i`. Las opciones con nombres iguales se distinguen como “Ficha N”; citas anteriores continúan leyendo y editando su mismo índice. No se añadió un ID ni se migró el formato. La suite final pasó 26/26 en Edge 156.0.4314.50.
 
 ### Medicamentos y consumos independientes
 

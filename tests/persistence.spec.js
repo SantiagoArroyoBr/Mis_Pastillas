@@ -425,6 +425,76 @@ test('Calendar intercepta el enlace real, permite editar y cancelar sin abrirlo'
   assert.equal(opened.searchParams.get('dates'), '20301115T100000/20301115T110000');
 });
 
+test('las citas identifican la ficha por índice aunque los nombres coincidan', async () => {
+  const unique = validBackup('Paciente ficticio uno');
+  unique.p.push({ name: 'Paciente ficticio dos', meds: [] });
+  await seed(JSON.stringify(unique)); await navigate();
+
+  const addAppointment = async (index, venue) => {
+    await evaluate("document.querySelector('#homeView [data-pa=\\\"aadd\\\"]').click()");
+    await waitFor("document.querySelector('#ap_p')", 'selector de persona para cita');
+    const options = await evaluate("[...document.querySelector('#ap_p').options].map(o=>({value:o.value,label:o.textContent}))");
+    assert.equal(options[index].value, String(index));
+    await evaluate(`(()=>{document.querySelector('#ap_p').value=${JSON.stringify(String(index))};document.querySelector('#ap_d').value='2030-11-15';document.querySelector('#ap_t').value='10:00';document.querySelector('#ap_w').value=${JSON.stringify(venue)};document.querySelector('#ap_n').value='Nota ficticia';document.querySelector('#f').requestSubmit()})()`);
+    await waitFor('!document.querySelector("#dlg").open', 'guardado de cita');
+    return await evaluate("JSON.parse(__persistenceTest.read()).appts.at(-1)");
+  };
+
+  const uniqueAppointment = await addAppointment(1, 'Centro ficticio único');
+  assert.equal(uniqueAppointment.i, 1);
+  assert.equal((await evaluate("JSON.parse(__persistenceTest.read()).appts")).length, 1);
+
+  const duplicate = validBackup('Paciente duplicado ficticio');
+  duplicate.p.push({ name: 'Paciente duplicado ficticio', meds: [] });
+  duplicate.appts = [{ id: 'cita-legada', i: 1, d: '2030-11-16', t: '10:00', w: 'Consultorio ficticio', n: 'Nota original ficticia' }];
+  await seed(JSON.stringify(duplicate)); await navigate();
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 740, deviceScaleFactor: 1, mobile: true });
+  try {
+    await evaluate("document.querySelector('#homeView button[data-pa=\\\"aedit\\\"][data-id=\\\"cita-legada\\\"]').click()");
+    await waitFor("document.querySelector('#ap_p')", 'edición de cita anterior');
+    const selection = await evaluate("({value:document.querySelector('#ap_p').value,label:document.querySelector('#ap_p').selectedOptions[0].textContent,scroll:document.documentElement.scrollWidth,width:innerWidth})");
+    assert.equal(selection.value, '1');
+    assert.equal(selection.label, 'Paciente duplicado ficticio (Ficha 2)');
+    assert.ok(selection.scroll <= selection.width, `Desbordamiento responsive: ${selection.scroll}px > ${selection.width}px`);
+    await evaluate("document.querySelector('#ap_n').value='Nota editada ficticia';document.querySelector('#f').requestSubmit()");
+    await waitFor('!document.querySelector("#dlg").open', 'edición de cita existente');
+    const editedLegacy = await evaluate("JSON.parse(__persistenceTest.read()).appts[0]");
+    assert.equal(editedLegacy.id, 'cita-legada');
+    assert.equal(editedLegacy.i, 1);
+    assert.equal(editedLegacy.n, 'Nota editada ficticia');
+
+    const firstDuplicate = await addAppointment(0, 'Centro ficticio ficha uno');
+    const secondDuplicate = await addAppointment(1, 'Centro ficticio ficha dos');
+    assert.equal(firstDuplicate.i, 0);
+    assert.equal(secondDuplicate.i, 1);
+    assert.equal((await evaluate("JSON.parse(__persistenceTest.read()).appts.map(a=>a.i)")).join(','), '1,0,1');
+
+    await navigate();
+    assert.equal((await evaluate("JSON.parse(__persistenceTest.read()).appts.map(a=>a.i)")).join(','), '1,0,1');
+    await evaluate("document.querySelector('#exp').click()");
+    await waitFor('__persistenceTest.exportBlob !== null', 'exportación de citas');
+    const exported = await evaluate("__persistenceTest.exportBlob.text().then(text=>JSON.parse(text))");
+    assert.deepEqual(exported.appts.map(a=>a.i), [1, 0, 1]);
+
+    await uploadJson(exported, 'citas-ficticias.json');
+    await continueRestore();
+    await evaluate("document.querySelector('#restoreConfirm').click()");
+    await waitFor("JSON.parse(__persistenceTest.read()).appts.length===3", 'restauración de citas');
+    assert.deepEqual(await evaluate("JSON.parse(__persistenceTest.read()).appts.map(a=>a.i)"), [1, 0, 1]);
+
+    await navigate();
+    await evaluate("document.querySelector('#homeView button[data-pa=\\\"aedit\\\"][data-id=\\\"cita-legada\\\"]').click()");
+    await waitFor("document.querySelector('#dlg [data-pa=\\\"adel\\\"]')", 'opción de quitar cita');
+    await evaluate("document.querySelector('#dlg [data-pa=\\\"adel\\\"]').click()");
+    await waitFor("document.querySelector('#dlg form button[type=submit]')", 'confirmación para quitar cita');
+    await evaluate("document.querySelector('#dlg form button[type=submit]').click()");
+    await waitFor("JSON.parse(__persistenceTest.read()).appts.length===2", 'eliminación de cita');
+    assert.deepEqual(await evaluate("JSON.parse(__persistenceTest.read()).appts.map(a=>a.i)"), [0, 1]);
+  } finally {
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+  }
+});
+
 test('el service worker limpia solo sus cachés y sirve / y /index.html offline', async () => {
   await seed(null); await navigate();
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');

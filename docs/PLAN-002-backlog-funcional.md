@@ -15,20 +15,20 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 | P5 | Aumentar pruebas deterministas de calendario de consumo, insumos fraccionarios, compras y fechas límite. | Media/alta | Indirecta | Media | Diseñar casos frontera y fixtures sin datos reales. | Bajo; añadir pruebas no cambia la app. | Alta: resultados esperados fijos con tiempo controlado. |
 | P6 | Mejorar mensajes de resultado/error de respaldo y restauración sin reducir las confirmaciones actuales. | Alta | Media | Media | Especificar escenarios de éxito, fallo, descarga bloqueada y recuperación. | Alto si se altera el orden de escritura; bajo si solo se aclaran mensajes. | Alta usando los fallos simulados existentes y perfil temporal. |
 
-## Candidatas DEV-001 (sin implementación)
+## Propuestas de implementación pendientes
 
-### DEV-001a — Identidad de paciente en selector de citas
+### P1 — Identidad de paciente en selector de citas (DEV-001, completada)
 
 - **Problema:** `appointments.js` encuentra la ficha usando el nombre escrito/seleccionado. Dos fichas pueden tener el mismo nombre; la búsqueda devuelve la primera coincidencia y puede vincular una cita nueva a otra ficha.
-- **Solución propuesta:** usar el índice de ficha como valor interno del control; renderizar el nombre como etiqueta y validar que el índice siga dentro de `S.p` antes de guardar.
-- **Módulos afectados:** `appointments.js`; posiblemente `forms.js` solo si se requiere un tipo de campo con etiqueta/valor distintos; `tests/persistence.spec.js` para aceptación.
+- **Solución aplicada:** usar el índice de ficha como valor interno del control; renderizar el nombre como etiqueta y validar que el índice siga dentro de `S.p` antes de guardar. Si hay nombres coincidentes se muestra el número de ficha.
+- **Módulos afectados:** `appointments.js` para selección/validación; `forms.js` para el control nativo reutilizable; `tests/persistence.spec.js` para aceptación.
 - **Reglas de negocio:** no cambiar personas ni identificadores del estado persistido; mantener el índice actual `a.i`; el formulario de edición conserva la ficha originalmente asociada.
-- **Interfaz:** mostrar nombres en lista con una pista visual secundaria no sensible (por ejemplo, “Ficha 1/2”) si son iguales; no añadir datos médicos.
+- **Interfaz aplicada:** mostrar nombres en un selector nativo; cuando coinciden, agregar “Ficha N” para distinguirlos. No se añaden datos médicos.
 - **Riesgos:** no reasocia automáticamente citas existentes. Reordenar/eliminar fichas sigue sin estar disponible en la UI. Cambiar `a.i` o migrar datos queda fuera.
-- **Pruebas de aceptación:** crear dos fichas con el mismo nombre ficticio; crear cita desde la segunda; comprobar `a.i` de la segunda; editarla y confirmar que conserva ficha; probar nombre normal y guardado/recarga; asegurar que no cambia la forma persistida.
-- **Complejidad relativa:** baja.
+- **Pruebas de aceptación:** cumplidas en la suite local con datos ficticios: nombres únicos y duplicados, creación en ambas fichas, edición de cita anterior, guardado/recarga, exportación/restauración, eliminación y selector a 320 px. La suite total pasó 26/26 en Edge 156.0.4314.50.
+- **Complejidad relativa:** baja. Sin ID de paciente nuevo y sin cambio al esquema.
 
-### DEV-001b — Cobertura y avisos de pago con regla confirmada
+### P3 — Cobertura y avisos de pago con regla confirmada (propuesta pendiente)
 
 - **Problema:** el turno completo/medio se presenta como opción, pero `payments.js` cuenta cualquier fecha con una o más asignaciones como un día entero. El valor persistido `lead` no se edita ni interviene en `cover()`. La notificación dice “próximos” cuando `due()` selecciona deuda vencida.
 - **Solución propuesta:** primero acordar reglas con el responsable; después actualizar los cálculos y textos para que distingan deuda vencida de aviso anticipado. Conservar formato actual mientras no se defina cómo representar fracciones/turnos si hiciera falta.
@@ -39,7 +39,7 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 - **Pruebas de aceptación:** tabla de ejemplos aprobados para días asignados, turnos, pago anticipado, límite de aviso y tarifa; incluir un caso con múltiples enfermeros y uno con fecha sin asignación; confirmar que los respaldos existentes siguen válidos.
 - **Complejidad relativa:** media/alta; bloqueada hasta definición funcional.
 
-### DEV-001c — Visibilidad de consumo agregado por ficha
+### P2 — Visibilidad de consumo agregado por ficha (propuesta pendiente)
 
 - **Problema:** las pautas independientes comparten el saldo de una ficha, pero la interfaz no explica explícitamente ese alcance; tampoco existe un inventario compartido entre fichas. El término puede llevar a esperar una consolidación global que el código no realiza.
 - **Solución propuesta:** aclarar en la ficha/formulario que todas sus pautas descuentan un único saldo; mostrar un resumen de consumo calculado o una ayuda equivalente, si pruebas de usabilidad justifican el espacio. Mantener cada ficha y sus consumos actuales.
@@ -52,4 +52,4 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 
 ## Recomendación
 
-Empezar por **DEV-001a** si el propietario autoriza su implementación: resuelve una asociación errónea con un cambio pequeño, sin migrar ni alterar registros. Antes de DEV-001b se necesita una decisión de negocio documentada. DEV-001c puede ejecutarse después de fijar el texto y la prueba de suma de pautas; no debe transformarse en inventario entre pacientes sin necesidad demostrada y diseño de datos aparte.
+DEV-001 ya resolvió el problema de asociación de citas con un cambio acotado. Como siguiente mejora incremental, considerar P2 para explicar el saldo común entre pautas de una ficha y añadir pruebas de suma, manteniendo fichas separadas. P3 sigue pendiente de una decisión funcional sobre pagos; no cambiar esos cálculos hasta acordarla.

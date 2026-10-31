@@ -6,6 +6,7 @@ function fieldHTML(f){
   if(f.t==='head')return `<div class="chead"><h3>Consumo ${f.k+1}</h3>${f.multi?`<button type="button" class="link rmc" data-k="${f.k}">Quitar</button>`:''}</div>`;
   if(f.t==='wday')return `<label>${f.l}</label><div class="wdays" id="${f.id}" data-v="${f.v===undefined||f.v===null?'':f.v}"></div>`;
   if(f.t==='color')return `<label>${f.l}</label><div class="swatches" id="${f.id}" data-v="${f.v||''}"></div>`;
+  if(f.t==='select')return `<label for="${f.id}">${esc(f.l)}</label><select id="${f.id}">${(f.options||[]).map(o=>`<option value="${esc(o.v)}"${String(o.v)===String(f.v)?' selected':''}>${esc(o.l)}</option>`).join('')}</select>${f.h?`<p class="hint">${f.h}</p>`:''}`;
   if(f.t==='date'||f.t==='time')return `<label for="${f.id}">${f.l}</label><input id="${f.id}" type="${f.t}" value="${esc(f.v||'')}">${f.h?`<p class="hint">${f.h}</p>`:''}`;
   if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
   if(f.t==='schedule')return `<label>${f.l}</label>

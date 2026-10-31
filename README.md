@@ -13,7 +13,7 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Plan de desarrollo](PLAN_DESARROLLO.md): fuente única de tareas, objetivos, dependencias, prioridades y estados.
 - [Arquitectura](ARQUITECTURA.md): estado comprobado del sistema, reglas técnicas permanentes y propuestas diferenciadas.
 - [Inventario funcional FUNC-001](docs/auditorias/FUNC-001-inventario-funcional.md): inspección vigente de funcionalidades, reglas, límites y mejoras; [AUD-001](docs/auditorias/AUD-001-inventario-funcional.md) conserva su estado histórico anterior.
-- [Backlog PLAN-002 y propuestas DEV-001](docs/PLAN-002-backlog-funcional.md): prioridades recomendadas y tres propuestas sin implementar.
+- [Backlog PLAN-002](docs/PLAN-002-backlog-funcional.md): prioridades y propuestas funcionales; la selección inequívoca de paciente para citas (DEV-001) ya está implementada en `development`.
 - [Auditoría de seguridad y privacidad AUD-003](docs/auditorias/AUD-003-seguridad-privacidad.md): hallazgos AUD-003–AUD-012, verificaciones, tipografía local y riesgos residuales aceptados expresamente para el contexto familiar y controlado actual.
 - [Revisión independiente AUD-011](docs/auditorias/AUD-011-revision-independiente.md): registra los hallazgos y el seguimiento de corrección/verificación AUD-012.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
@@ -59,6 +59,8 @@ La suite crea un perfil temporal aislado, usa registros ficticios y borra sus ar
 **Validación local VAL-001 (2026-10-31):** 25/25 pruebas en Microsoft Edge 156.0.4314.50; incluye persistencia, respaldos, integraciones, PWA/offline, manifest y viewports de 320 a 768 px. No se verificó instalación desde el prompt del sistema operativo ni se probaron dispositivos físicos.
 
 **PREVIEW-001 (2026-10-31):** el responsable informó que completó el testeo manual del Preview. No se proporcionó una matriz de casos ni resultados por función, navegador o dispositivo. GitHub registró deployment de Vercel completado para `f381219e31e515ba34096446d5c7109d8ae73937`; la URL Preview requiere inicio de sesión en la sesión de revisión. Ver [evidencia y límites](docs/GUIA_INSTALACION_USO.md#preview-001--declaracion-de-validacion-manual).
+
+**DEV-001 (2026-10-31):** la suite local pasó 26/26 en Microsoft Edge 156.0.4314.50 con perfil aislado y datos ficticios. El caso nuevo comprueba la selección de fichas con nombres duplicados y compatibilidad de edición, guardado/recarga, respaldo JSON, restauración y eliminación. La clave `pastillas-v1` y el esquema persistido no cambiaron.
 
 ## Criterios permanentes
 

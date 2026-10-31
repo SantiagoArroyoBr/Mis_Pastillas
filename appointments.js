@@ -5,6 +5,7 @@
     const $=query,esc=escape,{ymd,pd,fmtD}=dates,dlg=dialog;// ---------- CITAS MÉDICAS ----------
 const apptList=()=>S.appts.filter(a=>S.p[a.i]).slice().sort((a,b)=>(a.d+(a.t||'99:99')).localeCompare(b.d+(b.t||'99:99')));
 const apptWhen=a=>fmtD(a.d)+(a.t?' · '+a.t:'');
+const patientLabel=(patient,index)=>S.p.filter(p=>p.name===patient.name).length>1?patient.name+' (Ficha '+(index+1)+')':patient.name;
 function apptDue(){ // citas de hoy a 2 días
   const t0=new Date();t0.setHours(0,0,0,0);
   return apptList().map(a=>({a,k:Math.round((pd(a.d)-t0)/864e5)})).filter(x=>x.k>=0&&x.k<=2);
@@ -37,14 +38,14 @@ function apptForm(a){
   const cur=a||null;
   const pi=cur?cur.i:Math.min(Math.max(getHomePatient(),0),S.p.length-1);
   form(cur?'Editar cita':'Agregar cita médica',[
-    {id:'ap_p',l:'¿De quién es la cita?',t:'text',v:S.p[pi].name,presets:S.p.map(x=>({l:esc(x.name),v:esc(x.name)}))},
+    {id:'ap_p',l:'¿De quién es la cita?',t:'select',v:String(pi),options:S.p.map((patient,index)=>({v:String(index),l:patientLabel(patient,index)}))},
     {id:'ap_d',l:'Fecha',t:'date',v:cur?cur.d:ymd(new Date())},
     {id:'ap_t',l:'Hora (opcional)',t:'time',v:cur?cur.t:''},
     {id:'ap_w',l:'Médico o lugar',t:'text',ph:'Ej. Dr. Pérez, Hospital General',v:cur?cur.w:''},
     {id:'ap_n',l:'Qué preguntar o llevar (opcional)',t:'text',ph:'Ej. llevar estudios y recetas',v:cur?cur.n:''}
   ],v=>{
-    const i=S.p.findIndex(x=>x.name===v.ap_p);
-    if(i<0)return'Elige de quién es la cita con los botones.';
+    const i=Number(v.ap_p);
+    if(!Number.isInteger(i)||i<0||i>=S.p.length)return'Elige a una persona de la lista.';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(v.ap_d))return'Elige la fecha de la cita.';
     if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return'Revisa la hora.';
     const o={i,d:v.ap_d,t:v.ap_t||'',w:v.ap_w.trim().slice(0,80),n:v.ap_n.trim().slice(0,200)};
@@ -52,7 +53,6 @@ function apptForm(a){
     else S.appts.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o});
     save();render();
   },cur?'Guardar':'Agregar');
-  $('#ap_p').readOnly=true;
   if(cur)$('#ap_n').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="adel" data-id="${esc(cur.id)}">Quitar esta cita</button>`);
 }
 
