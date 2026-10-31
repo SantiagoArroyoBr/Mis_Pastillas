@@ -1,6 +1,6 @@
 # Arquitectura de Acompaña
 
-Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La verificación de código corresponde al estado de `development` en `d39c054`, salvo donde se indique otro SHA histórico.
+Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La revisión local corresponde a `development` en `a65bdbfc7cd4527ed34b072ebdca81c03364e4ca`, que coincidía con la punta remota consultada antes de esta actualización. El remoto `main` estaba en `92c4034085e13bb38fd0a7ff2622c46ef797873d`; no se modificó.
 
 ## Arquitectura vigente — hechos comprobados
 
@@ -57,9 +57,19 @@ Si se considera sincronización, debe definir colas, reintentos idempotentes y r
 La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md) recomienda conservar por ahora la PWA local con `pastillas-v1` y respaldos JSON. No se confirmó una necesidad de sincronización multi-dispositivo y no se adoptan backend, Auth ni proveedor. El informe compara alternativas y documenta controles y condiciones para reconsiderarlas. Esta es una recomendación técnica, no una decisión de producto irreversible; cualquier backend real, autenticación o migración requiere los requisitos, verificaciones y autorización descritos allí. DAT-001 sigue siendo una propuesta conceptual.
 
 
-## Preparación DAT-003 — sin migración
+## DAT-003 — validación sintética; sin migración
 
-[DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md) especifica controles documentales para respaldo, restauración de prueba, mapeo de índices y conciliación. El diseño está en curso: no se accedió a datos reales ni se verificó un respaldo de un dispositivo familiar. La clave `pastillas-v1`, el esquema vigente y el funcionamiento de la aplicación permanecen sin cambios. No iniciar una migración con base únicamente en fixtures sintéticos.
+[DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md) especifica controles para respaldo, restauración, mapeo y conciliación. El ciclo sintético exportar-restaurar pasó junto con los casos de cancelación y fallo: 14/14 pruebas locales en Edge. No se accedió, pidió ni verificó un respaldo familiar; esa comprobación sigue siendo necesaria antes de cualquier migración. La clave `pastillas-v1`, el esquema y la aplicación no cambiaron.
+
+## Evaluaciones PWA y CAL
+
+[PWA-001](docs/arquitectura/PWA-001-almacenamiento-y-sincronizacion-offline.md) recomienda mantener `localStorage` hasta que exista una necesidad que justifique IndexedDB o sincronización. Describe una cola futura con reintentos, idempotencia y conciliación de movimientos sin implementar esos mecanismos. No hay backend ni prueba real multi-dispositivo.
+
+[CAL-001](docs/arquitectura/CAL-001-matriz-pruebas-aislamiento.md) prepara pruebas negativas/positivas de permisos y recuperación. Su ejecución requiere decisiones de producto y un entorno multi-familia aislado; por ahora está bloqueada.
+
+[PWA-002](docs/arquitectura/PWA-002-evaluacion-notificaciones-push.md) documenta que los avisos actuales dependen de abrir la aplicación. Push no está implementado y requeriría un emisor y servicio remoto, aún no adoptados.
+
+La [guía inicial de instalación y uso](docs/GUIA_INSTALACION_USO.md) refleja el almacenamiento local y los límites confirmados. El proceso de despliegue real aún no está documentado/verificado, y no se deben inferir pasos de producción a partir de la URL pública.
 
 
 ## Evaluación DAT-004 — historial administrativo

@@ -57,6 +57,7 @@ const initScript = String.raw`(() => {
     failGet: query.has('failGet'),
     failSet: query.has('failSet'),
     writes: 0,
+    exportBlob: null,
     seed(value) {
       if (value === null) nativeRemove.call(localStorage, key);
       else nativeSet.call(localStorage, key, value);
@@ -75,6 +76,8 @@ const initScript = String.raw`(() => {
     return nativeSet.call(this, name, value);
   };
   Object.defineProperty(window, '__persistenceTest', { value: state });
+  const createObjectURL = URL.createObjectURL.bind(URL);
+  URL.createObjectURL = blob => { state.exportBlob = blob; return createObjectURL(blob); };
 })();`;
 
 function evaluate(expression) {
@@ -254,4 +257,23 @@ test('la restauración también recupera un fallo de lectura de localStorage', a
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Recuperado tras fallo de lectura'", 'recuperación tras fallo de lectura');
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Recuperado tras fallo de lectura');
+});
+
+test('el respaldo JSON exportado puede restaurarse en el perfil aislado', async () => {
+  const fixture = validBackup('Cuidadora ficticia de prueba');
+  fixture.p[0].meds = [{ name: 'Medicamento ficticio', base: 12, cons: [], t0: 1000 }];
+  await seed(JSON.stringify(fixture)); await navigate();
+  await evaluate("document.querySelector('#exp').click()");
+  const exported = await evaluate("__persistenceTest.exportBlob.text()");
+  const parsed = JSON.parse(exported);
+  assert.equal(parsed.p[0].name, fixture.p[0].name);
+  assert.equal(parsed.p[0].meds[0].name, fixture.p[0].meds[0].name);
+  assert.equal(parsed.p[0].meds[0].base, 12);
+
+  await uploadJson(exported, 'respaldo-exportado-ficticio.json');
+  await waitFor("document.querySelector('#restoreConfirm')", 'confirmación de restauración del respaldo exportado');
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("persistenceReady === true && S.p[0].name === 'Cuidadora ficticia de prueba'", 'restauración del respaldo exportado');
+  assert.deepEqual(await evaluate("JSON.parse(__persistenceTest.read())"), parsed);
 });

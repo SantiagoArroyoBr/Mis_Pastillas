@@ -15,7 +15,11 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Inventario funcional AUD-001](docs/auditorias/AUD-001-inventario-funcional.md): funcionalidades, reglas observadas, cobertura y vacíos comprobados en el código.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
 - [Evaluación DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md): compara alternativas de backend/Auth, controles, costos y condiciones; recomienda mantener por ahora la PWA local.
-- [Diseño DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md): define controles y puertas para un eventual respaldo/restauración y migración; permanece en curso.
+- [Diseño DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md): validación de exportación/restauración sintética completada; no sustituye la comprobación privada del respaldo familiar previa a cualquier migración.
+- [Matriz CAL-001](docs/arquitectura/CAL-001-matriz-pruebas-aislamiento.md): casos futuros de respaldo y aislamiento; ejecución bloqueada hasta que se adopten backend, roles y staging.
+- [Evaluación PWA-001](docs/arquitectura/PWA-001-almacenamiento-y-sincronizacion-offline.md): analiza IndexedDB, colas, reintentos, idempotencia y conflictos sin implementar cambios.
+- [Evaluación PWA-002](docs/arquitectura/PWA-002-evaluacion-notificaciones-push.md): compara avisos actuales y push remoto; no implementado.
+- [Guía inicial de instalación y uso](docs/GUIA_INSTALACION_USO.md): explica almacenamiento local, límites offline y cuidado de respaldos; el procedimiento de despliegue sigue pendiente de verificación.
 - [Evaluación DAT-004](docs/arquitectura/DAT-004-evaluacion-auditoria.md): propone alcance y controles para una bitácora administrativa futura; no implementada.
 - [Historial de cambios](HISTORIAL_CAMBIOS.md): registro cronológico con archivos, validaciones, limitaciones y referencias de Git.
 

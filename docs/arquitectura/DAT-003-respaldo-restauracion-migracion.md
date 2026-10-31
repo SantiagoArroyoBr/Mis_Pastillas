@@ -1,14 +1,14 @@
 # DAT-003 — Diseño de respaldo, restauración y migración local
 
-**Estado:** diseño documental en curso; no se exportaron ni procesaron datos de usuarios.  
-**Base:** AUD-001, DAT-001 y evaluación DAT-002 en `development`.  
+**Estado:** completada como validación local sintética; la comprobación del respaldo del dispositivo familiar sigue pendiente y no se solicita para esta tarea. No se exportaron ni procesaron datos reales.
+**Base:** AUD-001, DAT-001 y evaluación DAT-002 en `development`.
 **Decisión de DAT-002:** conservar por ahora la aplicación y persistencia local. Este documento prepara controles para una eventual migración y no inicia una ni elige proveedor.
 
 ## 1. Alcance y límites
 
 El estado actual se guarda por dispositivo en `localStorage` bajo `pastillas-v1`. La aplicación ofrece respaldo JSON y restauración que reemplaza el estado completo después de validar y pedir confirmación. La restauración depende del archivo elegido por la familia; no existe copia remota automática ni sincronización multi-dispositivo confirmada. La estructura contiene referencias mediante índices de paciente y arreglos anidados, por lo que un respaldo debe tratarse como un snapshot íntegro, no como registros independientes que puedan reordenarse o combinarse libremente.
 
-DAT-003 define una secuencia compatible para investigar un cambio futuro. No modifica el formato local, no realiza exportación/importación, no contacta dispositivos familiares y no autoriza un backend. La puerta de validación real permanece abierta porque este entorno no tiene acceso al navegador ni a los datos de los usuarios.
+DAT-003 define una secuencia compatible para investigar un cambio futuro. No modifica el formato local, no contacta dispositivos familiares y no autoriza un backend. La validación local se ejecutó exclusivamente con registros ficticios y un perfil de Edge temporal.
 
 ## 2. Invariantes
 
@@ -78,7 +78,9 @@ Cada punto se evidencia por separado. Pasar una prueba con datos ficticios no ac
 
 **Diseño documental realizado:** se definieron invariantes de protección, manejo del respaldo, pruebas sintéticas, mapeo, conciliación, idempotencia y puertas de control.
 
-**Criterio de DAT-003 aún no satisfecho:** no hay respaldo JSON real disponible en el dispositivo familiar ni restauración real verificada; tampoco hay necesidad confirmada de backend/multi-dispositivo. No se pidió ni se guardó información real. DAT-003 permanece **En curso** hasta que el usuario/propietario pueda comprobar localmente el respaldo conforme a un proceso que se acuerde y estén definidas las decisiones de producto. La aplicación sigue sin cambios.
+**Validación local completada:** la suite de persistencia pasó 14/14 en Edge, con un perfil nuevo en directorio temporal y fixture inventado. La prueba adicional ejecuta exportación JSON, verifica campos sintéticos, vuelve a cargar ese archivo mediante el flujo de restauración, confirma que no hay escritura antes de confirmar y compara el estado restaurado con el exportado. También pasan los casos existentes de cancelación, JSON inválido y fallos de lectura/escritura. El perfil y los archivos temporales se eliminan al terminar.
+
+**Límite independiente antes de una migración real:** no se examinó, solicitó, copió ni recibió el respaldo familiar y no se comprobó su exportación o restauración. Esto no bloquea el cierre de la evaluación técnica sintética, pero sí bloquea cualquier futura migración o carga a un destino remoto. La app, `pastillas-v1` y su formato no cambiaron; no hay necesidad multi-dispositivo confirmada.
 
 ## Referencias internas
 
