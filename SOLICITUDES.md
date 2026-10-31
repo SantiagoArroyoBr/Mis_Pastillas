@@ -24,7 +24,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 | ID | Fecha | Área / chat | Resumen | Archivos o sistemas afectados | Estado |
 |---|---|---|---|---|---|
 | CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Incorporada en `development`; no desplegada |
-| MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo si es necesario; documentos de coordinación | Aprobada; en curso en `task/mod-001-external-javascript`
+| MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo para MIME; documentos de coordinación | Implementada y probada en `task/mod-001-external-javascript`; pendiente PR/revisión e integración; no desplegada
 
 ## Plantilla para presentar una solicitud
 
@@ -61,6 +61,17 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 - **Archivos de aplicación:** `index.html`, `styles.css` y `sw.js`.
 - **Pruebas y validaciones registradas:** 13/13 pruebas existentes; sintaxis de `sw.js`; Chromium con caché y carga offline del CSS, navegación, alta de un insumo ficticio, exportación JSON y persistencia tras recargar. Las capturas a 390×844 no muestran diferencias visibles.
 - **Alcance y limitaciones:** las pruebas del navegador se limitaron a esos flujos y la comparación visual a 390×844; no se afirma cobertura de otros tamaños, navegadores ni pruebas adicionales. No se modificaron JavaScript, datos, `localStorage`, manifiesto ni otras funciones. Integrada mediante merge normal del PR #1 en el commit `4d3ee998f7ec94d49fc858d1834c2202489053d6` (base `33970417a190317285867621a20df8a9b4e5d738`, HEAD fuente `bfed26dad9e5075b36e29e839abf4a3e0a00e081`). Las pruebas citadas se ejecutaron en la rama de tarea; no se volvieron a ejecutar después del merge.
+
+## Evidencia de implementación y validación — MOD-001
+
+- **Estado:** implementada y probada en rama de tarea; pendiente PR/revisión e integración; no desplegada.
+- **Base y rama:** `development` en `fa78806b53f601ce6aa070e75573df065043f4d3`; `task/mod-001-external-javascript`.
+- **Archivos de aplicación/documentación:** `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, nuevo `app.js`, `sw.js`; `tests/persistence.spec.js` solo para MIME. Coordinación: este archivo, `TRABAJO_ACTIVO.md`, `DECISIONES_TECNICAS.md`, `CENTRO_DE_COORDINACION.md`.
+- **Cambios:** traslado literal del único bloque JavaScript inline; carga clásica síncrona después del DOM; `app.js` en precarga y caché `cuidados-v8`; servidor de pruebas configurado con `text/javascript; charset=utf-8`.
+- **Pruebas:** `node --check` para `app.js`, `sw.js` y `tests/persistence.spec.js`; suite Chromium 13/13; comprobación temporal adicional en Chromium aprobada para MIME, inicialización, alta ficticia guardada en `pastillas-v1`, precarga de `app.js` y recarga offline con el dato visible; `git diff --check` sin errores.
+- **Límites:** el smoke test adicional cubrió el alta de un insumo ficticio y recarga offline; no todo el inventario de funciones, navegadores o tamaños de pantalla. La suite cubre persistencia, fallos simulados, migración y restauración. No se alteraron datos de usuarios.
+- **Commit de implementación:** `d0f0055` (`feat: extract inline JavaScript to app.js`). Commit final de registros y SHA de rama: se añadirá tras publicar el cierre documental.
+- **Integración y producción:** no se integró a `development`; PR pendiente de revisión conforme a las reglas de aprobación. `main` y producción no se modificaron.
 
 ## Reglas
 

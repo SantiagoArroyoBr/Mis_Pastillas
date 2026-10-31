@@ -1,8 +1,8 @@
 # Diagnóstico arquitectónico y ruta de modularización
 
-**Estado:** referencia arquitectónica aprobada; MOD-001 en curso.  
-**SHA inspeccionado:** [`fa78806b53f601ce6aa070e75573df065043f4d3`](https://github.com/SantiagoArroyoBr/Mis_Pastillas/commit/fa78806b53f601ce6aa070e75573df065043f4d3)  
-**Rama analizada:** `development`. El SHA es una referencia histórica comprobada como cabeza remota al iniciar MOD-001.  
+**Estado:** referencia arquitectónica aprobada; MOD-001 implementada y probada en rama de tarea, pendiente de revisión e integración.
+**SHA inspeccionado:** [`fa78806b53f601ce6aa070e75573df065043f4d3`](https://github.com/SantiagoArroyoBr/Mis_Pastillas/commit/fa78806b53f601ce6aa070e75573df065043f4d3)
+**Rama analizada:** `development`. El SHA es una referencia histórica comprobada como cabeza remota al iniciar MOD-001.
 **Alcance de la revisión:** análisis del código y propuesta de extracción; no es una auditoría integral de seguridad, accesibilidad ni de todas las funciones en producción.
 
 ## Arquitectura comprobada

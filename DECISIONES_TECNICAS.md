@@ -24,7 +24,7 @@ Conservar decisiones que afectan a más de un área o condicionan la evolución 
 
 - **Fecha:** 2026-10-30
 - **Área proponente:** Dirección general / Arquitectura y planificación
-- **Estado:** Aprobada; implementación en curso en rama de tarea
+- **Estado:** Implementada y probada en rama de tarea; pendiente revisión/integración
 - **Problema / contexto:** `index.html` concentra el JavaScript de la aplicación; la extracción reduce esa concentración y prepara una modularización progresiva.
 - **Decisión propuesta:** trasladar literalmente el bloque JavaScript inline a `app.js`, cargarlo desde `index.html`, incluirlo en la precarga del service worker y actualizar su versión de caché.
 - **Alternativas consideradas:** mantener el bloque inline; dividirlo ahora en módulos funcionales (fuera de alcance).
@@ -37,8 +37,8 @@ Conservar decisiones que afectan a más de un área o condicionan la evolución 
 - **Plan de implementación:** referencia diagnóstica histórica `fa78806b53f601ce6aa070e75573df065043f4d3`; modificar solo el documento aprobado, `index.html`, `app.js`, `sw.js` y, solo si hace falta, `tests/persistence.spec.js`.
 - **Plan de pruebas y reversión:** pruebas de persistencia y regresión, sintaxis y navegador incluyendo carga y modo offline; reversión reponiendo el bloque inline y retirando `app.js` de la precarga.
 - **Aprobación del propietario:** explícita el 2026-10-30 en «Direccion general», para el alcance MOD-001.
-- **Evidencia de implementación:** pendiente.
-- **Validación:** pendiente; no se considera implementada ni validada hasta completar evidencia.
+- **Evidencia de implementación:** rama `task/mod-001-external-javascript`; commit de implementación `d0f0055`. SHA final de rama se registrará tras el commit de cierre documental.
+- **Validación:** suite de persistencia 13/13; comprobación temporal Chromium aprobada para carga externa, alta ficticia persistida y recarga offline; sintaxis de `app.js`, `sw.js` y `tests/persistence.spec.js` válida. Limitada a los flujos indicados; sin cobertura de todos los módulos o navegadores.
 
 ## Plantilla de decisión
 
@@ -66,7 +66,7 @@ Conservar decisiones que afectan a más de un área o condicionan la evolución 
 
 | ID | Decisión | Estado | Fecha | Referencia |
 |---|---|---|---|---|
-| DEC-001 | Extracción literal del JavaScript inline a `app.js`, sin refactorización | Aprobada; en curso | 2026-10-30 | Aprobación del propietario; `task/mod-001-external-javascript` |
+| DEC-001 | Extracción literal del JavaScript inline a `app.js`, sin refactorización | Implementada y probada en rama; pendiente revisión/integración | 2026-10-30 | Commit `d0f0055` en `task/mod-001-external-javascript`; detalle en `SOLICITUDES.md` |
 
 ## Reglas
 
