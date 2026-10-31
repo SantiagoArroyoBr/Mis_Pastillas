@@ -289,6 +289,100 @@ function validateStoredState(d){
   return d;
 }
 
+// Comprueba todos los registros que migrate() podría filtrar, sustituir o descartar.
+// La validación se ejecuta antes de migrar para impedir pérdidas silenciosas.
+function validateMigrationInput(d){
+  validateStoredState(d);
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  const fail=msg=>{throw new Error('Migración rechazada: '+msg)};
+  const validTimes=a=>Array.isArray(a)&&a.length>0&&a.every(t=>{
+    if(typeof t!=='string'||!/^\\d{2}:\\d{2}$/.test(t))return false;
+    const [h,m]=t.split(':').map(Number);
+    return h>=0&&h<=23&&m>=0&&m<=59;
+  });
+  const validSchedule=sch=>{
+    if(sch===undefined||sch===null)return true;
+    if(typeof sch!=='object'||Array.isArray(sch))return false;
+    if(sch.type!==undefined&&!['daily','weekdays','interval'].includes(sch.type))return false;
+    if(sch.type==='weekdays')return Array.isArray(sch.days)&&sch.days.length>0&&sch.days.every(x=>Number.isInteger(+x)&&+x>=0&&+x<=6);
+    if(sch.type==='interval')return Number.isInteger(+sch.n)&&+sch.n>=1;
+    return true;
+  };
+  d.p.forEach((p,i)=>p.meds.forEach((m,j)=>{
+    if(own(m,'kind')&&m.kind!=='sup')fail('tipo de registro desconocido en paciente '+(i+1)+', elemento '+(j+1)+'.');
+    if(Array.isArray(m.cons)){
+      m.cons.forEach((c,k)=>{
+        if(!Number.isFinite(+c.dose)||+c.dose<=0||!validTimes(c.times)||!validSchedule(c.schedule))fail('consumo incompleto en paciente '+(i+1)+', elemento '+(j+1)+', consumo '+(k+1)+'.');
+      });
+    }else{
+      if(own(m,'dose')&&(!Number.isFinite(+m.dose)||+m.dose<=0))fail('dosis histórica no válida en paciente '+(i+1)+', elemento '+(j+1)+'.');
+      if(own(m,'times')&&!validTimes(m.times))fail('horarios históricos no válidos en paciente '+(i+1)+', elemento '+(j+1)+'.');
+      if(own(m,'schedule')&&!validSchedule(m.schedule))fail('frecuencia histórica no válida en paciente '+(i+1)+', elemento '+(j+1)+'.');
+    }
+  }));
+  const z=d.pay||{};
+  if(Array.isArray(z.shifts))z.shifts.forEach((x,i)=>{
+    if(!x||typeof x!=='object'||x.id===undefined||x.id==='')fail('el turno '+(i+1)+' no tiene identificador y sería descartado.');
+  });
+  if(Array.isArray(z.cfg)&&z.cfg.length>d.p.length)fail('hay configuraciones de pago adicionales que la migración descartaría.');
+  if(Array.isArray(z.w)){
+    const seen=new Set();
+    z.w.forEach((w,i)=>{
+      if(!w||typeof w!=='object'||!w.v||typeof w.v!=='object'||Array.isArray(w.v))fail('el registro histórico de pagos '+(i+1)+' no puede convertirse íntegramente.');
+      Object.entries(w.v).forEach(([day,name])=>{
+        if(typeof name!=='string'||!name.trim())fail('hay una asignación histórica sin nombre que sería descartada.');
+        const key=day+':'+i;
+        if(seen.has(key))fail('hay asignaciones históricas duplicadas.');
+        seen.add(key);
+        const existing=z.v&&z.v[day]&&z.v[day][i];
+        if(Array.isArray(existing)&&existing.length)fail('una asignación histórica entraría en conflicto con una asignación existente.');
+      });
+    });
+  }
+  return d;
+}
+
+function assertMigrationIntegrity(before,after){
+  const fail=msg=>{throw new Error('La migración alteraría registros: '+msg)};
+  if(before.p.length!==after.p.length)fail('cambió la cantidad de pacientes.');
+  before.p.forEach((p,i)=>{
+    if(p.meds.length!==after.p[i].meds.length)fail('cambió la cantidad de registros del paciente '+(i+1)+'.');
+    p.meds.forEach((m,j)=>{
+      const migrated=after.p[i].meds[j];
+      const beforeBuys=Array.isArray(m.buys)?m.buys.length:0;
+      const afterBuys=Array.isArray(migrated.buys)?migrated.buys.length:0;
+      if(beforeBuys!==afterBuys)fail('cambió el historial de compras del registro '+(j+1)+'.');
+      if(Array.isArray(m.cons)&&m.cons.length!==migrated.cons.length)fail('cambió la cantidad de consumos del registro '+(j+1)+'.');
+    });
+  });
+  const beforeAppts=Array.isArray(before.appts)?before.appts.length:0;
+  if(beforeAppts!==after.appts.length)fail('cambió la cantidad de citas.');
+  const oldPay=before.pay||{},newPay=after.pay;
+  if(Array.isArray(oldPay.shifts)&&oldPay.shifts.length&&oldPay.shifts.length!==newPay.shifts.length)fail('cambió la cantidad de turnos.');
+  if(Array.isArray(oldPay.cfg))oldPay.cfg.forEach((c,i)=>{
+    const a=Array.isArray(c.pays)?c.pays.length:0;
+    const b=Array.isArray(newPay.cfg[i]&&newPay.cfg[i].pays)?newPay.cfg[i].pays.length:0;
+    if(a!==b)fail('cambió el historial de pagos del paciente '+(i+1)+'.');
+  });
+  if(Array.isArray(oldPay.nurses))oldPay.nurses.forEach((list,i)=>{
+    const a=Array.isArray(list)?list.length:0;
+    const b=Array.isArray(newPay.nurses[i])?newPay.nurses[i].length:0;
+    if(b<a)fail('se redujo la lista de enfermeros del paciente '+(i+1)+'.');
+  });
+  return after;
+}
+
+function prepareMigratedState(parsed){
+  validateMigrationInput(parsed);
+  const before=JSON.parse(JSON.stringify(parsed));
+  const candidate=migrate(JSON.parse(JSON.stringify(parsed)));
+  if(typeof candidate.sel!=='number'||!candidate.p[candidate.sel])candidate.sel=0;
+  if(typeof candidate.last!=='string')candidate.last='';
+  validateMigratedState(candidate);
+  assertMigrationIntegrity(before,candidate);
+  return candidate;
+}
+
 function validateMigratedState(d){
   if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p)||!d.p.length||!Number.isInteger(d.sel)||d.sel<0||d.sel>=d.p.length)throw new Error('La migración no produjo una estructura válida.');
   if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v))throw new Error('La migración de pagos no se completó.');
@@ -302,8 +396,8 @@ function showPersistenceWarning(){
   if(!box)return;
   box.hidden=false;
   box.innerHTML=persistenceFailure==='write'
-    ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Se bloquearon nuevas modificaciones para evitar que sigas trabajando con datos que no se han guardado. Recarga la aplicación antes de continuar.</p>'
-    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>No registres cambios hasta recuperar la lectura correcta de tus datos.</p>';
+    ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Las modificaciones normales permanecen bloqueadas. Puedes reintentar la recuperación con un respaldo JSON válido.</p>'
+    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>Utiliza “Restaurar respaldo” para recuperar la aplicación con una copia JSON válida.</p>';
 }
 
 let S=(()=>{
@@ -313,9 +407,7 @@ let S=(()=>{
   if(raw===null){persistenceReady=true;return defaultState()}
   try{
     const parsed=JSON.parse(raw);
-    validateStoredState(parsed);
-    const migrated=migrate(parsed);
-    validateMigratedState(migrated);
+    const migrated=prepareMigratedState(parsed);
     persistenceReady=true;
     return migrated;
   }catch(e){
@@ -339,12 +431,14 @@ const save=()=>{
 
 document.addEventListener('click',e=>{
   if(persistenceReady)return;
+  // Únicamente se permite el flujo explícito de recuperación.
+  if(e.target.closest('#imp')||e.target.closest('#impFile')||e.target.closest('#dlg'))return;
   e.preventDefault();
   e.stopImmediatePropagation();
   showPersistenceWarning();
 },true);
 document.addEventListener('submit',e=>{
-  if(persistenceReady)return;
+  if(persistenceReady||e.target.closest('#dlg'))return;
   e.preventDefault();
   e.stopImmediatePropagation();
   showPersistenceWarning();
@@ -1250,22 +1344,53 @@ document.addEventListener('click',e=>{
   }
 });
 
+function importMessage(title,message){
+  dlg.innerHTML='<h2>'+title+'</h2><p>'+message+'</p><div class="stack"><button type="button" class="btn ghost" id="closeImportMessage">Cerrar</button></div>';
+  $('#closeImportMessage').onclick=()=>dlg.close();
+  if(!dlg.open)dlg.showModal();
+}
+
+function confirmRestore(candidate){
+  dlg.innerHTML='<h2>¿Restaurar este respaldo?</h2><p>Se reemplazará toda la información local de Acompaña por los datos del archivo validado. Esta operación requiere tu confirmación y no se realizará si cancelas.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar (reemplaza todo)</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  $('#cancelRestore').onclick=()=>dlg.close();
+  $('#restoreConfirm').onclick=()=>{
+    let serialized;
+    try{
+      serialized=JSON.stringify(candidate);
+      localStorage.setItem(STORAGE_KEY,serialized);
+    }catch(err){
+      dlg.close();
+      persistenceReady=false;
+      persistenceFailure='write';
+      showPersistenceWarning();
+      return;
+    }
+    // El estado en memoria solo cambia después de confirmar la escritura.
+    S=candidate;
+    persistenceReady=true;
+    persistenceFailure='';
+    dlg.close();
+    render();
+  };
+  if(!dlg.open)dlg.showModal();
+}
+
 $('#impFile').addEventListener('change',e=>{
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=()=>{
-    let data;
-    try{data=migrate(JSON.parse(reader.result));if(!data||!Array.isArray(data.p))throw 0}
-    catch(err){
-      dlg.innerHTML='<h2>Archivo no válido</h2><p>Ese archivo no parece un respaldo de Cuidados.</p><div class="stack"><button class="btn ghost" id="cl2">Cerrar</button></div>';
-      $('#cl2').onclick=()=>dlg.close();dlg.showModal();return;
+    let candidate;
+    try{
+      candidate=prepareMigratedState(JSON.parse(reader.result));
+    }catch(err){
+      importMessage('Archivo no válido','El respaldo no superó la validación de estructura e integridad. No se modificó el almacenamiento actual.');
+      return;
     }
-    form('¿Restaurar este respaldo?',[],()=>{
-      S=data;if(typeof S.sel!=='number'||!S.p[S.sel])S.sel=0;if(typeof S.last!=='string')S.last='';
-      save();render();
-    },'Sí, restaurar (reemplaza todo)');
+    confirmRestore(candidate);
   };
-  reader.readAsText(file);
+  reader.onerror=()=>importMessage('No se pudo leer el archivo','El navegador no pudo leer el archivo seleccionado. No se modificó el almacenamiento actual.');
+  try{reader.readAsText(file)}
+  catch(err){importMessage('No se pudo leer el archivo','El navegador rechazó la lectura del archivo. No se modificó el almacenamiento actual.')}
   e.target.value='';
 });
 
