@@ -12,7 +12,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 
 | ID | Área / chat | Tarea | Rama | Archivos previstos | Estado | Inicio | Última actualización |
 |---|---|---|---|---|---|---|---|
-| — | — | No hay tareas registradas | — | — | — | — | — |
+| BACKEND-001 | Backend y datos | Protección de persistencia ante fallos de lectura o migración inicial | `development` | `index.html` (registro: `TRABAJO_ACTIVO.md`) | En curso | 2026-10-30 | 2026-10-30 |
 
 ## Plantilla para registrar una tarea aprobada
 
