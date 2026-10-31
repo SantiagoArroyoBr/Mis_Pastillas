@@ -47,7 +47,7 @@ Agregar aquí únicamente información que el propietario haya aprobado para com
 
 | Fecha | Área de origen | Información | Estado / referencia |
 |---|---|---|---|
-| 2026-10-30 | Dirección general | CSS-001 aprobada: extraer el CSS existente de `index.html` a `styles.css` sin rediseños ni cambios semánticos; añadirlo a la precarga offline y versionar la caché en `sw.js`. Alcance excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto y otras funcionalidades. | Aprobación del propietario en «Direccion general»; rama `task/css-001-external-stylesheet`; solicitud CSS-001 |
+| 2026-10-30 | Dirección general | CSS-001 implementada y probada en la rama `task/css-001-external-stylesheet` (SHA `d1d295ad6ac705a20b6338b27bea341a800f8622`; commits `a491cf3`, `773be22`, `f6b1ef8`, `d1d295a`). Archivos de aplicación: `index.html`, `styles.css` y `sw.js`. Pasaron 13/13 pruebas existentes; Chromium verificó caché/offline, navegación, alta ficticia de insumo, exportación JSON y persistencia; comparación visual a 390×844 sin diferencias visibles. La validación visual solo cubre ese tamaño y los flujos enumerados. Sigue pendiente de autorización e incorporación a `development`; no desplegada. | Resultado de tarea; detalles en `SOLICITUDES.md` y `TRABAJO_ACTIVO.md` |
 
 ## Dependencias entre áreas
 
@@ -69,6 +69,7 @@ Agregar aquí únicamente información que el propietario haya aprobado para com
 |---|---|---|
 | 2026-10-30 | Creación del sistema documental de coordinación | Dirección general |
 | 2026-10-30 | Registro de la aprobación CSS-001 para extracción acotada de CSS y precarga offline | Dirección general |
+| 2026-10-30 | Registro de implementación, pruebas y estado pendiente de integración de CSS-001 en su rama de tarea | Dirección general |
 
 ## Cómo proponer una aportación
 
