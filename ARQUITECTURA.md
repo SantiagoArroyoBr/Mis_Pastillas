@@ -55,3 +55,8 @@ Si se considera sincronización, debe definir colas, reintentos idempotentes y r
 ## Resultado de la evaluación DAT-002
 
 La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md) recomienda conservar por ahora la PWA local con `pastillas-v1` y respaldos JSON. No se confirmó una necesidad de sincronización multi-dispositivo y no se adoptan backend, Auth ni proveedor. El informe compara alternativas y documenta controles y condiciones para reconsiderarlas. Esta es una recomendación técnica, no una decisión de producto irreversible; cualquier backend real, autenticación o migración requiere los requisitos, verificaciones y autorización descritos allí. DAT-001 sigue siendo una propuesta conceptual.
+
+
+## Preparación DAT-003 — sin migración
+
+[DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md) especifica controles documentales para respaldo, restauración de prueba, mapeo de índices y conciliación. El diseño está en curso: no se accedió a datos reales ni se verificó un respaldo de un dispositivo familiar. La clave `pastillas-v1`, el esquema vigente y el funcionamiento de la aplicación permanecen sin cambios. No iniciar una migración con base únicamente en fixtures sintéticos.
