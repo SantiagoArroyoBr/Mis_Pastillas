@@ -295,10 +295,10 @@ function validateMigrationInput(d){
   validateStoredState(d);
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const fail=msg=>{throw new Error('Migración rechazada: '+msg)};
-  const validDate=v=>typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v);
+  const validDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v);
   const validAmount=v=>v===null||v===undefined||v===''||Number.isFinite(+v);
   const validTimes=a=>Array.isArray(a)&&a.length>0&&a.every(t=>{
-    if(typeof t!=='string'||!/^\\d{2}:\\d{2}$/.test(t))return false;
+    if(typeof t!=='string'||!/^\d{2}:\d{2}$/.test(t))return false;
     const [h,m]=t.split(':').map(Number);
     return h>=0&&h<=23&&m>=0&&m<=59;
   });
@@ -327,7 +327,7 @@ function validateMigrationInput(d){
   }));
   if(Array.isArray(d.appts))d.appts.forEach((a,i)=>{
     if(own(a,'id')&&typeof a.id!=='string')fail('el identificador de la cita '+(i+1)+' no es texto.');
-    if(own(a,'t')&&a.t!==''&&!/^\\d{2}:\\d{2}$/.test(a.t))fail('la hora de la cita '+(i+1)+' no se puede conservar.');
+    if(own(a,'t')&&a.t!==''&&!/^\d{2}:\d{2}$/.test(a.t))fail('la hora de la cita '+(i+1)+' no se puede conservar.');
     if(own(a,'w')&&typeof a.w!=='string')fail('el lugar o profesional de la cita '+(i+1)+' no es texto.');
     if(own(a,'n')&&typeof a.n!=='string')fail('las notas de la cita '+(i+1)+' no son texto.');
   });
