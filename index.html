@@ -257,7 +257,7 @@ function validateStoredState(d){
       if(own(m,'buys')){
         if(!Array.isArray(m.buys))fail('Historial de compras no válido.');
         m.buys.forEach(b=>{
-          if(!b||typeof b!=='object'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(b.d||'')||!isFinite(+b.p)||+b.p<0||!isFinite(+b.n)||+b.n<=0)fail('Registro de compra incompleto.');
+          if(!b||typeof b!=='object'||!/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')||!isFinite(+b.p)||+b.p<0||!isFinite(+b.n)||+b.n<=0)fail('Registro de compra incompleto.');
         });
       }
     });
@@ -265,7 +265,7 @@ function validateStoredState(d){
   if(own(d,'appts')){
     if(!Array.isArray(d.appts))fail('Lista de citas no válida.');
     d.appts.forEach(a=>{
-      if(!a||typeof a!=='object'||typeof a.d!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(a.d)||!Number.isInteger(+a.i)||+a.i<0||+a.i>=d.p.length)fail('Registro de cita incompleto.');
+      if(!a||typeof a!=='object'||typeof a.d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(a.d)||!Number.isInteger(+a.i)||+a.i<0||+a.i>=d.p.length)fail('Registro de cita incompleto.');
     });
   }
   if(own(d,'pay')){
