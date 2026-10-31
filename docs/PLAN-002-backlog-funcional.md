@@ -28,16 +28,17 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 - **Pruebas de aceptación:** cumplidas en la suite local con datos ficticios: nombres únicos y duplicados, creación en ambas fichas, edición de cita anterior, guardado/recarga, exportación/restauración, eliminación y selector a 320 px. La suite total pasó 26/26 en Edge 156.0.4314.50.
 - **Complejidad relativa:** baja. Sin ID de paciente nuevo y sin cambio al esquema.
 
-### P3 — Cobertura y avisos de pago con regla confirmada (propuesta pendiente)
+### P3 — Cobertura y avisos de pago (DEV-003A/DEV-003B documentadas; cálculos pendientes de decisión)
 
 - **Problema:** el turno completo/medio se presenta como opción, pero `payments.js` cuenta cualquier fecha con una o más asignaciones como un día entero. El valor persistido `lead` no se edita ni interviene en `cover()`. La notificación dice “próximos” cuando `due()` selecciona deuda vencida.
-- **Solución propuesta:** primero acordar reglas con el responsable; después actualizar los cálculos y textos para que distingan deuda vencida de aviso anticipado. Conservar formato actual mientras no se defina cómo representar fracciones/turnos si hiciera falta.
+- **Diagnóstico DEV-003A:** [informe de pagos y cobertura](auditorias/DEV-003A-diagnostico-pagos-cobertura.md) confirma que `time` y `lead` no participan en la cobertura, `pays[].a` no descuenta deuda, varias personas en una fecha cuentan una sola fecha en `cover()` pero multiplican importes desglosados, y el guardado de una asignación eliminaba `pay.v` con más de 400 días. FIX-001 retira localmente esa poda y QA-003 comprueba su conservación; no recupera entradas previamente borradas.
+- **Solución propuesta para DEV-003B:** [propuesta de reglas](../DEV-003B-propuesta-reglas-pagos-cobertura.md) distingue reglas actuales y opciones técnicas. Acordar primero ejemplos, política de fechas efectivas, dinero y periodos; luego alinear cálculos, interfaz e historial. Ninguna regla propuesta está aprobada.
 - **Módulos afectados:** `payments.js`, `care-ui.js`, `app.js`, `compatibility.js` solo si la regla exige cambios compatibles, y pruebas de dominio/UI.
 - **Reglas de negocio:** decidir si medio turno afecta conteo/monto; qué pasa con dos enfermeros el mismo día; desde qué fecha aplica pago anticipado; si `lead` significa días de anticipación e inclusividad del límite. No inferir ninguna de estas reglas.
 - **Interfaz:** separar claramente “vencido” de “por vencer”; explicar la regla que calcula días pagados y deuda; mantener montos ocultos por defecto.
 - **Riesgos:** alto. Puede cambiar deuda o montos percibidos; no modificar saldos/registros históricos sin pruebas de compatibilidad y autorización específica. No cambiar esquema como parte de esta propuesta.
-- **Pruebas de aceptación:** tabla de ejemplos aprobados para días asignados, turnos, pago anticipado, límite de aviso y tarifa; incluir un caso con múltiples enfermeros y uno con fecha sin asignación; confirmar que los respaldos existentes siguen válidos.
-- **Complejidad relativa:** media/alta; bloqueada hasta definición funcional.
+- **Pruebas de aceptación pendientes:** usar la matriz sintética de DEV-003A para fechas, turnos, dos enfermeros en una fecha, parcial/adelantado, periodos, retención, historial y roundtrip JSON, con resultados numéricos que el responsable apruebe.
+- **Complejidad relativa:** media/alta; DEV-003B bloqueada hasta definir reglas. Evaluar ampliación/migración si la opción elegida requiere unidades fraccionarias o asignación de pagos a periodos/turnos.
 
 ### P2 — Visibilidad de consumo agregado por ficha (DEV-002, completada localmente)
 
@@ -53,4 +54,4 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 
 ## Recomendación
 
-DEV-001 resolvió el problema de asociación de citas con un cambio acotado. DEV-002 aclara el saldo común entre pautas de una ficha sin cambiar el cálculo; las decisiones funcionales de pagos (P3) siguen pendientes y no deben cambiarse hasta acordarlas.
+DEV-001 resolvió la asociación de citas y DEV-002 aclaró el saldo común entre pautas, sin cambiar esquema. DEV-003A concluyó el diagnóstico de pagos; DEV-003B requiere reglas expresas antes de alterar cobertura, montos o registros históricos.

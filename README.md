@@ -13,7 +13,9 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Plan de desarrollo](PLAN_DESARROLLO.md): fuente única de tareas, objetivos, dependencias, prioridades y estados.
 - [Arquitectura](ARQUITECTURA.md): estado comprobado del sistema, reglas técnicas permanentes y propuestas diferenciadas.
 - [Inventario funcional FUNC-001](docs/auditorias/FUNC-001-inventario-funcional.md): inspección vigente de funcionalidades, reglas, límites y mejoras; [AUD-001](docs/auditorias/AUD-001-inventario-funcional.md) conserva su estado histórico anterior.
-- [Backlog PLAN-002](docs/PLAN-002-backlog-funcional.md): prioridades y propuestas funcionales; DEV-001 y DEV-002 están implementadas localmente en `development`.
+- [Backlog PLAN-002](docs/PLAN-002-backlog-funcional.md): prioridades y propuestas funcionales; DEV-001 y DEV-002 están en la rama `development`.
+- [Diagnóstico DEV-003A](docs/auditorias/DEV-003A-diagnostico-pagos-cobertura.md): reglas actuales de pagos/turnos, riesgos históricos, alternativas y decisiones pendientes; no cambia cálculos.
+- [Propuesta DEV-003B](docs/DEV-003B-propuesta-reglas-pagos-cobertura.md): alternativas de cobertura, costos, pagos parciales, periodos e historial; reglas pendientes de aprobación.
 - [Auditoría de seguridad y privacidad AUD-003](docs/auditorias/AUD-003-seguridad-privacidad.md): hallazgos AUD-003–AUD-012, verificaciones, tipografía local y riesgos residuales aceptados expresamente para el contexto familiar y controlado actual.
 - [Revisión independiente AUD-011](docs/auditorias/AUD-011-revision-independiente.md): registra los hallazgos y el seguimiento de corrección/verificación AUD-012.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
@@ -62,9 +64,11 @@ La suite crea un perfil temporal aislado, usa registros ficticios y borra sus ar
 
 **DEV-001 (2026-10-31):** la suite local pasó 26/26 en Microsoft Edge 156.0.4314.50 con perfil aislado y datos ficticios. El caso nuevo comprueba la selección de fichas con nombres duplicados y compatibilidad de edición, guardado/recarga, respaldo JSON, restauración y eliminación. La clave `pastillas-v1` y el esquema persistido no cambiaron.
 
-**DEV-002 (2026-10-31):** las tarjetas de medicinas explican que todas las pautas de una ficha descuentan un mismo inventario y que su aviso de reposición corresponde al saldo común. Suite local sintética: 27/27; sin cambio a cálculos, `pastillas-v1` ni esquema. El cambio está en un commit local de `development`, sin publicar.
+**DEV-002 (2026-10-31):** las tarjetas de medicinas explican que todas las pautas de una ficha descuentan un mismo inventario y que su aviso de reposición corresponde al saldo común. Suite local sintética: 27/27; sin cambio a cálculos, `pastillas-v1` ni esquema. El cambio está incluido en `development` hasta `db944e5`; no se afirma validación funcional de Preview.
 
-**Publicación de DEV-001 pendiente:** aunque GitHub muestra un check `Vercel` exitoso para el Preview anterior (`f381219`), en esta sesión no hubo herramienta de Vercel para confirmar la rama de producción y la configuración Preview. No se hizo push. Ver [registro de verificación y límites](docs/GUIA_INSTALACION_USO.md#revision-de-vercel-y-publicacion-de-dev-001-2026-10-31).
+**Publicación a `development` (2026-10-31):** los commits de FUNC-001/PLAN-002, DEV-001 y DEV-002 se publicaron hasta `db944e5d4139cba185cd46aa330793046667db46`. GitHub muestra un check `Vercel` exitoso para ese SHA. La URL asociada observada redirigió al inicio de sesión de Vercel; no se pudo confirmar desde el panel el ambiente ni el contenido del deployment. La suite local no equivale a prueba de Preview. `main` no cambió. Ver [evidencia y límites](docs/GUIA_INSTALACION_USO.md).
+
+**FIX-001 y QA-003 (2026-10-31):** se eliminó la poda automática de asignaciones de pagos por antigüedad y la suite local pasó 28/28 en Microsoft Edge 156.0.4314.50 con datos ficticios. Se conservaron `pastillas-v1`, el esquema y los cálculos actuales. Ver el diagnóstico [DEV-003A](docs/auditorias/DEV-003A-diagnostico-pagos-cobertura.md) y la [propuesta DEV-003B](docs/DEV-003B-propuesta-reglas-pagos-cobertura.md); las reglas de negocio siguen pendientes de aprobación.
 
 ## Criterios permanentes
 
