@@ -46,21 +46,21 @@ El propietario del proyecto conserva la decisión final.
 
 Para cambios documentales de coordinación, el propietario puede aprobar la incorporación de una aportación concreta. No se deben editar los documentos compartidos directamente por iniciativa propia.
 
-## 4. Comunicación entre chats
+## 4. Flujo obligatorio al iniciar cualquier tarea
 
-Antes de comenzar una tarea:
-1. Leer estas reglas.
-2. Consultar [CENTRO_DE_COORDINACION.md](CENTRO_DE_COORDINACION.md).
-3. Consultar [TRABAJO_ACTIVO.md](TRABAJO_ACTIVO.md) para detectar solapamientos.
-4. Revisar [SOLICITUDES.md](SOLICITUDES.md) y [DECISIONES_TECNICAS.md](DECISIONES_TECNICAS.md) cuando corresponda.
+Antes de analizar en profundidad, proponer cambios o editar archivos, todos los agentes y chats deben:
 
-Al terminar un análisis o una tarea:
-- Informar los hallazgos en la conversación.
-- Preparar una propuesta de comunicación para el centro de coordinación.
-- Identificar impactos en otras áreas, dependencias, riesgos y decisiones requeridas.
-- Esperar aprobación antes de incorporar la propuesta a los documentos compartidos.
+1. Leer estos cinco documentos en la rama de trabajo más reciente: [REGLAS_GENERALES.md](REGLAS_GENERALES.md), [CENTRO_DE_COORDINACION.md](CENTRO_DE_COORDINACION.md), [SOLICITUDES.md](SOLICITUDES.md), [TRABAJO_ACTIVO.md](TRABAJO_ACTIVO.md) y [DECISIONES_TECNICAS.md](DECISIONES_TECNICAS.md).
+2. Comprobar rama, estado local, SHA, remoto y estado actual de GitHub; revisar TRABAJO_ACTIVO.md y las tareas o PR abiertos para detectar trabajo concurrente.
+3. Buscar en SOLICITUDES.md una solicitud equivalente por ID, objetivo, alcance y sistemas/archivos afectados; buscar en TRABAJO_ACTIVO.md una tarea equivalente o activa y comparar sus archivos. No crear duplicados: actualizar el registro existente y respetar su estado.
+4. Si no existe una solicitud equivalente, crearla en SOLICITUDES.md con la plantilla vigente y estado «Pendiente de aprobación» antes de editar archivos de la aplicación o documentos compartidos.
+5. Tratar el registro de la solicitud solo como constancia del pedido: no autoriza por sí mismo su implementación. Verificar que exista aprobación explícita del propietario para el alcance, archivos y rama. Si el alcance requiere aprobación y no está registrada o no es inequívoca, solicitarla y esperar; mientras tanto, limitarse a análisis y al registro administrativo autorizado.
+6. Una vez aprobada la solicitud, registrar la tarea en TRABAJO_ACTIVO.md con responsable, rama, archivos, estado y criterios de aceptación antes de editar cualquiera de los archivos previstos, incluidos documentos de reglas y coordinación.
+7. Si hay tareas concurrentes que asignan o modifican los mismos archivos, coordinar primero; no sobrescribir ni integrar trabajo pendiente sin autorización.
 
-No asumir que los chats pueden ver el historial completo de los demás. La información compartida debe quedar documentada aquí o entregarse explícitamente.
+La falta de una entrada previa nunca se interpreta como permiso para implementar ni se resuelve mediante una aprobación retroactiva. No asumir que los chats pueden ver el historial completo de los demás; la información necesaria debe quedar documentada aquí o entregarse explícitamente.
+
+Al terminar una tarea, informar hallazgos, archivos, commits, pruebas realmente ejecutadas, límites, impactos y decisiones pendientes. Actualizar SOLICITUDES.md y TRABAJO_ACTIVO.md con el resultado; proponer al centro de coordinación solo la información transversal aprobada.
 
 ## 5. Trabajo simultáneo y conflictos
 

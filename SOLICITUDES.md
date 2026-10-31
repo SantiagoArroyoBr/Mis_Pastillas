@@ -24,8 +24,8 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 | ID | Fecha | Área / chat | Resumen | Archivos o sistemas afectados | Estado |
 |---|---|---|---|---|---|
 | CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Incorporada en `development`; no desplegada |
-| MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo para MIME; documentos de coordinación | Implementada y probada en `task/mod-001-external-javascript`; pendiente PR/revisión e integración; no desplegada
-| COORD-001 | 2026-10-30 | Dirección general («Direccion general») | Añadir un flujo obligatorio para comprobar solicitudes equivalentes y registrar nuevas solicitudes/tareas antes de modificar archivos, distinguiendo registro de aprobación | REGLAS_GENERALES.md, CENTRO_DE_COORDINACION.md, SOLICITUDES.md, TRABAJO_ACTIVO.md, DECISIONES_TECNICAS.md | Aprobada; en curso |
+| MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo para MIME; documentos de coordinación | Incorporada en `development` mediante PR #2, merge `327ad8d5a16434095948a84d1ca49a00207f0429`; no desplegada
+| COORD-001 | 2026-10-30 | Dirección general («Direccion general») | Añadir un flujo obligatorio para comprobar solicitudes equivalentes y registrar nuevas solicitudes/tareas antes de modificar archivos, distinguiendo registro de aprobación | REGLAS_GENERALES.md, CENTRO_DE_COORDINACION.md, SOLICITUDES.md, TRABAJO_ACTIVO.md, DECISIONES_TECNICAS.md | Incorporada en `development`; no despliegue |
 
 ## Solicitud aprobada — COORD-001: registro previo de solicitudes y tareas
 
@@ -33,7 +33,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 - **Fecha:** 2026-10-30.
 - **Área / chat de origen:** Dirección general («Direccion general»).
 - **Tipo:** documentación / coordinación.
-- **Estado:** aprobada; en curso.
+- **Estado:** incorporada en `development`; no despliegue.
 - **Objetivo:** evitar bloqueos y trabajo sin autorización mediante una revisión obligatoria de solicitudes y tareas al inicio de cada encargo.
 - **Problema que resuelve:** se inició MOD-001 sin que existiera su entrada en TRABAJO_ACTIVO.md de development; el control documental detuvo la integración.
 - **Propuesta concreta:** exigir la lectura de los cinco documentos operativos; comprobar entradas equivalentes en SOLICITUDES.md y TRABAJO_ACTIVO.md; evitar duplicados; si no existe solicitud equivalente, registrarla con el formato existente antes de editar archivos; distinguir el registro de una solicitud de su aprobación; esperar aprobación explícita cuando corresponda; registrar una tarea aprobada en TRABAJO_ACTIVO.md antes de editar sus archivos.
@@ -43,7 +43,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 - **Dependencias:** autorización del propietario para los cambios documentales; revisión de tareas concurrentes y del estado remoto.
 - **Riesgos y reversión:** cambio documental reversible mediante commit revert; no modifica datos ni comportamiento de la aplicación.
 - **Pruebas o validaciones necesarias:** comprobar coherencia de referencias, estados, flujo y diferencias; no requiere pruebas de aplicación.
-- **Aprobación solicitada / resolución:** el propietario autorizó expresamente la integración del PR #2 y la corrección de las reglas en esta conversación; autorización limitada a documentos de coordinación en development, sin main ni despliegue.
+- **Aprobación solicitada / resolución:** el propietario autorizó la integración del PR #2 y la actualización de las reglas en esta conversación. La autorización para COORD-001 cubre documentos de coordinación en `development`; no autoriza `main` ni despliegue.
 
 ## Plantilla para presentar una solicitud
 
@@ -71,6 +71,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 |---|---|---|---|
 | CSS-001 | Aprobada por el propietario en la conversación «Direccion general» | 2026-10-30 | Extraer sin rediseños ni cambios semánticos; modificar únicamente `index.html`, nuevo `styles.css` y `sw.js`. Incluir CSS en la precarga offline y versionar la caché. Excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto, otras funciones fuera de esta integración y despliegue. Rama de tarea derivada de `development`. La integración de CSS-001 en `development` fue autorizada explícitamente por el propietario el 2026-10-30. |
 | MOD-001 | Aprobada explícitamente por el propietario en «Direccion general» | 2026-10-30 | Basar el diagnóstico histórico en `fa78806b53f601ce6aa070e75573df065043f4d3`; crear `docs/arquitectura/diagnostico-modularizacion.md`; extraer literalmente el JavaScript inline de `index.html` a `app.js`; modificar `index.html` y `sw.js` para carga/precarga y versión de caché; tocar `tests/persistence.spec.js` solo si el MIME lo requiere. Sin separar más módulos ni refactorizar. Preservar lógica, orden de inicialización, `localStorage` `pastillas-v1`, esquema, migraciones, import/export y PWA offline. Ejecutar pruebas de persistencia/regresión, sintaxis y navegador con datos ficticios. Rama de tarea derivada de `development`; integración a `development` solo si las reglas permiten esta aprobación, sin `main` ni despliegue.
+| COORD-001 | Aprobada explícitamente por el propietario en esta conversación | 2026-10-30 | Modificar únicamente los cinco documentos de coordinación en `development` para exigir lectura de reglas, centro, solicitudes, trabajo activo y decisiones; comprobar entradas equivalentes en `SOLICITUDES.md` y `TRABAJO_ACTIVO.md`; registrar ausencias como pendientes de aprobación sin tratar el registro como permiso; confirmar aprobación explícita cuando se requiera; crear/actualizar el registro de tarea aprobada antes de editar sus archivos; detectar y coordinar solapamientos. Sin cambios de aplicación, `main` ni despliegue. |
 
 ## Evidencia de implementación y validación — CSS-001
 
@@ -98,6 +99,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 2. Una solicitud aprobada para documentación no autoriza modificar código.
 3. Una solicitud aprobada para desarrollo no autoriza desplegar a producción.
 4. Si cambian los archivos afectados, el alcance o los riesgos, presentar una nueva solicitud o pedir ampliación de autorización.
-5. Tras la aprobación, registrar la tarea en [TRABAJO_ACTIVO.md](TRABAJO_ACTIVO.md).
-6. Tras incorporar el cambio, registrar la evidencia y actualizar el estado.
-7. No borrar solicitudes rechazadas o canceladas; conservar el historial.
+5. Si no existe una solicitud equivalente, registrarla con la plantilla y estado «Pendiente de aprobación» antes de editar archivos de la tarea; el registro no autoriza implementar.
+6. Tras la aprobación explícita requerida, registrar la tarea y sus archivos en [TRABAJO_ACTIVO.md](TRABAJO_ACTIVO.md) antes de editarlos; comprobar primero equivalencias y coordinar solapamientos.
+7. Tras incorporar el cambio, registrar la evidencia y actualizar el estado.
+8. No borrar solicitudes rechazadas o canceladas; conservar el historial.
