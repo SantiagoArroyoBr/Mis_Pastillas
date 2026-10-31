@@ -23,7 +23,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 
 | ID | Fecha | Área / chat | Resumen | Archivos o sistemas afectados | Estado |
 |---|---|---|---|---|---|
-| CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Probada en rama de tarea; pendiente de incorporación a `development` |
+| CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Incorporada en `development`; no desplegada |
 
 ## Plantilla para presentar una solicitud
 
@@ -49,16 +49,16 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 
 | ID | Resolución | Fecha | Condiciones / alcance aprobado |
 |---|---|---|---|
-| CSS-001 | Aprobada por el propietario en la conversación «Direccion general» | 2026-10-30 | Extraer sin rediseños ni cambios semánticos; modificar únicamente `index.html`, nuevo `styles.css` y `sw.js`. Incluir CSS en la precarga offline y versionar la caché. Excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto, otras funciones, integración y despliegue. Rama de tarea derivada de `development`. |
+| CSS-001 | Aprobada por el propietario en la conversación «Direccion general» | 2026-10-30 | Extraer sin rediseños ni cambios semánticos; modificar únicamente `index.html`, nuevo `styles.css` y `sw.js`. Incluir CSS en la precarga offline y versionar la caché. Excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto, otras funciones fuera de esta integración y despliegue. Rama de tarea derivada de `development`. La integración de CSS-001 en `development` fue autorizada explícitamente por el propietario el 2026-10-30. |
 
 ## Evidencia de implementación y validación — CSS-001
 
-- **Estado:** probada en rama de tarea; pendiente de autorización e incorporación a `development`. No está incorporada ni desplegada.
+- **Estado:** incorporada en `development`; no desplegada.
 - **Rama y SHA:** `task/css-001-external-stylesheet`, `d1d295ad6ac705a20b6338b27bea341a800f8622`.
 - **Commits de la tarea:** `a491cf3` (aprobación), `773be22` (extracción CSS), `f6b1ef8` (validación) y `d1d295a` (comparación visual).
 - **Archivos de aplicación:** `index.html`, `styles.css` y `sw.js`.
 - **Pruebas y validaciones registradas:** 13/13 pruebas existentes; sintaxis de `sw.js`; Chromium con caché y carga offline del CSS, navegación, alta de un insumo ficticio, exportación JSON y persistencia tras recargar. Las capturas a 390×844 no muestran diferencias visibles.
-- **Alcance y limitaciones:** las pruebas del navegador se limitaron a esos flujos y la comparación visual a 390×844; no se afirma cobertura de otros tamaños, navegadores ni pruebas adicionales. No se modificaron JavaScript, datos, `localStorage`, manifiesto ni otras funciones. La integración requiere autorización aparte.
+- **Alcance y limitaciones:** las pruebas del navegador se limitaron a esos flujos y la comparación visual a 390×844; no se afirma cobertura de otros tamaños, navegadores ni pruebas adicionales. No se modificaron JavaScript, datos, `localStorage`, manifiesto ni otras funciones. Integrada mediante merge normal del PR #1 en el commit `4d3ee998f7ec94d49fc858d1834c2202489053d6` (base `33970417a190317285867621a20df8a9b4e5d738`, HEAD fuente `bfed26dad9e5075b36e29e839abf4a3e0a00e081`). Las pruebas citadas se ejecutaron en la rama de tarea; no se volvieron a ejecutar después del merge.
 
 ## Reglas
 
