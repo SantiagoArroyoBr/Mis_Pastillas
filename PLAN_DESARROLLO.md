@@ -1,6 +1,14 @@
 # Plan de desarrollo — Acompaña
 
-Este documento es la fuente única de verdad para tareas, objetivos, prioridades, dependencias y estados. El usuario define prioridades. Las tareas ordinarias se desglosan y ejecutan dentro del plan, con cambios pequeños y verificables.
+Este documento es la fuente única de verdad para tareas, objetivos, prioridades, dependencias y estados. Las prioridades pendientes de esta tabla son una **propuesta técnica ordenada**, basada en dependencias, protección de datos y secuencia de trabajo; no representan prioridades elegidas por el usuario. Se pueden revisar y ajustar. Las tareas ordinarias se desglosan y ejecutan dentro del plan, con cambios pequeños y verificables.
+
+### Escala de prioridad propuesta
+
+- **P1 — Siguiente:** desbloquea decisiones posteriores o reduce riesgos centrales de datos y arquitectura.
+- **P2 — Alta:** necesaria para diseñar o validar con seguridad una decisión de P1.
+- **P3 — Media:** depende de decisiones previas y prepara una implementación posterior.
+- **P4 — Posterior:** documentación o evaluación que conviene hacer cuando la arquitectura esté aclarada.
+- **— (completada):** prioridad no aplicable a un trabajo ya integrado.
 
 ## Estados
 
@@ -23,18 +31,22 @@ Este documento es la fuente única de verdad para tareas, objetivos, prioridades
 
 | ID | Objetivo | Prioridad | Dependencias | Estado | Criterio de término |
 |---|---|---|---|---|---|
-| DOC-001 | Sustituir la coordinación documental por los cuatro documentos centrales y verificar sus enlaces y consistencia. | Definida por el usuario | Ninguna | Completada | Los cuatro documentos están en `development`, la historia útil fue trasladada y los cinco procedimientos anteriores fueron retirados. |
-| AUD-001 | Inventariar las funciones realmente implementadas y sus reglas en el código y pruebas. | Definida por el usuario | Ninguna | Pendiente | Inventario contrastado con el código, con hechos, faltantes y límites de validación claramente separados. |
-| DAT-001 | Diseñar el modelo relacional y las reglas de acceso para familias, cuentas, pacientes y registros de cuidado. | Definida por el usuario | AUD-001 | Pendiente | Modelo, relaciones, permisos, riesgos y estrategia de migración documentados; sin migrar datos. |
-| DAT-002 | Evaluar backend, autenticación, autorización y aislamiento por familia. | Definida por el usuario | DAT-001 | Pendiente | Decisión sustentada en requisitos, seguridad, costos y mantenimiento; RLS y permisos probados si se implementan. |
-| DAT-003 | Diseñar migración progresiva de datos locales y operación entre dispositivos. | Definida por el usuario | AUD-001, DAT-001, DAT-002 | Pendiente | Respaldo JSON exportado, restauración probada, compatibilidad y recuperación definidas antes de cualquier migración. |
-| PWA-001 | Evaluar almacenamiento local ampliado y sincronización offline segura. | Definida por el usuario | AUD-001, DAT-001, DAT-002, DAT-003 | Pendiente | Estrategia para colas, reintentos, idempotencia y conflictos documentada y validada sin pérdida ni duplicación de inventario. |
-| DAT-004 | Evaluar historial administrativo con trazabilidad y permisos adecuados. | Definida por el usuario | DAT-001, DAT-002 | Pendiente | Campos, actores, retención y acceso documentados y probados si se implementan. |
-| PWA-002 | Evaluar notificaciones push de reposición. | Definida por el usuario | AUD-001, DAT-002, PWA-001 | Pendiente | Capacidades del navegador, permisos, backend, duplicados, límites y costos documentados y validados. |
-| CAL-001 | Consolidar estrategia de pruebas de respaldo, restauración e aislamiento entre familias, si se adopta backend multi-familia. | Definida por el usuario | DAT-002, DAT-003 | Pendiente | Escenarios de recuperación e intentos de acceso cruzado comprobados con datos ficticios. |
-| DOC-002 | Preparar guías de instalación, uso y despliegue conforme a la arquitectura finalmente vigente. | Definida por el usuario | AUD-001, decisión de arquitectura aplicable | Pendiente | Guías verificadas contra la aplicación y procesos reales. |
+| DOC-001 | Sustituir la coordinación documental por los cuatro documentos centrales y verificar sus enlaces y consistencia. | — (completada) | Ninguna | Completada | Los cuatro documentos están en `development`, la historia útil fue trasladada y los cinco procedimientos anteriores fueron retirados. |
+| BACKEND-001 | Reforzar persistencia local, restauración JSON protegida e integridad de migraciones. | — (completada) | Ninguna | Completada | Integrada en `development`; commit de implementación `6705e34a48014533afa39e06dc48625b3a6f33fe`. No implica despliegue en producción. |
+| CSS-001 | Extraer los estilos a una hoja externa y mantener su precarga offline. | — (completada) | Ninguna | Completada | Integrada en `development` por merge `4d3ee998f7ec94d49fc858d1834c2202489053d6`. No implica despliegue en producción. |
+| MOD-001 | Extraer el JavaScript embebido a `app.js` y mantener la precarga offline. | — (completada) | Ninguna | Completada | Integrada en `development` por merge `327ad8d5a16434095948a84d1ca49a00207f0429`. No implica despliegue en producción. |
+| AUD-002 | Aplicar las cuatro mejoras de la auditoría: ordenar prioridades propuestas, evaluar protección de `main`, registrar integraciones y documentar las pruebas de persistencia. | — (completada) | Ninguna | Completada | Cambios documentales y comprobaciones registrados en [HISTORIAL_CAMBIOS.md](HISTORIAL_CAMBIOS.md); la protección queda como limitación de permisos de la integración, con instrucciones al propietario. |
+| AUD-001 | Inventariar las funciones realmente implementadas y sus reglas en el código y pruebas. | **P1 — Siguiente** | Ninguna | Pendiente | Inventario contrastado con el código, con hechos, faltantes y límites de validación claramente separados. |
+| DAT-001 | Diseñar el modelo relacional y las reglas de acceso para familias, cuentas, pacientes y registros de cuidado. | **P2 — Alta** | AUD-001 | Pendiente | Modelo, relaciones, permisos, riesgos y estrategia de migración documentados; sin migrar datos. |
+| DAT-002 | Evaluar backend, autenticación, autorización y aislamiento por familia. | **P2 — Alta** | DAT-001 | Pendiente | Decisión sustentada en requisitos, seguridad, costos y mantenimiento; RLS y permisos probados si se implementan. |
+| DAT-003 | Diseñar migración progresiva de datos locales y operación entre dispositivos. | **P2 — Alta** | AUD-001, DAT-001, DAT-002 | Pendiente | Respaldo JSON exportado, restauración probada, compatibilidad y recuperación definidas antes de cualquier migración. |
+| CAL-001 | Consolidar estrategia de pruebas de respaldo, restauración e aislamiento entre familias, si se adopta backend multi-familia. | **P2 — Alta** | DAT-002, DAT-003 | Pendiente | Escenarios de recuperación e intentos de acceso cruzado comprobados con datos ficticios. |
+| PWA-001 | Evaluar almacenamiento local ampliado y sincronización offline segura. | **P3 — Media** | AUD-001, DAT-001, DAT-002, DAT-003 | Pendiente | Estrategia para colas, reintentos, idempotencia y conflictos documentada y validada sin pérdida ni duplicación de inventario. |
+| DAT-004 | Evaluar historial administrativo con trazabilidad y permisos adecuados. | **P3 — Media** | DAT-001, DAT-002 | Pendiente | Campos, actores, retención y acceso documentados y probados si se implementan. |
+| PWA-002 | Evaluar notificaciones push de reposición. | **P3 — Media** | AUD-001, DAT-002, PWA-001 | Pendiente | Capacidades del navegador, permisos, backend, duplicados, límites y costos documentados y validados. |
+| DOC-002 | Preparar guías de instalación, uso y despliegue conforme a la arquitectura finalmente vigente. | **P4 — Posterior** | AUD-001, decisión de arquitectura aplicable | Pendiente | Guías verificadas contra la aplicación y procesos reales. |
 
-Las tareas pendientes describen trabajo futuro registrado; no significan que una tecnología o función propuesta ya esté decidida o implementada. El usuario puede cambiar sus prioridades actualizando esta tabla.
+Las tareas pendientes describen trabajo futuro registrado; no significan que una tecnología o función propuesta ya esté decidida o implementada. La secuencia P1–P4 es una propuesta técnica revisable, no una decisión atribuida al usuario. AUD-001 es el siguiente paso natural y desbloquea las evaluaciones posteriores. Los trabajos completados constan aquí para trazabilidad; su integración en `development` no equivale a publicación en producción. El usuario puede cambiar las prioridades actualizando esta tabla.
 
 ## Cierre de DOC-001
 

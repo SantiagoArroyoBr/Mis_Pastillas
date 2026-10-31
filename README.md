@@ -16,7 +16,33 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 
 ## Empezar
 
-Para entender qué está implementado y qué queda pendiente, consulta primero el [plan](PLAN_DESARROLLO.md) y la [arquitectura vigente](ARQUITECTURA.md). Las pruebas de persistencia están en `tests/persistence.spec.js`; sus comandos y dependencias se deben revisar en los archivos del repositorio antes de ejecutarlas.
+Para entender qué está implementado y qué queda pendiente, consulta primero el [plan](PLAN_DESARROLLO.md) y la [arquitectura vigente](ARQUITECTURA.md).
+
+## Pruebas de persistencia
+
+La suite de `tests/persistence.spec.js` usa el ejecutor integrado de Node.js y automatiza un navegador Chromium, Chrome o Microsoft Edge mediante el protocolo DevTools. No requiere `npm install`: el repositorio no tiene `package.json` ni dependencias npm para estas pruebas.
+
+Requisitos:
+
+- Node.js 22 o posterior (se requiere `node:test`, `fetch` y `WebSocket` integrados).
+- Google Chrome, Chromium o Microsoft Edge instalado. La prueba busca ubicaciones habituales de esos navegadores en Linux y Windows.
+- Si el navegador está instalado en una ubicación distinta, definir `CHROME_BIN` con la ruta completa a su ejecutable.
+- Permiso del entorno para abrir un servidor HTTP y una conexión local de depuración en `127.0.0.1`.
+
+Desde la raíz del repositorio, ejecutar:
+
+```sh
+node --test tests/persistence.spec.js
+```
+
+En PowerShell, si hace falta indicar la ruta del navegador:
+
+```powershell
+$env:CHROME_BIN = 'C:\ruta\al\navegador.exe'
+node --test tests/persistence.spec.js
+```
+
+La suite crea un perfil temporal aislado, usa registros ficticios y borra sus archivos temporales al terminar. Si falla al conectar con `127.0.0.1`, permitir conexiones locales para el proceso de Node.js y volver a ejecutar; un entorno que deniega esa conexión no puede ejecutar realmente estas pruebas.
 
 ## Criterios permanentes
 
