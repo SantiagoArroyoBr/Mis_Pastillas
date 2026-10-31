@@ -327,19 +327,7 @@ document.addEventListener('submit',e=>{
   e.stopImmediatePropagation();
   showPersistenceWarning();
 },true);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-function parseTimes(txt){
-  const out=[];
-  for(const t of txt.split(/[,;]+/)){
-    const m=t.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
-    if(!m)return null;
-    const h=+m[1],mi=+(m[2]||0);
-    if(h>23||mi>59)return null;
-    out.push(String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'));
-  }
-  return [...new Set(out)].sort();
-}
+const {esc,parseTimes,pos,num,money}=window.AcompanaUtils;
 const at=(d,t)=>{const[h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x.getTime()};
 
 // ---- Frecuencia ----
@@ -392,7 +380,6 @@ function calc(m,now=Date.now()){
   return{rem,left,end,buy,st,days,now:buy<=now+3600e3};
 }
 const fmt=ms=>new Date(ms).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-const num=n=>String(n).replace('.',',');
 function consText(m){
   if(m.kind==='sup'){const c=m.cons[0]||{dose:1};return 'Uso: '+num(c.dose)+' pieza'+(c.dose==1?'':'s')+' al día'}
   const one=m.cons.length===1;
@@ -419,7 +406,6 @@ const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const pd=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d)};
 const fmtD=ds=>pd(ds).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
 let showT=0,calM=0,homeP=-1;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
@@ -1125,7 +1111,6 @@ function result(m){
   <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
   $('#cl').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
 }
-const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
 
 // ---- Formulario de medicina con varios consumos (agregar y editar) ----
 const PRE=[{l:'¼',v:'0.25'},{l:'½',v:'0.5'},{l:'¾',v:'0.75'},{l:'1',v:'1'},{l:'1½',v:'1.5'},{l:'2',v:'2'}];
