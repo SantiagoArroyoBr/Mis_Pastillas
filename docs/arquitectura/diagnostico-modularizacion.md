@@ -1,6 +1,6 @@
 # Diagnóstico arquitectónico y ruta de modularización
 
-**Estado:** referencia arquitectónica aprobada; MOD-001 implementada y probada en rama de tarea, pendiente de revisión e integración.
+**Estado:** diagnóstico histórico basado en el SHA indicado. MOD-001 se integró después en `development` mediante el merge `327ad8d5a16434095948a84d1ca49a00207f0429`. La arquitectura vigente se mantiene en [ARQUITECTURA.md](../../ARQUITECTURA.md); las pruebas y sus límites están en [HISTORIAL_CAMBIOS.md](../../HISTORIAL_CAMBIOS.md).
 **SHA inspeccionado:** [`fa78806b53f601ce6aa070e75573df065043f4d3`](https://github.com/SantiagoArroyoBr/Mis_Pastillas/commit/fa78806b53f601ce6aa070e75573df065043f4d3)
 **Rama analizada:** `development`. El SHA es una referencia histórica comprobada como cabeza remota al iniciar MOD-001.
 **Alcance de la revisión:** análisis del código y propuesta de extracción; no es una auditoría integral de seguridad, accesibilidad ni de todas las funciones en producción.
@@ -47,13 +47,13 @@ js/
     events.js
 ```
 
-Orden recomendado después de la extracción literal: identificar dependencias y establecer pruebas de comportamiento; separar persistencia/migración; extraer reglas de dominio con pruebas; separar renderizado, formularios y eventos; evaluar módulos ES solo cuando sus límites y el soporte offline estén definidos. Cada paso requiere su propio alcance y aprobación.
+Orden técnico sugerido después de la extracción literal: identificar dependencias y establecer pruebas de comportamiento; separar persistencia/migración; extraer reglas de dominio con pruebas; separar renderizado, formularios y eventos; evaluar módulos ES solo cuando sus límites y el soporte offline estén definidos. Si se retoma esta ruta, registrar cada objetivo y sus dependencias en `PLAN_DESARROLLO.md`.
 
-## Primera etapa aprobada: MOD-001
+## Cambio realizado posteriormente: MOD-001
 
 **Objetivo:** mover el bloque JavaScript en línea de `index.html` a `app.js`, sin reordenar ni refactorizar el contenido.
 
-**Archivos autorizados:** `docs/arquitectura/diagnostico-modularizacion.md`, `index.html`, `app.js` (nuevo), `sw.js`, y `tests/persistence.spec.js` solo para servir JavaScript con MIME adecuado si la configuración de prueba lo requiere; además, los registros aprobados de coordinación.
+**Archivos afectados:** `docs/arquitectura/diagnostico-modularizacion.md`, `index.html`, `app.js`, `sw.js`, `tests/persistence.spec.js` (MIME) y documentación del proyecto.
 
 **Dependencias que deben conservarse:** el script debe ejecutarse después de que exista el HTML y en el mismo orden; `S`, `save()`, `render()`, la inicialización y la persistencia deben mantener su comportamiento. El service worker debe precargar el nuevo archivo y cambiar la versión de caché para evitar mezclar versiones al operar offline.
 
@@ -61,7 +61,7 @@ Orden recomendado después de la extracción literal: identificar dependencias y
 
 **Validación:** pruebas existentes de persistencia y regresión; sintaxis; navegador para carga, operaciones críticas, exportación/restauración y conservación de `pastillas-v1`; instalación/precarga y carga offline. Usar únicamente datos ficticios.
 
-**Aceptación:** comportamiento y datos observables conservados; misma clave y estructura de almacenamiento; ninguna escritura inesperada ante datos inválidos o restauración cancelada; suite aprobada; carga offline del HTML y `app.js` tras actualizar la caché.
+**Criterios de validación:** comportamiento y datos observables conservados; misma clave y estructura de almacenamiento; ninguna escritura inesperada ante datos inválidos o restauración cancelada; suite ejecutada correctamente; carga offline del HTML y `app.js` tras actualizar la caché.
 
 **Fuera de alcance:** dividir en más módulos, refactorizar, rediseñar o alterar HTML/CSS, modelo, migraciones, notificaciones, dependencias, backend, sincronización, manifiesto, producción o despliegue.
 
@@ -71,7 +71,7 @@ En cada etapa, comparar el comportamiento antes y después y ejecutar las prueba
 
 ## Registro de revisión inicial
 
-El diagnóstico inicial fue de solo lectura y no modificó archivos ni ejecutó pruebas. Al comenzar MOD-001, el checkout disponible era `task/css-001-external-stylesheet`, limpio pero atrasado; no se usó para describir el código. Se consultaron los cinco documentos obligatorios y no se encontró tarea activa ni PR abierto en esos registros. La ausencia en un registro manual no descarta trabajo no registrado. El propietario aprobó expresamente el diagnóstico y el alcance de MOD-001 el 2026-10-30 en la conversación «Direccion general».
+El diagnóstico inicial fue de solo lectura y no modificó archivos ni ejecutó pruebas. El SHA de cabecera es la referencia histórica examinada al preparar el cambio; no describe por sí mismo la arquitectura actual.
 
 ## Evidencia de MOD-001
 
@@ -82,4 +82,4 @@ El diagnóstico inicial fue de solo lectura y no modificó archivos ni ejecutó 
 - Una comprobación temporal en Chromium pasó: MIME de `app.js`, carga e inicialización, alta y persistencia de un insumo ficticio en `pastillas-v1`, precarga en `cuidados-v8` y recarga offline con el dato visible.
 - `node --check` pasó para `app.js`, `sw.js` y `tests/persistence.spec.js`; `git diff --check` no reportó errores.
 - El escenario manual de navegador verificó el flujo de alta de insumo y recarga offline; no cubrió todos los módulos de la aplicación, navegadores ni tamaños de pantalla. La suite automatizada sí cubre carga, persistencia, fallos simulados, migración y restauración.
-- La rama de tarea queda pendiente de revisión e integración a `development`. No se modificó `main` ni se desplegó producción.
+- La extracción quedó integrada en `development` mediante el merge SHA indicado en la cabecera. El historial centralizado detalla la validación reportada y sus límites. El diagnóstico no implica que se hayan repetido esas pruebas tras el merge.
