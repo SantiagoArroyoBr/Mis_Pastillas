@@ -216,3 +216,10 @@ Las relaciones, restricciones, índices y políticas de acceso se definirán ant
 - En la rama de tarea, el bloque JavaScript se trasladó literalmente a `app.js`; no se dividió en más módulos ni se refactorizó.
 - `index.html` carga el archivo después del DOM y `sw.js` lo precarga con caché `cuidados-v8` para uso offline.
 - Estado de esta rama: pruebas aprobadas; pendiente revisión e integración. No desplegada.
+
+
+### MOD-002 — Utilidades independientes
+
+- Se extrajeron `esc`, `parseTimes`, `pos`, `num` y `money` a `js/utils.js`, expuestas en `window.AcompanaUtils` y conservando sus resultados.
+- `index.html` carga las utilidades de forma clásica y síncrona antes de `app.js`; `sw.js` las precarga en la caché `cuidados-v9` para uso offline.
+- Estado de esta rama: implementación y validación en curso; no integrada ni desplegada.
