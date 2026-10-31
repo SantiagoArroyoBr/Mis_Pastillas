@@ -218,7 +218,7 @@ test('cancelar la restauración no realiza escrituras', async () => {
   const raw = '{"p":'; await seed(raw); await navigate(); await uploadJson(validBackup());
   await waitFor("document.querySelector('#cancelRestore')", 'cancelación de restauración');
   await evaluate("document.querySelector('#cancelRestore').click()");
-  await waitFor("!document.querySelector('#restoreConfirm')", 'cierre de confirmación');
+  await waitFor("!document.querySelector('#dlg').open", 'cierre de confirmación');
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.equal(await evaluate('__persistenceTest.read()'), raw);
   assert.equal(await evaluate('persistenceReady'), false);
