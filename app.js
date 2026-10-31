@@ -252,6 +252,7 @@ function render(){
     return `<article class="card ${c.st}">
       <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
       <p class="big">${num(c.rem)} <small>${un(m)}</small></p>
+      ${m.kind==='sup'?'':`<p class="hint" role="note">Este saldo pertenece a un solo inventario compartido por ${m.cons.length} ${m.cons.length===1?'pauta de consumo':'pautas de consumo'}. El saldo y el aviso de reposición consideran todas las pautas.</p>`}
       <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b>${m.kind==='sup'?'':` (${c.left} tomas)`}.${c.end?`<br>${m.kind==='sup'?'Alcanza hasta el':'Última toma completa:'} <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para '+(m.kind==='sup'?'un día de uso':'una toma')+'.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br><br>${consText(m)}</p>
       ${priceLine(m)}
       <button class="btn" data-a="box" data-i="${i}">Compré más</button>

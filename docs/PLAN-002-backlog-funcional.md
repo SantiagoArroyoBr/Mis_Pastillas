@@ -39,17 +39,18 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 - **Pruebas de aceptación:** tabla de ejemplos aprobados para días asignados, turnos, pago anticipado, límite de aviso y tarifa; incluir un caso con múltiples enfermeros y uno con fecha sin asignación; confirmar que los respaldos existentes siguen válidos.
 - **Complejidad relativa:** media/alta; bloqueada hasta definición funcional.
 
-### P2 — Visibilidad de consumo agregado por ficha (propuesta pendiente)
+### P2 — Visibilidad de consumo agregado por ficha (DEV-002, completada localmente)
 
 - **Problema:** las pautas independientes comparten el saldo de una ficha, pero la interfaz no explica explícitamente ese alcance; tampoco existe un inventario compartido entre fichas. El término puede llevar a esperar una consolidación global que el código no realiza.
-- **Solución propuesta:** aclarar en la ficha/formulario que todas sus pautas descuentan un único saldo; mostrar un resumen de consumo calculado o una ayuda equivalente, si pruebas de usabilidad justifican el espacio. Mantener cada ficha y sus consumos actuales.
-- **Módulos afectados:** `inventory.js`, `domain.js`, `forms.js` solo si la presentación necesita un componente común; `tests/persistence.spec.js` o una prueba unitaria del dominio.
+- **Solución aplicada:** cada tarjeta de medicina aclara que sus pautas comparten un inventario y que el saldo y el aviso de reposición consideran el conjunto. No se añadió resumen numérico duplicado.
+- **Módulos afectados:** `app.js` (tarjetas y pendientes derivados); `tests/persistence.spec.js` (regresión de texto, saldo y ciclo de respaldo).
 - **Reglas de negocio:** no consolidar existencias entre pacientes ni fichas con el mismo nombre; cálculo agregado sigue siendo la suma de eventos de `cons[]`; no alterar `pastillas-v1`.
 - **Interfaz:** ayuda junto al saldo y pautas; mostrar las dosis/frecuencias y dejar explícito que la proyección es estimada.
 - **Riesgos:** bajo para texto y resumen derivado; alto si se introduce inventario global, se fusionan fichas o se reescriben saldos.
-- **Pruebas de aceptación:** dos pautas con horarios/frecuencias diferentes descuentan del mismo saldo de ficha; dos fichas iguales no comparten saldo; el texto refleja la regla; prueba no depende del reloj real.
-- **Complejidad relativa:** baja/media.
+- **Pruebas realizadas:** fixture ficticio con una y dos pautas: mensaje accesible por tarjeta, saldo que coincide con `AcompanaDomain.calc`, una alerta de reposición por ficha, recarga y exportación/restauración. Suite completa 27/27 en navegador Chromium/Edge automatizado. El fixture no simula dos fichas con el mismo medicamento; no hubo cambio en el motor de cálculo.
+- **Complejidad realizada:** baja.
+- **Estado:** implementada y probada localmente en DEV-002; sin push ni verificación sobre Preview.
 
 ## Recomendación
 
-DEV-001 ya resolvió el problema de asociación de citas con un cambio acotado. Como siguiente mejora incremental, considerar P2 para explicar el saldo común entre pautas de una ficha y añadir pruebas de suma, manteniendo fichas separadas. P3 sigue pendiente de una decisión funcional sobre pagos; no cambiar esos cálculos hasta acordarla.
+DEV-001 resolvió el problema de asociación de citas con un cambio acotado. DEV-002 aclara el saldo común entre pautas de una ficha sin cambiar el cálculo; las decisiones funcionales de pagos (P3) siguen pendientes y no deben cambiarse hasta acordarlas.

@@ -240,6 +240,47 @@ test('los nombres mostrados desde los datos se tratan como texto, no como HTML',
   assert.equal((await evaluate("document.querySelector('#list').textContent")).includes('<img src=x onerror=alert(1)>'), true);
   assert.deepEqual(await evaluate('__persistenceTest.errors'), []);
 });
+test('la ficha explica el saldo único compartido por todas sus pautas', async () => {
+  const backup = validBackup('Paciente ficticio para inventario');
+  backup.mode = 'home';
+  backup.p[0].meds = [
+    { name: 'Medicina ficticia con dos pautas', base: 0, t0: Date.now(), cons: [
+      { dose: 1, times: ['08:00'], schedule: { type: 'daily' } },
+      { dose: 0.5, times: ['20:00'], schedule: { type: 'daily' } }
+    ] },
+    { name: 'Medicina ficticia con una pauta', base: 4, t0: Date.now(), cons: [
+      { dose: 1, times: ['09:00'], schedule: { type: 'daily' } }
+    ] }
+  ];
+  await seed(JSON.stringify(backup)); await navigate();
+
+  await evaluate("S.mode='home';render()");
+  const alertMentions = await evaluate("(document.querySelector('#homeView').textContent.match(/Medicina ficticia con dos pautas/g)||[]).length");
+  assert.equal(alertMentions, 1, 'la ficha genera un solo pendiente de reposición, no uno por pauta');
+  await evaluate("S.mode='meds';render()");
+  const multi = await evaluate(`(()=>{const card=[...document.querySelectorAll('#list .card')].find(x=>x.textContent.includes('Medicina ficticia con dos pautas'));return {note:card.querySelector('[role="note"]')?.textContent,rem:card.querySelector('.big').textContent.trim(),count:document.querySelectorAll('#list .card').length}})()`);
+  assert.match(multi.note, /2 pautas de consumo/);
+  assert.match(multi.note, /un solo inventario compartido/);
+  assert.match(multi.note, /aviso de reposición consideran todas las pautas/);
+  assert.equal(multi.count, 2);
+  assert.equal(multi.rem, String((await evaluate("AcompanaDomain.calc(S.p[0].meds[0]).rem")).toString()).replace('.', ',') + ' pastillas');
+  assert.match((await evaluate("[...document.querySelectorAll('#list .card')].find(x=>x.textContent.includes('Medicina ficticia con una pauta')).querySelector('[role=note]').textContent")), /1 pauta de consumo/);
+
+  const stored = JSON.parse(await evaluate('__persistenceTest.read()'));
+  assert.equal(stored.p[0].meds[0].cons.length, 2);
+  await evaluate("document.querySelector('#exp').click()");
+  await waitFor('__persistenceTest.exportBlob !== null', 'exportación de inventario ficticio');
+  const exported = await evaluate("__persistenceTest.exportBlob.text().then(text=>JSON.parse(text))");
+  assert.equal(exported.p[0].meds[0].cons.length, 2);
+  await uploadJson(exported, 'inventario-compartido-ficticio.json');
+  await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("JSON.parse(__persistenceTest.read()).p[0].meds[0].cons.length===2", 'restauración de inventario ficticio');
+  await navigate();
+  await evaluate("S.mode='meds';render()");
+  assert.match(await evaluate("[...document.querySelectorAll('#list .card')].find(x=>x.textContent.includes('Medicina ficticia con dos pautas')).querySelector('[role=note]').textContent"), /2 pautas de consumo/);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'), []);
+});
 test('datos válidos se cargan sin activar el modo protegido', async () => {
   await seed(JSON.stringify(validBackup('Paciente ficticio válido'))); await navigate();
   assert.equal(await evaluate('persistenceReady'), true);

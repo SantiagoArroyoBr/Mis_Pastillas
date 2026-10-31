@@ -96,3 +96,13 @@ Evidencia técnica separada:
 - El último estado local automatizado de VAL-002 fue 25/25 en Edge 156.0.4314.50 con perfil y datos ficticios. Es una prueba local previa, no una ejecución sobre la Preview.
 
 La declaración del responsable cierra PREVIEW-001 como validación manual en el alcance que realizó. La ausencia de matriz/resultados impide atribuir aprobaciones individuales de HTTPS, instalación, manifest, navegación, offline, actualización del service worker, persistencia, JSON, responsive o consola. La configuración de Vercel y la versión actualmente asociada al dominio productivo no fueron comprobadas independientemente desde el panel.
+
+### Revisión de Vercel y publicación de DEV-001 — 2026-10-31
+
+En esta sesión se volvió a comprobar el repositorio GitHub `SantiagoArroyoBr/Mis_Pastillas`. El check combinado de GitHub para `f381219e31e515ba34096446d5c7109d8ae73937` devuelve un estado `Vercel` exitoso con enlace a una deployment de Vercel. Para el commit local DEV-001 `f4070022d6c7b71cb6079fe48da1dc0181eed0b0`, GitHub no devuelve checks porque todavía no está publicado.
+
+La sesión no expone herramientas de lectura del complemento Vercel y el checkout no contiene `.vercel/project.json`; tampoco está disponible el ejecutable `vercel`. Por ello no se pudo confirmar directamente el repositorio conectado en la cuenta de Vercel, rama de producción, generación exclusiva de Preview para `development`, aliases/domino actual, variables, ajustes de protección, SHA/URL/fecha completos del deployment enlazado ni salud de construcción. El estado exitoso de un check del commit anterior no prueba esos ajustes ni autoriza concluir que el nuevo push solo generaría Preview.
+
+Se intentó `git fetch origin` primero dentro del entorno restringido, donde el acceso de escritura a `.git/FETCH_HEAD` fue denegado; después se ejecutó con permiso para actualizar referencias. `origin/development` permaneció en `f381219e31e515ba34096446d5c7109d8ae73937`; `origin/main` permaneció en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. De acuerdo con la condición de la tarea, **no se publicó `development`** al no poderse verificar el entorno Preview frente a Production. No hubo cambios ni despliegue en `main`/producción.
+
+La prueba manual de PREVIEW-001 sigue registrada como declaración del responsable y no se volvió a ejecutar desde un navegador sobre la Preview. La validación automatizada local anterior de DEV-001 fue 26/26 en Edge 156.0.4314.50, con datos ficticios; no se presenta como prueba del deployment. DEV-002 tampoco se desplegó ni probó en Preview.
