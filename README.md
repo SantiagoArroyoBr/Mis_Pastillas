@@ -13,6 +13,7 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Plan de desarrollo](PLAN_DESARROLLO.md): fuente única de tareas, objetivos, dependencias, prioridades y estados.
 - [Arquitectura](ARQUITECTURA.md): estado comprobado del sistema, reglas técnicas permanentes y propuestas diferenciadas.
 - [Inventario funcional AUD-001](docs/auditorias/AUD-001-inventario-funcional.md): funcionalidades, reglas observadas, cobertura y vacíos comprobados en el código.
+- [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
 - [Historial de cambios](HISTORIAL_CAMBIOS.md): registro cronológico con archivos, validaciones, limitaciones y referencias de Git.
 
 ## Empezar
