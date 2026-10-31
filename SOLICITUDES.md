@@ -24,6 +24,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 | ID | Fecha | Área / chat | Resumen | Archivos o sistemas afectados | Estado |
 |---|---|---|---|---|---|
 | CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Incorporada en `development`; no desplegada |
+| MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo si es necesario; documentos de coordinación | Aprobada; en curso en `task/mod-001-external-javascript`
 
 ## Plantilla para presentar una solicitud
 
@@ -50,6 +51,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 | ID | Resolución | Fecha | Condiciones / alcance aprobado |
 |---|---|---|---|
 | CSS-001 | Aprobada por el propietario en la conversación «Direccion general» | 2026-10-30 | Extraer sin rediseños ni cambios semánticos; modificar únicamente `index.html`, nuevo `styles.css` y `sw.js`. Incluir CSS en la precarga offline y versionar la caché. Excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto, otras funciones fuera de esta integración y despliegue. Rama de tarea derivada de `development`. La integración de CSS-001 en `development` fue autorizada explícitamente por el propietario el 2026-10-30. |
+| MOD-001 | Aprobada explícitamente por el propietario en «Direccion general» | 2026-10-30 | Basar el diagnóstico histórico en `fa78806b53f601ce6aa070e75573df065043f4d3`; crear `docs/arquitectura/diagnostico-modularizacion.md`; extraer literalmente el JavaScript inline de `index.html` a `app.js`; modificar `index.html` y `sw.js` para carga/precarga y versión de caché; tocar `tests/persistence.spec.js` solo si el MIME lo requiere. Sin separar más módulos ni refactorizar. Preservar lógica, orden de inicialización, `localStorage` `pastillas-v1`, esquema, migraciones, import/export y PWA offline. Ejecutar pruebas de persistencia/regresión, sintaxis y navegador con datos ficticios. Rama de tarea derivada de `development`; integración a `development` solo si las reglas permiten esta aprobación, sin `main` ni despliegue.
 
 ## Evidencia de implementación y validación — CSS-001
 
