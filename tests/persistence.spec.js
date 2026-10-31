@@ -255,3 +255,47 @@ test('la restauración también recupera un fallo de lectura de localStorage', a
   await waitFor("persistenceReady === true && S.p[0].name === 'Recuperado tras fallo de lectura'", 'recuperación tras fallo de lectura');
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Recuperado tras fallo de lectura');
 });
+
+test('las utilidades conservan resultados, exposición global y escape seguro', async () => {
+  await seed(null); await navigate();
+  const actual = await evaluate(`(() => {
+    const oldEsc=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+    function oldTimes(txt){const out=[];for(const t of txt.split(/[,;]+/)){const m=t.trim().match(/^(\\d{1,2})(?::(\\d{2}))?$/);if(!m)return null;const h=+m[1],mi=+(m[2]||0);if(h>23||mi>59)return null;out.push(String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'));}return [...new Set(out)].sort()}
+    const oldPos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
+    const oldNum=n=>String(n).replace('.',',');
+    const oldMoney=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
+    const a=['8; 08:00,20:30','23:59','24:00','8:60',''];
+    const b=['1,25','0','-3','no'];
+    const c=[0,1.5,1234.56];
+    const dangerous=['<img src=x onerror=alert(1)>','\" autofocus onfocus=alert(1) & '+String.fromCharCode(39),'</script><script>alert(1)</script>'];
+    return JSON.stringify({times:a.map(x=>[parseTimes(x),oldTimes(x)]),pos:b.map(x=>[pos(x),oldPos(x)]),num:c.map(x=>[num(x),oldNum(x)]),money:c.map(x=>[money(x),oldMoney(x)]),esc:dangerous.map(x=>[esc(x),oldEsc(x)]),keys:Object.keys(window.AcompanaUtils).sort(),safe:(()=>{const d=document.createElement('div');d.innerHTML='<p>'+esc(dangerous[0])+'</p>';return !d.querySelector('img')})()});
+  })()`);
+  const values = JSON.parse(actual);
+  for (const key of ['times','pos','num','money','esc']) for (const [current, previous] of values[key]) assert.deepEqual(current, previous, key + ' debe conservar el resultado anterior');
+  assert.deepEqual(values.keys, ['esc','money','num','parseTimes','pos']);
+  assert.equal(values.safe, true);
+});
+
+test('formularios usan las utilidades y el service worker precarga js/utils.js', async () => {
+  await seed(null); await navigate();
+  await evaluate("document.querySelector('#add').click()");
+  await waitFor("document.querySelector('#h0 input[type=time]')", 'formulario de medicina');
+  assert.equal(await evaluate("typeof esc==='function' && typeof parseTimes==='function' && typeof pos==='function'"), true);
+  assert.equal(await evaluate("fetch('js/utils.js').then(r=>r.headers.get('content-type'))"), 'text/javascript; charset=utf-8');
+  assert.equal(await evaluate("navigator.serviceWorker.ready.then(()=>caches.open('cuidados-v9').then(c=>c.match(new URL('js/utils.js',location.href).href).then(Boolean)))"), true);
+  await evaluate(`(() => {
+    const set=(selector,value)=>{const el=document.querySelector(selector);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))};
+    set('#n','Medicamento ficticio offline');set('#q','12');set('#d0','1');set('#h0 input[type=time]','08:00');
+    document.querySelector('#f button[type=submit]').click();
+  })()`);
+  await waitFor("S.p[S.sel].meds.some(m=>m.name==='Medicamento ficticio offline')", 'guardado ficticio');
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  try {
+    await cdp.send('Page.navigate',{url:serverUrl+'/'});
+    await waitFor("document.readyState==='complete' && S.p[S.sel].meds.some(m=>m.name==='Medicamento ficticio offline')", 'recarga offline con datos ficticios', 10000);
+    assert.equal(await evaluate("S.p[S.sel].meds.find(m=>m.name==='Medicamento ficticio offline').base"), 12);
+  } finally {
+    await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+  }
+});
