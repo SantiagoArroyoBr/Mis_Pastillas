@@ -12,7 +12,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 
 | ID | Área / chat | Tarea | Rama | Archivos previstos | Estado | Inicio | Última actualización |
 |---|---|---|---|---|---|---|---|
-| BACKEND-001 | Backend y datos | Protección de persistencia inicial, restauración JSON en modo protegido, validación de integridad de migraciones y pruebas de integración en navegador | `development` | `index.html`, `tests/persistence.spec.js`, `package.json` y `package-lock.json` solo si son necesarios; registro: `TRABAJO_ACTIVO.md` | En curso — ampliación aprobada | 2026-10-30 | 2026-10-30 |
+| BACKEND-001 | Backend y datos | Protección de persistencia inicial, restauración JSON en modo protegido, validación de integridad de migraciones y pruebas de integración en navegador | `development` | `index.html`, `tests/persistence.spec.js`, `package.json` y `package-lock.json` solo si son necesarios; registro: `TRABAJO_ACTIVO.md` | Probada e incorporada en `development`; cierre documental registrado | 2026-10-30 | 2026-10-30 |
 
 ## Plantilla para registrar una tarea aprobada
 
@@ -51,7 +51,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 
 | ID | Área | Resultado | Commit / referencia | Fecha de cierre |
 |---|---|---|---|---|
-| — | — | No hay tareas cerradas registradas | — | — |
+| BACKEND-001 | Backend y datos | Protección de persistencia, restauración JSON y validación de integridad de migraciones completadas; 13/13 pruebas en Edge. Pruebas con almacenamiento simulado mediante excepciones de `localStorage`; no se probaron fallos físicos del dispositivo. | Implementación en `development`: `6705e34a48014533afa39e06dc48625b3a6f33fe`. Ampliación: `b5db59e`, `cec33bf`, `c4d6982`, `5558b31`, `6705e34` | 2026-10-30 |
 
 ## Limitación operativa
 
