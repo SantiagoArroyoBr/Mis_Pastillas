@@ -172,12 +172,12 @@ after(async () => {
     else browser.kill('SIGTERM');
     await Promise.race([
       new Promise(resolve => browser.once('exit', resolve)),
-      new Promise(resolve => setTimeout(resolve, 3000))
+      new Promise(resolve => setTimeout(resolve, 10000))
     ]);
   }
   if (server) await new Promise(resolve => server.close(resolve));
-  if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  if (browserProfile) fs.rmSync(browserProfile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  if (fixtureDir) fs.rmSync(fixtureDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+  if (browserProfile) fs.rmSync(browserProfile, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 });
 
 test('instalación nueva habilita persistencia y operaciones normales', async () => {
@@ -221,6 +221,15 @@ test('la vista se adapta a seis anchuras móviles y conserva los datos locales',
   } finally {
     await cdp.send('Emulation.clearDeviceMetricsOverride');
   }
+});
+test('el tema del manifest, el navegador y la interfaz mantienen la identidad visual', async () => {
+  const metadata = await evaluate("fetch('/manifest.json').then(response=>response.json())");
+  assert.equal(metadata.theme_color, '#315B50');
+  assert.equal(metadata.background_color, '#315B50');
+  assert.equal(await evaluate("document.querySelector('meta[name=theme-color]').content"), metadata.theme_color);
+  assert.equal(await evaluate("getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()"), metadata.theme_color);
+  assert.equal(metadata.icons.length, 2);
+  for (const icon of metadata.icons) assert.equal((await evaluate(`fetch(${JSON.stringify(icon.src)}).then(response=>response.ok)`)), true);
 });
 test('los nombres mostrados desde los datos se tratan como texto, no como HTML', async () => {
   const backup = validBackup('<img src=x onerror=alert(1)>');

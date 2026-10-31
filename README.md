@@ -55,6 +55,8 @@ node --test tests/persistence.spec.js
 
 La suite crea un perfil temporal aislado, usa registros ficticios y borra sus archivos temporales al terminar. Si falla al conectar con `127.0.0.1`, permitir conexiones locales para el proceso de Node.js y volver a ejecutar; un entorno que deniega esa conexión no puede ejecutar realmente estas pruebas.
 
+**Validación local VAL-001 (2026-10-31):** 25/25 pruebas en Microsoft Edge 156.0.4314.50; incluye persistencia, respaldos, integraciones, PWA/offline, manifest y viewports de 320 a 768 px. No se verificó instalación desde el prompt del sistema operativo ni se probaron dispositivos físicos.
+
 ## Criterios permanentes
 
 La rama `development` es la rama de trabajo. `main` es producción y no se modifica como parte del desarrollo ordinario. Los datos existentes, la clave `pastillas-v1`, la exportación y restauración JSON, la PWA y el funcionamiento offline se preservan; cualquier tarea que los afecte debe definir compatibilidad, respaldo, restauración y validación antes de implementarse. Utilizar datos ficticios en pruebas y documentación compartida.

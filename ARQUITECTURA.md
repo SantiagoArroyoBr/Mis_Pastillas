@@ -1,6 +1,6 @@
 # Arquitectura de Acompaña
 
-Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La revisión de modularización y UX corresponde a `development` en `23d16139f80dc33c68841baa610fd6c57814f927`; estos cambios locales no se han confirmado en un commit. No se consultó ni modificó `main` durante esta revisión.
+Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La arquitectura de aplicación corresponde al commit local `c7e9121ae18b62f02298bead43412e5d6432b68d` en `development`. VAL-001 detectó ajustes posteriores en `index.html`, `manifest.json` y el arnés de pruebas; esos cambios locales permanecen sin commit. No se consultó ni modificó `main` durante esta revisión.
 
 ## Arquitectura vigente — hechos comprobados
 
