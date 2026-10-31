@@ -41,7 +41,7 @@ class DevTools {
   close() { this.ws.close(); }
 }
 
-const initScript = String.raw\`(() => {
+const initScript = String.raw`(() => {
   const key = 'pastillas-v1';
   const nativeGet = Storage.prototype.getItem;
   const nativeSet = Storage.prototype.setItem;
@@ -69,7 +69,7 @@ const initScript = String.raw\`(() => {
     return nativeSet.call(this, name, value);
   };
   Object.defineProperty(window, '__persistenceTest', { value: state });
-})();\`;
+})();`;
 
 function evaluate(expression) {
   return cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }).then(result => {
