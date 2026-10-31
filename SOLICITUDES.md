@@ -70,7 +70,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 - **Cambios:** traslado literal del único bloque JavaScript inline; carga clásica síncrona después del DOM; `app.js` en precarga y caché `cuidados-v8`; servidor de pruebas configurado con `text/javascript; charset=utf-8`.
 - **Pruebas:** `node --check` para `app.js`, `sw.js` y `tests/persistence.spec.js`; suite Chromium 13/13; comprobación temporal adicional en Chromium aprobada para MIME, inicialización, alta ficticia guardada en `pastillas-v1`, precarga de `app.js` y recarga offline con el dato visible; `git diff --check` sin errores.
 - **Límites:** el smoke test adicional cubrió el alta de un insumo ficticio y recarga offline; no todo el inventario de funciones, navegadores o tamaños de pantalla. La suite cubre persistencia, fallos simulados, migración y restauración. No se alteraron datos de usuarios.
-- **Commit de implementación:** `d0f0055` (`feat: extract inline JavaScript to app.js`). Commit final de registros y SHA de rama: se añadirá tras publicar el cierre documental.
+- **Commits de MOD-001:** `d0f0055` (implementación), `e8f9501` (cierre documental y resultados). PR #2 es borrador contra `development`; su SHA de cabeza refleja la versión final publicada de la rama.
 - **Integración y producción:** no se integró a `development`; PR pendiente de revisión conforme a las reglas de aprobación. `main` y producción no se modificaron.
 
 ## Reglas
