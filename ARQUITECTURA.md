@@ -50,3 +50,8 @@ Estas son condiciones técnicas permanentes del proyecto, no un flujo de autoriz
 La posible evolución a frontend modular, Supabase/PostgreSQL, autenticación, políticas RLS, IndexedDB, sincronización entre dispositivos, auditoría administrativa y notificaciones push requiere evaluación por requisitos, costos, seguridad y mantenimiento. No asumir su adopción hasta que el plan registre el objetivo y exista implementación comprobable.
 
 Si se considera sincronización, debe definir colas, reintentos idempotentes y resolución de conflictos. Los movimientos de inventario requieren especial cuidado para evitar descuentos duplicados o sobrescrituras entre dispositivos. Una migración debe probar exportación y restauración JSON antes de modificar datos locales.
+
+
+## Resultado de la evaluación DAT-002
+
+La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md) recomienda conservar por ahora la PWA local con `pastillas-v1` y respaldos JSON. No se confirmó una necesidad de sincronización multi-dispositivo y no se adoptan backend, Auth ni proveedor. El informe compara alternativas y documenta controles y condiciones para reconsiderarlas. Esta es una recomendación técnica, no una decisión de producto irreversible; cualquier backend real, autenticación o migración requiere los requisitos, verificaciones y autorización descritos allí. DAT-001 sigue siendo una propuesta conceptual.
