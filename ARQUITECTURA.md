@@ -60,3 +60,8 @@ La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aisla
 ## Preparación DAT-003 — sin migración
 
 [DAT-003](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md) especifica controles documentales para respaldo, restauración de prueba, mapeo de índices y conciliación. El diseño está en curso: no se accedió a datos reales ni se verificó un respaldo de un dispositivo familiar. La clave `pastillas-v1`, el esquema vigente y el funcionamiento de la aplicación permanecen sin cambios. No iniciar una migración con base únicamente en fixtures sintéticos.
+
+
+## Evaluación DAT-004 — historial administrativo
+
+[DAT-004](docs/arquitectura/DAT-004-evaluacion-auditoria.md) define una propuesta conceptual para una bitácora futura, con actor confiable, metadatos mínimos, separación de datos de cuidado y controles de acceso. No existe una bitácora implementada. Roles de consulta, retención, exportación, borrado y obligaciones de privacidad permanecen abiertos; la evaluación no añade tablas ni atribuye acciones a cuentas inexistentes.
