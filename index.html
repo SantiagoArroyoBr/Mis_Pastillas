@@ -26,6 +26,7 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .btn.small{min-height:48px;font-size:17px}
 .row{display:flex;gap:8px}
 .soon{background:#fff;border:3px solid var(--navy);border-radius:20px;padding:14px;margin:16px 0}
+.soon.warning{border-color:var(--red);color:var(--red)}
 .soon h2{margin:0 0 6px;font-size:22px;font-weight:900}
 .soon ul{margin:6px 0 12px;padding-left:22px}
 .ok{border-color:var(--green);color:var(--green);font-weight:800}
@@ -129,6 +130,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
   <button class="ren" id="ren">Cambiar nombre de esta persona</button>
 </header>
 <main>
+  <section id="persistenceWarning" class="soon warning" role="alert" hidden></section>
   <section id="paysoon"></section>
   <div id="medsView">
   <section id="soon"></section>
@@ -230,9 +232,106 @@ function migrate(d){
   if(!['home','meds','pay'].includes(d.mode))d.mode='home';
   return d;
 }
-let S=(()=>{try{const r=localStorage.getItem('pastillas-v1');if(r)return migrate(JSON.parse(r))}catch(e){}return{sel:0,last:'',p:[{name:'Persona 1',meds:[]},{name:'Persona 2',meds:[]}]}})();
-migrate(S);
-const save=()=>{try{localStorage.setItem('pastillas-v1',JSON.stringify(S))}catch(e){}};
+const STORAGE_KEY='pastillas-v1';
+let persistenceReady=false;
+let persistenceFailure='';
+
+function defaultState(){
+  return migrate({sel:0,last:'',p:[{name:'Persona 1',meds:[]},{name:'Persona 2',meds:[]}],pay:{},appts:[],mode:'home'});
+}
+
+function validateStoredState(d){
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  const fail=msg=>{throw new Error(msg)};
+  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p))fail('Estructura principal no válida.');
+  d.p.forEach((p,i)=>{
+    if(!p||typeof p!=='object'||Array.isArray(p)||!Array.isArray(p.meds))fail('Lista de medicinas no válida en el paciente '+(i+1)+'.');
+    p.meds.forEach((m,j)=>{
+      if(!m||typeof m!=='object'||Array.isArray(m))fail('Registro de medicina no válido.');
+      if(own(m,'cons')){
+        if(!Array.isArray(m.cons))fail('Lista de consumos no válida.');
+        m.cons.forEach(c=>{
+          if(!c||typeof c!=='object'||Array.isArray(c)||!Array.isArray(c.times))fail('Consumo de medicina incompleto.');
+        });
+      }
+      if(own(m,'buys')&&!Array.isArray(m.buys))fail('Historial de compras no válido.');
+    });
+  });
+  if(own(d,'appts')&&!Array.isArray(d.appts))fail('Lista de citas no válida.');
+  if(own(d,'pay')){
+    const z=d.pay;
+    if(!z||typeof z!=='object'||Array.isArray(z))fail('Datos de pagos no válidos.');
+    ['w','shifts','nurses','cfg'].forEach(k=>{if(own(z,k)&&!Array.isArray(z[k]))fail('Estructura de pagos no válida: '+k+'.')});
+    if(own(z,'v')&&(!z.v||typeof z.v!=='object'||Array.isArray(z.v)))fail('Asignaciones de pagos no válidas.');
+    if(Array.isArray(z.cfg))z.cfg.forEach(c=>{
+      if(!c||typeof c!=='object'||Array.isArray(c))fail('Configuración de pagos no válida.');
+      if(own(c,'pays')&&!Array.isArray(c.pays))fail('Historial de pagos no válido.');
+    });
+    if(Array.isArray(z.nurses))z.nurses.forEach(n=>{if(!Array.isArray(n))fail('Lista de enfermeros no válida.')});
+  }
+  return d;
+}
+
+function validateMigratedState(d){
+  if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p))throw new Error('La migración no produjo una estructura válida.');
+  if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v))throw new Error('La migración de pagos no se completó.');
+  if(!Array.isArray(d.appts))throw new Error('La migración de citas no se completó.');
+  d.p.forEach(p=>{if(!p||typeof p!=='object'||!Array.isArray(p.meds))throw new Error('La migración de pacientes no se completó.')});
+  return d;
+}
+
+function showPersistenceWarning(){
+  const box=document.getElementById('persistenceWarning');
+  if(!box)return;
+  box.hidden=false;
+  box.innerHTML=persistenceFailure==='write'
+    ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Se bloquearon nuevas modificaciones para evitar que sigas trabajando con datos que no se han guardado. Recarga la aplicación antes de continuar.</p>'
+    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>No registres cambios hasta recuperar la lectura correcta de tus datos.</p>';
+}
+
+let S=(()=>{
+  let raw;
+  try{raw=localStorage.getItem(STORAGE_KEY)}
+  catch(e){persistenceFailure='read';return defaultState()}
+  if(raw===null){persistenceReady=true;return defaultState()}
+  try{
+    const parsed=JSON.parse(raw);
+    validateStoredState(parsed);
+    const migrated=migrate(parsed);
+    validateMigratedState(migrated);
+    persistenceReady=true;
+    return migrated;
+  }catch(e){
+    persistenceFailure='load';
+    return defaultState();
+  }
+})();
+
+const save=()=>{
+  if(!persistenceReady){showPersistenceWarning();return false}
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(S));
+    return true;
+  }catch(e){
+    persistenceReady=false;
+    persistenceFailure='write';
+    showPersistenceWarning();
+    return false;
+  }
+};
+
+document.addEventListener('click',e=>{
+  if(persistenceReady)return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  showPersistenceWarning();
+},true);
+document.addEventListener('submit',e=>{
+  if(persistenceReady)return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  showPersistenceWarning();
+},true);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function parseTimes(txt){
@@ -880,6 +979,7 @@ function notifyDaily(){
 }
 
 function render(){
+  if(!persistenceReady)showPersistenceWarning();
   const P=S.p[S.sel];
   const md=S.mode;
   notifyDaily();
