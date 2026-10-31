@@ -25,6 +25,25 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 |---|---|---|---|---|---|
 | CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Incorporada en `development`; no desplegada |
 | MOD-001 | 2026-10-30 | Dirección general / Arquitectura y planificación («Direccion general») | Formalizar el diagnóstico arquitectónico y extraer literalmente el JavaScript en línea de `index.html` a `app.js`; actualizar la carga y precarga offline | `docs/arquitectura/diagnostico-modularizacion.md`, `README.md`, `index.html`, `app.js` (nuevo), `sw.js`, `tests/persistence.spec.js` solo para MIME; documentos de coordinación | Implementada y probada en `task/mod-001-external-javascript`; pendiente PR/revisión e integración; no desplegada
+| COORD-001 | 2026-10-30 | Dirección general («Direccion general») | Añadir un flujo obligatorio para comprobar solicitudes equivalentes y registrar nuevas solicitudes/tareas antes de modificar archivos, distinguiendo registro de aprobación | REGLAS_GENERALES.md, CENTRO_DE_COORDINACION.md, SOLICITUDES.md, TRABAJO_ACTIVO.md, DECISIONES_TECNICAS.md | Aprobada; en curso |
+
+## Solicitud aprobada — COORD-001: registro previo de solicitudes y tareas
+
+- **ID:** COORD-001.
+- **Fecha:** 2026-10-30.
+- **Área / chat de origen:** Dirección general («Direccion general»).
+- **Tipo:** documentación / coordinación.
+- **Estado:** aprobada; en curso.
+- **Objetivo:** evitar bloqueos y trabajo sin autorización mediante una revisión obligatoria de solicitudes y tareas al inicio de cada encargo.
+- **Problema que resuelve:** se inició MOD-001 sin que existiera su entrada en TRABAJO_ACTIVO.md de development; el control documental detuvo la integración.
+- **Propuesta concreta:** exigir la lectura de los cinco documentos operativos; comprobar entradas equivalentes en SOLICITUDES.md y TRABAJO_ACTIVO.md; evitar duplicados; si no existe solicitud equivalente, registrarla con el formato existente antes de editar archivos; distinguir el registro de una solicitud de su aprobación; esperar aprobación explícita cuando corresponda; registrar una tarea aprobada en TRABAJO_ACTIVO.md antes de editar sus archivos.
+- **Archivos afectados:** los cinco documentos de coordinación listados arriba. Sin cambios de código de la aplicación.
+- **Rama prevista:** development.
+- **Impacto en otras áreas:** aplica a todas las áreas y chats.
+- **Dependencias:** autorización del propietario para los cambios documentales; revisión de tareas concurrentes y del estado remoto.
+- **Riesgos y reversión:** cambio documental reversible mediante commit revert; no modifica datos ni comportamiento de la aplicación.
+- **Pruebas o validaciones necesarias:** comprobar coherencia de referencias, estados, flujo y diferencias; no requiere pruebas de aplicación.
+- **Aprobación solicitada / resolución:** el propietario autorizó expresamente la integración del PR #2 y la corrección de las reglas en esta conversación; autorización limitada a documentos de coordinación en development, sin main ni despliegue.
 
 ## Plantilla para presentar una solicitud
 
