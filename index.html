@@ -254,20 +254,37 @@ function validateStoredState(d){
           if(!c||typeof c!=='object'||Array.isArray(c)||!Array.isArray(c.times))fail('Consumo de medicina incompleto.');
         });
       }
-      if(own(m,'buys')&&!Array.isArray(m.buys))fail('Historial de compras no válido.');
+      if(own(m,'buys')){
+        if(!Array.isArray(m.buys))fail('Historial de compras no válido.');
+        m.buys.forEach(b=>{
+          if(!b||typeof b!=='object'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(b.d||'')||!isFinite(+b.p)||+b.p<0||!isFinite(+b.n)||+b.n<=0)fail('Registro de compra incompleto.');
+        });
+      }
     });
   });
-  if(own(d,'appts')&&!Array.isArray(d.appts))fail('Lista de citas no válida.');
+  if(own(d,'appts')){
+    if(!Array.isArray(d.appts))fail('Lista de citas no válida.');
+    d.appts.forEach(a=>{
+      if(!a||typeof a!=='object'||typeof a.d!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(a.d)||!Number.isInteger(+a.i)||+a.i<0||+a.i>=d.p.length)fail('Registro de cita incompleto.');
+    });
+  }
   if(own(d,'pay')){
     const z=d.pay;
     if(!z||typeof z!=='object'||Array.isArray(z))fail('Datos de pagos no válidos.');
     ['w','shifts','nurses','cfg'].forEach(k=>{if(own(z,k)&&!Array.isArray(z[k]))fail('Estructura de pagos no válida: '+k+'.')});
     if(own(z,'v')&&(!z.v||typeof z.v!=='object'||Array.isArray(z.v)))fail('Asignaciones de pagos no válidas.');
+    if(Array.isArray(z.shifts))z.shifts.forEach(s=>{if(!s||typeof s!=='object'||s.id===undefined||s.id==='')fail('Registro de turno incompleto.')});
     if(Array.isArray(z.cfg))z.cfg.forEach(c=>{
       if(!c||typeof c!=='object'||Array.isArray(c))fail('Configuración de pagos no válida.');
-      if(own(c,'pays')&&!Array.isArray(c.pays))fail('Historial de pagos no válido.');
+      if(own(c,'pays')){
+        if(!Array.isArray(c.pays))fail('Historial de pagos no válido.');
+        c.pays.forEach(p=>{if(!p||typeof p!=='object'||!Number.isInteger(+p.n)||+p.n<1)fail('Registro de pago incompleto.')});
+      }
     });
-    if(Array.isArray(z.nurses))z.nurses.forEach(n=>{if(!Array.isArray(n))fail('Lista de enfermeros no válida.')});
+    if(Array.isArray(z.nurses))z.nurses.forEach(n=>{
+      if(!Array.isArray(n))fail('Lista de enfermeros no válida.');
+      n.forEach(x=>{if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.')});
+    });
   }
   return d;
 }
