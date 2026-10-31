@@ -19,7 +19,7 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Matriz CAL-001](docs/arquitectura/CAL-001-matriz-pruebas-aislamiento.md): casos futuros de respaldo y aislamiento; ejecución bloqueada hasta que se adopten backend, roles y staging.
 - [Evaluación PWA-001](docs/arquitectura/PWA-001-almacenamiento-y-sincronizacion-offline.md): analiza IndexedDB, colas, reintentos, idempotencia y conflictos sin implementar cambios.
 - [Evaluación PWA-002](docs/arquitectura/PWA-002-evaluacion-notificaciones-push.md): compara avisos actuales y push remoto; no implementado.
-- [Guía de instalación, uso y despliegue](docs/GUIA_INSTALACION_USO.md): describe la evidencia pública disponible y separa de ella la configuración Vercel aún pendiente de confirmación del propietario; no se inició sesión ni se desplegó.
+- [Guía de instalación, uso y despliegue](docs/GUIA_INSTALACION_USO.md): registra que el propietario confirmó el proyecto, repositorio, rama de producción, deployment, dominio y reversión; el nombre de rama y SHA de producción no se compartieron.
 - [Evaluación DAT-004](docs/arquitectura/DAT-004-evaluacion-auditoria.md): propone alcance y controles para una bitácora administrativa futura; no implementada.
 - [Historial de cambios](HISTORIAL_CAMBIOS.md): registro cronológico con archivos, validaciones, limitaciones y referencias de Git.
 

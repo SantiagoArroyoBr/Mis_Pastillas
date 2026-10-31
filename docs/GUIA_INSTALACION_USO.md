@@ -30,7 +30,7 @@ La exportación y restauración sintéticas se probaron en el navegador aislado 
 
 La PWA precarga recursos de la aplicación para uso sin conexión, pero no hay sincronización entre dispositivos ni copia remota confirmada. El navegador puede limitar almacenamiento local; no uses el funcionamiento offline como único respaldo. Si cambias de dispositivo o perfil, restaura únicamente desde un respaldo que controles y hayas verificado.
 
-## Despliegue: evidencia comprobada y límites
+## Despliegue: evidencia y verificación del propietario
 
 ### Configuración comprobada
 
@@ -39,15 +39,29 @@ La PWA precarga recursos de la aplicación para uso sin conexión, pero no hay s
 - El commit `92c4034085e13bb38fd0a7ff2622c46ef797873d` es la punta observada de la rama Git `main` durante esta revisión. Es un SHA de Git; no es evidencia de que ese commit esté desplegado.
 - En el checkout revisado no hay `vercel.json`, `.vercel/project.json`, directorio `.github` ni workflows de GitHub versionados. No hay configuración local que identifique un proyecto Vercel, su rama de producción o el proceso de publicación.
 
-### Inferencia, no confirmación
+### Verificación comunicada por el propietario
 
-Vercel es el proveedor previsto según el dominio y la documentación del repositorio. La rama `main` es candidata, pues GitHub la reporta como predeterminada y la documentación de Vercel explica que `main` suele ser la rama inicial de producción cuando no existe una sobrescritura. Eso no confirma la configuración de este proyecto: Vercel permite cambiarla por proyecto en **Settings → Environments → Production → Branch Tracking** ([conexión Git y rama de producción](https://vercel.com/docs/git)).
+El 2026-10-31, el propietario confirmó haber revisado en Vercel los cinco puntos siguientes y que son correctos:
 
-### Pendiente de confirmar por el propietario
+| Punto | Resultado comunicado | Detalle no compartido |
+|---|---|---|
+| Proyecto Vercel | Identificado | Nombre/ID y equipo/cuenta no incluidos en esta guía. |
+| Repositorio conectado | Conexión correcta | GitHub identifica el repositorio como `SantiagoArroyoBr/Mis_Pastillas`. |
+| Rama de producción | Configurada correctamente | El nombre exacto de la rama no fue comunicado; no se infiere de la rama predeterminada de GitHub. |
+| Deployment actual | Identificado y funcionando | No se proporcionó su SHA ni la etiqueta técnica exacta de estado. |
+| Dominio y reversión | Dominio asignado correctamente; opción de reversión disponible | El dominio público indicado por el repositorio es `https://pastillas-1.vercel.app/`; no se compartieron otros aliases ni detalles de elegibilidad. |
 
-No se pudo comprobar el equipo/cuenta ni el nombre o ID del proyecto Vercel, que el proyecto siga conectado a este repositorio, la rama de producción configurada, el SHA de la deployment actual, el estado de sus dominios, los controles de verificación ni la ruta elegible de reversión. La integración disponible no permitió consultar las colecciones GitHub Deployments/Environments; la herramienta de lectura web tampoco pudo abrir la URL pública. No se inició sesión ni se cambió configuración.
+Este registro refleja la confirmación del propietario; Codex no tuvo acceso al panel para comprobarla de forma independiente. El SHA de `main` no se usa como sustituto del SHA de producción.
 
-Para completar la evidencia, el propietario puede hacer esta revisión de solo lectura en el proyecto correcto de Vercel:
+### Inferencia técnica general
+
+La documentación de Vercel indica que `main` suele ser la rama inicial de producción cuando no existe una sobrescritura, y que cada proyecto puede cambiarla en **Settings → Environments → Production → Branch Tracking** ([conexión Git y rama de producción](https://vercel.com/docs/git)). Para este proyecto, la rama se registra como verificada por el propietario; su nombre exacto no se comunicó.
+
+### Datos no registrados y verificación futura
+
+El equipo/cuenta y nombre o ID del proyecto, SHA del deployment y etiqueta técnica exacta del estado no se registraron aquí. El conector de GitHub no permitió consultar Deployments/Environments y la herramienta de lectura web no abrió la URL pública. No se inició sesión ni se cambió configuración.
+
+La confirmación del propietario cierra esta revisión documental de DOC-002. Para futuras auditorías, la evidencia se puede volver a comprobar en modo de solo lectura en el proyecto correcto de Vercel:
 
 1. En **Settings → Git**, verificar que el repositorio conectado sea `SantiagoArroyoBr/Mis_Pastillas`.
 2. En **Settings → Environments → Production → Branch Tracking**, anotar la rama que está configurada. No inferirla del default de GitHub.
