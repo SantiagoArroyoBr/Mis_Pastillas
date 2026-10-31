@@ -1,4 +1,4 @@
-const test = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs');
@@ -104,7 +104,7 @@ function validBackup(name = 'Paciente ficticio restaurado') {
   return { sel: 0, last: '', mode: 'home', p: [{ name, meds: [] }], appts: [], pay: {} };
 }
 
-test.before(async () => {
+before(async () => {
   assert.ok(CHROME, 'No se encontró Chromium. Define CHROME_BIN para indicar su ruta.');
   server = http.createServer((req, res) => {
     const requested = new URL(req.url, 'http://localhost').pathname;
@@ -139,7 +139,7 @@ test.before(async () => {
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
   await navigate();
 });
-test.after(async () => {
+after(async () => {
   if (cdp) cdp.close();
   if (browser && !browser.killed) browser.kill('SIGTERM');
   if (server) await new Promise(resolve => server.close(resolve));
@@ -171,8 +171,9 @@ test('fallo de lectura activa modo protegido sin sobrescribir datos', async () =
   assert.equal(await evaluate('persistenceReady'), false);
   assert.equal(await evaluate('__persistenceTest.read()'), raw);
 });
-test('fallo de validación posterior a migración bloquea la carga', async () => {
-  const invalid = validBackup(); invalid.sel = 8; const raw = JSON.stringify(invalid); await seed(raw); await navigate();
+test('resultado de migración incompleto bloquea la carga y conserva los datos', async () => {
+  const invalid = { sel: 0, last: '', p: [], pay: {}, appts: [] };
+  const raw = JSON.stringify(invalid); await seed(raw); await navigate();
   assert.equal(await evaluate('persistenceReady'), false);
   assert.equal(await evaluate('__persistenceTest.read()'), raw);
 });
