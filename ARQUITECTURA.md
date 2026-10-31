@@ -69,7 +69,7 @@ La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aisla
 
 [PWA-002](docs/arquitectura/PWA-002-evaluacion-notificaciones-push.md) documenta que los avisos actuales dependen de abrir la aplicación. Push no está implementado y requeriría un emisor y servicio remoto, aún no adoptados.
 
-La [guía inicial de instalación y uso](docs/GUIA_INSTALACION_USO.md) refleja el almacenamiento local y los límites confirmados. DOC-002 sigue como guía inicial: falta evidencia documental del proveedor/proyecto, rama y commit que publica producción, verificación posterior y ruta de reversión. El proyecto puede contrastar archivos y evidencia pública sin desplegar; el propietario debe confirmar el proceso. No se deben inferir pasos de producción a partir de la URL pública.
+La [guía de instalación, uso y despliegue](docs/GUIA_INSTALACION_USO.md) registra que GitHub reporta `main` como rama predeterminada y que el repositorio documenta la URL `pastillas-1.vercel.app`/Vercel. No hay configuración Vercel versionada ni evidencia accesible del proyecto conectado, la rama configurada o el SHA desplegado. La rama `main`/commit `92c4034` no se debe presentar como producción confirmada. DOC-002 sigue en curso hasta que el propietario verifique esos datos y responsables desde la cuenta del proyecto, sin desplegar.
 
 
 ## Evaluación DAT-004 — historial administrativo
