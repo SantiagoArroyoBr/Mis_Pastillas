@@ -1,6 +1,6 @@
 # Arquitectura de Acompaña
 
-Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La arquitectura de aplicación corresponde al commit local `c7e9121ae18b62f02298bead43412e5d6432b68d` en `development`. VAL-001 detectó ajustes posteriores en `index.html`, `manifest.json` y el arnés de pruebas; esos cambios locales permanecen sin commit. No se consultó ni modificó `main` durante esta revisión.
+Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La inspección vigente se realizó en `development`, commit `f381219e31e515ba34096446d5c7109d8ae73937`, con el árbol limpio. Las mejoras visuales y del arnés de VAL-001 están integradas en ese commit. `main` no se modificó.
 
 ## Arquitectura vigente — hechos comprobados
 
@@ -101,3 +101,9 @@ La [guía de instalación, uso y despliegue](docs/GUIA_INSTALACION_USO.md) regis
 ## Evaluación DAT-004 — historial administrativo
 
 [DAT-004](docs/arquitectura/DAT-004-evaluacion-auditoria.md) define una propuesta conceptual para una bitácora futura, con actor confiable, metadatos mínimos, separación de datos de cuidado y controles de acceso. No existe una bitácora implementada. Roles de consulta, retención, exportación, borrado y obligaciones de privacidad permanecen abiertos; la evaluación no añade tablas ni atribuye acciones a cuentas inexistentes.
+
+## FUNC-001 y PREVIEW-001 — estado revisado
+
+[FUNC-001](docs/auditorias/FUNC-001-inventario-funcional.md) actualiza el inventario funcional al commit `f381219e31e515ba34096446d5c7109d8ae73937`. La composición modular se conserva: scripts locales con APIs acotadas, `app.js` como coordinador y punto central de persistencia; no se encontró backend ni sincronización multi-dispositivo.
+
+El responsable declaró completada la validación manual de PREVIEW-001. No se entregaron casos ni resultados detallados. La ejecución automatizada local de VAL-002 (25/25 en Edge) es evidencia separada y no demuestra la validación manual del deployment. GitHub reportó deployment Vercel completado para ese SHA; desde la sesión de revisión, el URL Preview redirigió al inicio de sesión y no se pudo inspeccionar su aplicación ni corroborar independientemente la configuración o los detalles de las pruebas manuales. Véase [la guía](docs/GUIA_INSTALACION_USO.md#preview-001--declaracion-de-validacion-manual).

@@ -82,3 +82,17 @@ La confirmación del propietario cierra esta revisión documental de DOC-002. Pa
 La documentación oficial de Vercel describe **Instant Rollback** desde la tarjeta de Production Deployment del proyecto o desde el menú de una deployment anterior. El propietario debe comprobar el dominio afectado y seleccionar una deployment que Vercel permita revertir antes de confirmar. La reversión reasigna el dominio a una deployment existente; no revierte commits de Git ni actualiza variables de entorno. Vercel también indica que tras Instant Rollback se desactiva la asignación automática de dominios para nuevos pushes; para restaurarla hay que deshacer el rollback promoviendo una deployment ([Instant Rollback](https://vercel.com/docs/instant-rollback)).
 
 Este es un procedimiento de referencia, no una autorización para ejecutarlo. El propietario debe confirmar acceso, elegibilidad, impacto de dominios/entorno y pasos vigentes en la cuenta del proyecto. No se ejecutaron rollback, promoción ni despliegue durante esta revisión.
+
+### PREVIEW-001 — declaración de validación manual
+
+El responsable informó el 2026-10-31 que terminó las pruebas manuales del Preview. Se registra como **completada según su declaración**. No se proporcionó el detalle de casos, resultados, navegador, dispositivo, datos ficticios utilizados, instalación u operación offline; por tanto, no se atribuyen resultados específicos a esas pruebas.
+
+Evidencia técnica separada:
+
+- GitHub reportó el estado Vercel **“Deployment has completed”** para el commit `f381219e31e515ba34096446d5c7109d8ae73937`. El check de Vercel “Preview Comments” fue exitoso y enlazó un host de rama Preview.
+- URL asociada al Preview: https://pastillas-1-git-development-dinamita20.vercel.app/.
+- Al abrir esa URL desde la sesión de revisión, Vercel redirigió a su inicio de sesión. No se inspeccionó la interfaz desplegada ni se intentó eludir la protección.
+- El dominio de producción `https://pastillas-1.vercel.app/` respondió y mostró la aplicación durante una lectura en navegador. El SHA exacto que sirve el dominio y la asignación actual de dominios no se pudieron verificar en el panel.
+- El último estado local automatizado de VAL-002 fue 25/25 en Edge 156.0.4314.50 con perfil y datos ficticios. Es una prueba local previa, no una ejecución sobre la Preview.
+
+La declaración del responsable cierra PREVIEW-001 como validación manual en el alcance que realizó. La ausencia de matriz/resultados impide atribuir aprobaciones individuales de HTTPS, instalación, manifest, navegación, offline, actualización del service worker, persistencia, JSON, responsive o consola. La configuración de Vercel y la versión actualmente asociada al dominio productivo no fueron comprobadas independientemente desde el panel.
