@@ -325,6 +325,67 @@ test('migración histórica válida conserva turnos, enfermeros y asignaciones',
   assert.equal(await evaluate('S.pay.nurses[0][0].n'), 'Enfermero ficticio');
   assert.equal(await evaluate("S.pay.v['2026-10-30'][0][0].n"), 'Enfermero ficticio');
 });
+test('asignar personal conserva íntegros los registros anteriores a 400 días', async () => {
+  const daysAgo = days => {
+    const date = new Date(Date.now() - days * 864e5);
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  };
+  const historicalDays = [399, 400, 401, 1200].map(daysAgo);
+  const historicalPay = [
+    { d: '2022-01-03', n: 2, a: 250.5, old: true },
+    { d: '2024-06-14', n: 3, a: 375, old: false }
+  ];
+  const backup = validBackup('Paciente ficticio con historial');
+  backup.mode = 'pay';
+  backup.pay = {
+    cfg: [{ who: 'Responsable ficticio', base: '2020-01-01', rate: 125, pays: historicalPay }],
+    nurses: [[{ n: 'Enfermera ficticia', c: '#C92A2A' }]],
+    v: Object.fromEntries(historicalDays.map((date, index) => [date, { 0: [{ n: 'Enfermera ficticia', s: index % 2 ? 'half' : 'full' }] }]))
+  };
+  await seed(JSON.stringify(backup)); await navigate();
+  const before = await evaluate("JSON.parse(__persistenceTest.read())");
+  const today = await evaluate("ymd(new Date())");
+  const coverageBefore = await evaluate("(()=>{const c=cover(0);return {total:c.total,dates:c.dates,unused:c.unused}})()");
+  assert.equal(coverageBefore.total, 3);
+  assert.equal(coverageBefore.dates.length, 4);
+  assert.equal(coverageBefore.unused, 0);
+
+  const assignToday = async () => {
+    await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelector('#dlg .pbtn[data-set="nm"]').click();document.querySelector('#f').requestSubmit()`);
+    await waitFor(`JSON.parse(__persistenceTest.read()).pay.v[${JSON.stringify(today)}]?.[0]?.length`, 'asignación ficticia guardada');
+  };
+  await assignToday();
+  await assignToday();
+
+  const afterAssignment = await evaluate("JSON.parse(__persistenceTest.read())");
+  assert.deepEqual(historicalDays.map(date => afterAssignment.pay.v[date][0]), historicalDays.map(date => before.pay.v[date][0]));
+  assert.deepEqual(afterAssignment.pay.cfg[0].pays, before.pay.cfg[0].pays);
+  assert.equal(afterAssignment.pay.v[today][0].length, 1, 'repetir la misma asignación no debe duplicarla');
+  const coverageAfter = await evaluate("(()=>{const c=cover(0);return {total:c.total,dates:c.dates,unused:c.unused}})()");
+  assert.equal(coverageAfter.total, coverageBefore.total);
+  assert.equal(coverageAfter.dates.length, coverageBefore.dates.length + 1);
+  assert.equal(coverageAfter.unused, 0);
+
+  await evaluate("document.querySelector('#exp').click()");
+  await waitFor('__persistenceTest.exportBlob !== null', 'exportación del historial ficticio');
+  const exported = await evaluate("__persistenceTest.exportBlob.text().then(text=>JSON.parse(text))");
+  assert.deepEqual(historicalDays.map(date => exported.pay.v[date][0]), historicalDays.map(date => before.pay.v[date][0]));
+  await uploadJson(exported, 'historial-pagos-ficticio.json');
+  await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor(`JSON.parse(__persistenceTest.read()).pay.v[${JSON.stringify(today)}]?.[0]?.length===1`, 'restauración del historial con la nueva asignación');
+  const restored = await evaluate("JSON.parse(__persistenceTest.read())");
+  assert.deepEqual(historicalDays.map(date => restored.pay.v[date][0]), historicalDays.map(date => before.pay.v[date][0]));
+  assert.deepEqual(restored.pay.cfg[0].pays, before.pay.cfg[0].pays);
+
+  await evaluate("document.querySelector('#payView [data-pa=\"payreg\"]').click()");
+  await waitFor("document.querySelector('#n') && document.querySelector('#a')", 'formulario de pago ficticio');
+  await evaluate("document.querySelector('#n').value='1';document.querySelector('#a').value='75';document.querySelector('#f').requestSubmit()");
+  await waitFor("JSON.parse(__persistenceTest.read()).pay.cfg[0].pays.length===3", 'registro de pago ficticio');
+  const afterPayment = await evaluate("JSON.parse(__persistenceTest.read())");
+  assert.deepEqual(afterPayment.pay.cfg[0].pays.at(-1), { d: today, n: 1, a: 75, old: false });
+  assert.equal(await evaluate('cover(0).total'), 4, 'el cálculo mantiene el conteo de pagos vigente');
+});
 test('restauración válida recupera una carga bloqueada y no escribe antes de confirmar', async () => {
   const raw = '{"p":'; await seed(raw); await navigate(); await uploadJson(validBackup());
   await continueRestore();

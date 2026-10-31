@@ -182,8 +182,6 @@ function dayForm(i,ds){
       const a=(day[i]=Array.isArray(day[i])?day[i]:[]);
       if(!a.some(e=>e.n===n))a.push({n});
     });
-    const cut=ymd(new Date(Date.now()-400*864e5));
-    Object.keys(S.pay.v).forEach(k=>{if(k<cut)delete S.pay.v[k]});
     save();render();
   },'Asignar');
   $('#nm').readOnly=true;$('#rp').readOnly=true;
