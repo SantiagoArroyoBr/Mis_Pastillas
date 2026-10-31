@@ -1,6 +1,7 @@
-const CACHE_NAME = 'cuidados-v6';
+const CACHE_NAME = 'cuidados-v7';
 const ASSETS = [
   './index.html',
+  './styles.css',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
