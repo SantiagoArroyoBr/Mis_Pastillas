@@ -295,6 +295,8 @@ function validateMigrationInput(d){
   validateStoredState(d);
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const fail=msg=>{throw new Error('Migración rechazada: '+msg)};
+  const validDate=v=>typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v);
+  const validAmount=v=>v===null||v===undefined||v===''||Number.isFinite(+v);
   const validTimes=a=>Array.isArray(a)&&a.length>0&&a.every(t=>{
     if(typeof t!=='string'||!/^\\d{2}:\\d{2}$/.test(t))return false;
     const [h,m]=t.split(':').map(Number);
@@ -319,12 +321,43 @@ function validateMigrationInput(d){
       if(own(m,'times')&&!validTimes(m.times))fail('horarios históricos no válidos en paciente '+(i+1)+', elemento '+(j+1)+'.');
       if(own(m,'schedule')&&!validSchedule(m.schedule))fail('frecuencia histórica no válida en paciente '+(i+1)+', elemento '+(j+1)+'.');
     }
+    if(Array.isArray(m.buys))m.buys.forEach((b,k)=>{
+      if(own(b,'w')&&typeof b.w!=='string')fail('la tienda de la compra '+(k+1)+' no es texto.');
+    });
   }));
+  if(Array.isArray(d.appts))d.appts.forEach((a,i)=>{
+    if(own(a,'id')&&typeof a.id!=='string')fail('el identificador de la cita '+(i+1)+' no es texto.');
+    if(own(a,'t')&&a.t!==''&&!/^\\d{2}:\\d{2}$/.test(a.t))fail('la hora de la cita '+(i+1)+' no se puede conservar.');
+    if(own(a,'w')&&typeof a.w!=='string')fail('el lugar o profesional de la cita '+(i+1)+' no es texto.');
+    if(own(a,'n')&&typeof a.n!=='string')fail('las notas de la cita '+(i+1)+' no son texto.');
+  });
   const z=d.pay||{};
+  if(own(z,'who')&&typeof z.who!=='string')fail('el responsable histórico del pago no es texto.');
+  if(own(z,'day')&&(!Number.isInteger(+z.day)||+z.day<0||+z.day>6))fail('el día de pago histórico no es válido.');
+  if(own(z,'note')&&typeof z.note!=='string')fail('la nota histórica de pago no es texto.');
+  if(own(z,'paid')&&typeof z.paid!=='string')fail('la fecha histórica de pago no es texto.');
   if(Array.isArray(z.shifts))z.shifts.forEach((x,i)=>{
     if(!x||typeof x!=='object'||x.id===undefined||x.id==='')fail('el turno '+(i+1)+' no tiene identificador y sería descartado.');
+    if(own(x,'n')&&typeof x.n!=='string')fail('el nombre del turno '+(i+1)+' no se puede conservar.');
+    if(own(x,'a')&&!validAmount(x.a))fail('el importe del turno '+(i+1)+' no se puede conservar.');
   });
-  if(Array.isArray(z.cfg)&&z.cfg.length>d.p.length)fail('hay configuraciones de pago adicionales que la migración descartaría.');
+  if(Array.isArray(z.nurses))z.nurses.forEach((list,i)=>list.forEach((n,j)=>{
+    if(n&&typeof n==='object'&&own(n,'c')&&!NPAL.includes(n.c))fail('el color del enfermero '+(j+1)+' del paciente '+(i+1)+' no es reconocido.');
+  }));
+  if(Array.isArray(z.cfg)){
+    if(z.cfg.length>d.p.length)fail('hay configuraciones de pago adicionales que la migración descartaría.');
+    z.cfg.forEach((c,i)=>{
+      ['who','note'].forEach(k=>{if(own(c,k)&&typeof c[k]!=='string')fail('el campo '+k+' de la configuración '+(i+1)+' no se puede conservar.')});
+      if(own(c,'lead')&&(!Number.isInteger(+c.lead)||+c.lead<1||+c.lead>14))fail('el plazo de aviso de la configuración '+(i+1)+' no es válido.');
+      if(own(c,'base')&&c.base!==''&&!validDate(c.base))fail('la fecha base de la configuración '+(i+1)+' no es válida.');
+      if(own(c,'time')&&!['full','half'].includes(c.time))fail('el tipo de turno de la configuración '+(i+1)+' no es válido.');
+      if(own(c,'rate')&&!validAmount(c.rate))fail('la tarifa de la configuración '+(i+1)+' no se puede conservar.');
+      if(Array.isArray(c.pays))c.pays.forEach((p,j)=>{
+        if(own(p,'d')&&typeof p.d!=='string')fail('la fecha del pago '+(j+1)+' de la configuración '+(i+1)+' no es texto.');
+        if(own(p,'a')&&!validAmount(p.a))fail('el importe del pago '+(j+1)+' de la configuración '+(i+1)+' no se puede conservar.');
+      });
+    });
+  }
   if(Array.isArray(z.w)){
     const seen=new Set();
     z.w.forEach((w,i)=>{
@@ -341,7 +374,6 @@ function validateMigrationInput(d){
   }
   return d;
 }
-
 function assertMigrationIntegrity(before,after){
   const fail=msg=>{throw new Error('La migración alteraría registros: '+msg)};
   if(before.p.length!==after.p.length)fail('cambió la cantidad de pacientes.');
