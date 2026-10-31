@@ -1,0 +1,72 @@
+# AUD-001 — Inventario funcional y reglas vigentes
+
+**Estado:** revisión estática del código en `development`, HEAD local `cf546b3b58eb67b5cc37db65d375a34e9d469636` (31-10-2026). La referencia local `origin/development` coincide; el remoto en vivo no se pudo consultar porque el entorno no resolvió `github.com`.
+
+## Alcance y criterio
+
+Se revisaron `index.html`, `app.js`, `styles.css`, `sw.js`, `manifest.json`, `tests/persistence.spec.js`, `README.md`, `ARQUITECTURA.md` y el diagnóstico histórico de modularización. `js/utils.js` no existe en el checkout revisado. “Implementado por código” significa que se encontró lógica/UI correspondiente; no implica que se haya ejercitado manualmente. “Parcial” señala lógica con alcance acotado o una limitación visible en el código. No se usaron datos médicos reales. Esta es una inspección estática más la ejecución de la suite indicada en [pruebas y validación](#pruebas-y-validación); no es una auditoría de seguridad, accesibilidad, navegador o producción.
+
+## Inventario
+
+| Área | Estado | Evidencia y alcance comprobado en el código |
+|---|---|---|
+| Navegación y pacientes | Implementado | Tres vistas: Inicio, Medicinas y Pagos. El estado tiene `p[]`; cada paciente tiene nombre y registros `meds[]`. Se puede cambiar su nombre. No hay alta/baja de pacientes ni cuentas, inicio de sesión o perfiles de usuario en la interfaz revisada. El estado inicial crea “Persona 1” y “Persona 2”. |
+| Medicinas y consumos | Implementado | Alta, edición, corrección de existencia, compra adicional y borrado. Una ficha de medicina tiene `base`, `t0` y una lista `cons[]`; cada consumo define dosis positiva, horarios y frecuencia diaria, días elegidos o intervalo. Los consumos de una ficha se agregan al calcular la salida del mismo `base`. Las fichas, incluso con igual nombre, son independientes; no se detecta un inventario global compartido entre pacientes o fichas distintas. |
+| Horarios y saldo | Parcial | Horas se analizan, normalizan, ordenan y deduplican; acepta formato de 24 horas y minutos 00–59. La frecuencia semanal usa `Date.getDay()` (domingo=0); el intervalo se cuenta desde `start`, con días transcurridos normalizados a medianoche. Se descuentan eventos posteriores a `t0` y hasta el instante actual; existencia no baja de cero. Para futuro, el cálculo busca eventos solo hasta 365 días. No registra tomas reales ni crea alertas por hora de toma. |
+| Reposición | Implementado | El cálculo estima fecha de compra dos días antes de la última toma completa proyectada; el estado es urgente si no hay toma completa futura o si termina en hasta un día, “comprar pronto” si termina en hasta dos, y en otro caso “bien”. La tarjeta y calendario muestran estimaciones. URL permite crear un evento en Google Calendar. Esto es reposición de existencias, no recordatorio de medicación. |
+| Insumos | Implementado, con regla simplificada | Se crean como registros `kind:'sup'`, con saldo, consumo diario fijo representado como evento a las 08:00 y frecuencia diaria; comparten el motor de inventario. El texto de ayuda describe 0.5 piezas/día como “una pieza cada dos días”, pero el modelo descuenta 0.5 cada día. No hay consumo variable por fecha. |
+| Compras y costos | Implementado | “Compré más” suma cajas × unidades al saldo y reinicia `t0`; puede guardar precio, cantidad total, tienda y fecha. Precios manuales adicionales se guardan en `buys` (máximo 40; ordenados por fecha). Se calcula precio unitario, comparación con anotación anterior, tienda más barata según última anotación por tienda y gasto aproximado de 30 días usando el último precio unitario y eventos futuros. Los importes se ocultan hasta 8 segundos al revelarlos. Es una estimación, no una compra/pago integrado. |
+| Enfermeros y asignaciones | Implementado | Lista de enfermeros por paciente, color, edición, prevención de nombres duplicados ignorando mayúsculas y propagación de cambio de nombre a asignaciones guardadas. Asignación por fecha admite un día o repetición semanal hasta fin del mismo mes. Evita duplicar el mismo nombre en un día. Las asignaciones anteriores a 400 días se eliminan al guardar una asignación. Los registros no son cuentas de acceso. |
+| Turnos y pagos | Parcial | Cada paciente configura pagador, tipo fijo (completo/medio), fecha base, nota y tarifa diaria opcional. El tipo se presenta en calendario y formulario, pero en la fórmula revisada no multiplica el costo ni cambia el conteo de días. El registro de pago almacena fecha, días y monto opcional; historial permite quitar y marcar pagos anteriores al iniciar un conteo nuevo. La cobertura suma `n` de pagos no antiguos y los aplica por orden a fechas con al menos una asignación desde `base`; una fecha con uno o varios enfermeros consume un día de cobertura. Deuda por enfermero multiplica días por tarifa diaria. No se procesa dinero. |
+| Avisos de pagos | Parcial/inconsistente | La UI y documentación mencionan aviso “pronto”, y `lead` se conserva/valida entre 1 y 14, pero `cover()` solo devuelve rojo (deuda vencida) o verde (sin deuda); no usa `lead` y nunca produce estado ámbar. Sin `base`, no calcula cobertura. La noción de cobertura usa fechas de asignación, no fechas de pago. |
+| Calendario y citas | Implementado | Calendario mensual, rango navegable de 12 meses atrás a 6 adelante, días con asignaciones, pago, compra/agote estimado y cita. Citas vinculadas al índice de paciente: fecha requerida, hora opcional, lugar/profesional y nota; alta, edición y eliminación. Muestra próximas y hasta tres recientes; Inicio señala citas de hoy a dos días. Puede generar plantilla de evento Google Calendar. No hay sincronización con calendario ni persistencia externa. |
+| Pendientes | Parcial | Inicio construye pendientes a partir de reposición, pagos vencidos, citas próximas y falta de asignación hoy/mañana. La falta de enfermero no se avisa el domingo y solo se muestra si el paciente tiene al menos un enfermero registrado. No existe una lista general editable de tareas. |
+| Resumen/compartir | Implementado | Genera texto del saldo y estado de reposición de los registros de la ficha de paciente seleccionada (incluye insumos, usando unidad según tipo) y abre `wa.me` con el texto. No adjunta respaldo. |
+| Notificaciones del navegador | Parcial | Al renderizar, si existe permiso concedido, se intenta una notificación de reposición, pago vencido y citas de próximos dos días; máximo una por fecha local según `S.last`, y no guarda esa fecha si no hay avisos. Se pide permiso desde botón. Depende de que la app esté abierta y renderice; no hay `push`, programación en segundo plano ni notificaciones de toma. El error del constructor se ignora. |
+| Exportación/restauración | Implementado | Exporta todo `S` como JSON descargable `cuidados-respaldo-AAAA-MM-DD.json`. Importa un archivo JSON, valida estructura y campos con rutas de migración, verifica conteos de algunos registros y pide confirmación antes de reemplazar todo `pastillas-v1`. Cancelar no escribe; un error de escritura conserva el estado en memoria previo. No se valida identidad/origen/firma del archivo ni hay copia automática previa a reemplazar: depende de que el usuario exporte por separado. |
+| Persistencia | Implementado, local | `localStorage`, clave `pastillas-v1`. La carga valida/migra; JSON inválido, falla de lectura o escritura activa modo protegido y bloquea acciones/escrituras normales sin sobrescribir el original. La recuperación explícita vía JSON queda permitida. Sin backend ni sincronización entre dispositivos encontrados. |
+| PWA/offline | Parcial | Manifiesto instalable `standalone`, iconos locales. El service worker usa caché `cuidados-v8`, precarga HTML, JS, CSS, manifiesto e iconos y aplica red primero con fallback de caché para GET del mismo origen. No incluye Google Fonts ni hace precache de una respuesta validada aparte. Registro del SW ignora errores. No se comprobó instalación, actualización de caché ni offline en navegador durante AUD-001. |
+| Integraciones externas | Implementadas como enlaces/recurso | Google Fonts Nunito, plantillas de Google Calendar, enlace WhatsApp. No se encontró SDK/API de backend, analytics ni librerías externas locales; aplicación escrita en JavaScript nativo. Fonts/Calendar/WhatsApp requieren red y sus servicios. |
+
+## Modelo de datos observado
+
+- Estado raíz: `sel`, `last`, `p`, `pay`, `appts`, `mode`; la migración agrega/normaliza valores y estructuras.
+- Paciente operativo: `{name, meds}`. No se encontró entidad de cuenta de usuario ni autenticación.
+- Medicina/insumo: nombre, saldo base, `t0`, consumos; compras opcionales. Medicina usa varios consumos independientes sobre el saldo de esa ficha. Insumo se distingue por `kind:'sup'`.
+- Pagos: configuración por índice de paciente (`cfg`), enfermeros por índice, asignaciones bajo fecha y luego índice de paciente (`v`), pagos históricos.
+- Cita: id, índice de paciente, fecha, hora, lugar y notas.
+
+La referencia por índice hace que reordenar/eliminar pacientes (no existe UI de ello en el código revisado) sea una preocupación si se añadiera sin migrar referencias. El inventario y la asignación no son entidades normalizadas ni sincronizadas.
+
+## Reglas y validaciones exactas destacables
+
+- Nombre de medicina y paciente no vacío; el nombre de medicina no tiene límite visible en formulario. Insumos 40 caracteres, enfermero 40, pagador 60, nota de pago 100, lugar de cita 80 y nota de cita 200.
+- Saldo y consumo de medicina permiten cero en saldo, pero dosis y consumo de insumo deben ser mayores que cero. Compra de inventario requiere cajas y unidades por caja positivos; el costo opcional acepta cero o mayor. Registro de pago requiere entero entre 1 y 366; montos opcionales no negativos.
+- La edición de una ficha usa saldo calculado como nueva base y reinicia `t0`; editar horarios también reinicia el conteo temporal según el estado guardado.
+- La migración de estado previo conserva múltiples conteos de integridad, pero `validateStoredState` no valida todos los campos de negocio del estado vigente; hay validación adicional antes de migración/restauración.
+- Fechas se verifican principalmente por patrón `YYYY-MM-DD`, no siempre por validez calendárica real. Algunas horas de cita se validan por patrón de dos dígitos; la migración revisa tipos y límites en ciertos campos.
+- Los montos de compras y pagos son registros manuales. Las operaciones destructivas de cita, pago, medicina e insumo piden confirmación mediante formulario.
+
+## Pruebas y validación
+
+`tests/persistence.spec.js` contiene 13 casos de navegador Chromium para: instalación nueva y escritura normal; carga válida; JSON corrupto; fallo de lectura; forma migrada incompleta; fallo de escritura normal; rechazo de configuraciones de pago sobrantes; migración heredada de asignaciones/enfermeros; restauración válida desde modo protegido y ausencia de escritura previa a confirmar; JSON inválido; cancelación; fallo de escritura durante restauración; recuperación tras fallo de lectura. El test harness simula fallos de `localStorage` y usa registros ficticios.
+
+**Ejecución AUD-001:** `node --test tests/persistence.spec.js` intentó ejecutar la suite: 0 aprobadas, 13 reportadas como fallidas antes de llegar a su cuerpo. La causa repetida fue `connect EACCES 127.0.0.1:<puerto>` durante conexión DevTools/servidor local. Resultado no demuestra fallos funcionales de los 13 escenarios; tampoco permite declararlos aprobados en esta ejecución.
+
+**Cobertura ausente:** reglas de consumo y cálculo del inventario; horarios y límites de fechas; edición/compras/corrección de saldo; costos y precios; asignaciones semanales y depuración de 400 días; conteo de pagos, turnos, deuda y borrado; citas y pendientes; WhatsApp/Calendar; notificaciones y deduplicación por día; PWA instalación, actualización y offline; navegadores/dispositivos distintos; accesibilidad; entradas maliciosas/XSS; recuperación ante cierre/corrupción física y compatibilidad real con respaldos de usuarios. Estos puntos quedan sin prueba automatizada observada en la suite actual.
+
+## Riesgos, inconsistencias y vacíos
+
+1. **Persistencia local por dispositivo:** no hay cuenta ni sincronización; pérdida/limpieza del navegador afecta los datos. La restauración reemplaza el estado completo y no crea respaldo previo automáticamente.
+2. **Inventario y horarios:** la existencia estimada depende del reloj y eventos programados; el horizonte es 365 días. Eventos simultáneos se ordenan solo por marca temporal, y los empates mantienen potencial ambigüedad de orden respecto de dosis grandes.
+3. **Insumos:** la ayuda de 0.5/día puede interpretarse como consumo alternado; el código modela fracciones cada día. Confirmar regla deseada antes de cambiarla.
+4. **Pagos:** `lead` y el estado ámbar sugeridos no participan en el cálculo vigente; tipo de turno no afecta conteo/tarifa; pagos se convierten en una bolsa de días y no se asignan a intervalos de fecha. El nombre “pago pronto” no corresponde a una regla efectiva comprobada.
+5. **Referencias por índice:** pacientes se referencian por posición en citas y pagos. No existe flujo UI de borrar/reordenar paciente y, por tanto, no se verificó la integridad en esos escenarios.
+6. **Notificaciones:** son avisos locales al abrir/renderizar, no recordatorios en segundo plano; usar `S.last` para limitar a un aviso diario significa que el primer render del día sin `parts` no consume el marcador, pero una vez emitido uno ya no se incorporan nuevos pendientes ese día.
+7. **Integración de errores:** varios errores de registro del service worker se silencian; no hay pantalla que informe del modo offline o del estado de sincronización.
+8. **Documentación:** `ARQUITECTURA.md` describe reglas generales de producto como si fueran requisitos estables; este inventario confirma varias solo parcialmente. `diagnostico-modularizacion.md` es histórico y correcto como tal, pero no debe usarse como inventario actual. La interfaz/manifest aún usan la marca “Cuidados” y paleta distinta a propuesta de identidad en instrucciones de proyecto.
+9. **Pruebas:** existe cobertura enfocada a persistencia y restauración, no a reglas de dominio; actualmente esta ejecución está impedida por loopback EACCES.
+
+## Resultado
+
+AUD-001 queda documentada con hechos, parcialidades, áreas no comprobadas y limitaciones de validación separados. No se modificó código funcional ni se corrigieron inconsistencias: los hallazgos deben alimentar tareas futuras del plan.
