@@ -1,6 +1,6 @@
 # Arquitectura de Acompaña
 
-Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La revisión local corresponde a `development` en `a65bdbfc7cd4527ed34b072ebdca81c03364e4ca`, que coincidía con la punta remota consultada antes de esta actualización. El remoto `main` estaba en `92c4034085e13bb38fd0a7ff2622c46ef797873d`; no se modificó.
+Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. La revisión documental actual corresponde a `development` en `39a37cc8c3d642b7cd8425ac13c229ea7056810b`; `main` está en `92c4034085e13bb38fd0a7ff2622c46ef797873d` y no se modificó. La API de ramas reportó `protected: false` para ambas; el endpoint detallado de protección de `main` respondió 403, así que no se pudo corroborar su configuración detallada.
 
 ## Arquitectura vigente — hechos comprobados
 
@@ -69,7 +69,7 @@ La evaluación [DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aisla
 
 [PWA-002](docs/arquitectura/PWA-002-evaluacion-notificaciones-push.md) documenta que los avisos actuales dependen de abrir la aplicación. Push no está implementado y requeriría un emisor y servicio remoto, aún no adoptados.
 
-La [guía inicial de instalación y uso](docs/GUIA_INSTALACION_USO.md) refleja el almacenamiento local y los límites confirmados. El proceso de despliegue real aún no está documentado/verificado, y no se deben inferir pasos de producción a partir de la URL pública.
+La [guía inicial de instalación y uso](docs/GUIA_INSTALACION_USO.md) refleja el almacenamiento local y los límites confirmados. DOC-002 sigue como guía inicial: falta evidencia documental del proveedor/proyecto, rama y commit que publica producción, verificación posterior y ruta de reversión. El proyecto puede contrastar archivos y evidencia pública sin desplegar; el propietario debe confirmar el proceso. No se deben inferir pasos de producción a partir de la URL pública.
 
 
 ## Evaluación DAT-004 — historial administrativo

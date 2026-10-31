@@ -48,6 +48,16 @@ Este documento es la fuente única de verdad para tareas, objetivos, prioridades
 
 Las tareas pendientes describen trabajo futuro registrado; no significan que una tecnología o función propuesta ya esté decidida o implementada. La secuencia P1–P4 es una propuesta técnica revisable, no una decisión atribuida al usuario. DAT-001 documenta una opción arquitectónica y deja explícitas las decisiones de producto abiertas; no adopta Supabase ni autoriza implementación o migración. DAT-002 recomienda conservar el almacenamiento local hasta confirmar una necesidad multi-dispositivo; no selecciona proveedor ni autoriza implementación. DAT-003 validó el ciclo sintético local; comprobar el respaldo familiar sigue siendo condición previa a una migración real y no se hizo ni se pidió en este trabajo. CAL-001 queda bloqueada sin backend, roles y staging aprobados. PWA-001 y PWA-002 son evaluaciones documentales, no implementaciones ni pruebas de sincronización o push. Los trabajos completados constan aquí para trazabilidad; su integración en `development` no equivale a publicación en producción. El usuario puede cambiar las prioridades actualizando esta tabla.
 
+## Siguiente trabajo de Dirección general
+
+**DOC-002 — completar la guía de instalación, uso y despliegue** es el siguiente trabajo documental útil. El proyecto puede contrastar la guía con el flujo versionado y con evidencia pública verificable; el propietario debe confirmar proveedor, proyecto, rama de producción, pasos de publicación y procedimiento de reversión. Sin esa evidencia, DOC-002 permanece como guía inicial.
+
+**Criterios de término:** registrar evidencia revisable del flujo vigente; comprobar qué commit/rama publica producción y cómo verificar el resultado sin iniciar un despliegue; documentar reversión y responsable solo si están confirmados; marcar cualquier paso sin evidencia. No abrir ni modificar producción.
+
+**Acciones externas al proyecto:** la familia verifica en privado que conserva un respaldo exportado y sabe restaurarlo en su dispositivo; no compartir el archivo. El propietario decide si configura protección para `main`. GitHub reportó `protected: false`; la cuenta conectada no pudo leer el endpoint detallado de protección (403), por lo que se recomienda al propietario revisar Settings. No se cambió configuración.
+
+CAL-001 continúa bloqueada por backend, roles y entorno aislado aún no decididos.
+
 ## Cierre de DOC-001
 
 La reorganización documental quedó terminada el 2026-10-31 en `development`. Se conservaron los antecedentes técnicos comprobables y se retiraron los procedimientos duplicados. El detalle, los archivos, las comprobaciones y el commit están en [HISTORIAL_CAMBIOS.md](HISTORIAL_CAMBIOS.md).
