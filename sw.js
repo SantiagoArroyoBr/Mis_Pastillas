@@ -1,7 +1,8 @@
-const CACHE_NAME = 'cuidados-v8';
+const CACHE_NAME = 'cuidados-v9';
 const ASSETS = [
   './index.html',
   './app.js',
+  './js/utils.js',
   './styles.css',
   './manifest.json',
   './icon-192.png',
