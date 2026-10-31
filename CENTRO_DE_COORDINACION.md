@@ -47,7 +47,7 @@ Agregar aquí únicamente información que el propietario haya aprobado para com
 
 | Fecha | Área de origen | Información | Estado / referencia |
 |---|---|---|---|
-| — | — | Aún no hay aportaciones registradas | — |
+| 2026-10-30 | Dirección general | CSS-001 aprobada: extraer el CSS existente de `index.html` a `styles.css` sin rediseños ni cambios semánticos; añadirlo a la precarga offline y versionar la caché en `sw.js`. Alcance excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto y otras funcionalidades. | Aprobación del propietario en «Direccion general»; rama `task/css-001-external-stylesheet`; solicitud CSS-001 |
 
 ## Dependencias entre áreas
 
@@ -68,6 +68,7 @@ Agregar aquí únicamente información que el propietario haya aprobado para com
 | Fecha | Cambio aprobado | Incorporado por |
 |---|---|---|
 | 2026-10-30 | Creación del sistema documental de coordinación | Dirección general |
+| 2026-10-30 | Registro de la aprobación CSS-001 para extracción acotada de CSS y precarga offline | Dirección general |
 
 ## Cómo proponer una aportación
 

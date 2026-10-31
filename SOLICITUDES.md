@@ -23,7 +23,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 
 | ID | Fecha | Área / chat | Resumen | Archivos o sistemas afectados | Estado |
 |---|---|---|---|---|---|
-| — | — | — | No hay solicitudes registradas | — | — |
+| CSS-001 | 2026-10-30 | Dirección general | Extraer el CSS actual a un archivo externo y precargarlo para uso offline, con actualización de caché | `index.html`, `styles.css` (nuevo), `sw.js` | Aprobada |
 
 ## Plantilla para presentar una solicitud
 
@@ -49,7 +49,7 @@ Los chats presentan sus propuestas al propietario en la conversación. El propie
 
 | ID | Resolución | Fecha | Condiciones / alcance aprobado |
 |---|---|---|---|
-| — | — | — | — |
+| CSS-001 | Aprobada por el propietario en la conversación «Direccion general» | 2026-10-30 | Extraer sin rediseños ni cambios semánticos; modificar únicamente `index.html`, nuevo `styles.css` y `sw.js`. Incluir CSS en la precarga offline y versionar la caché. Excluye JavaScript, datos, `localStorage`, modelo, importación/exportación, manifiesto, otras funciones, integración y despliegue. Rama de tarea derivada de `development`. |
 
 ## Reglas
 
