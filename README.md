@@ -101,10 +101,12 @@ Los usuarios ordinarios no deben poder consultar ni modificar este historial.
 La aplicación desplegada utiliza una arquitectura ligera de frontend:
 
 - HTML, CSS y JavaScript.
+- El JavaScript del frontend se carga desde `app.js` como script clásico síncrono al final de `index.html`; la lógica sigue concentrada en un único archivo.
 - Despliegue del frontend en Vercel.
 - Persistencia local mediante `localStorage`; la clave utilizada por la aplicación es `pastillas-v1`.
 - `manifest.json` para la instalación como PWA.
 - `sw.js` para el service worker y el comportamiento de caché.
+- El service worker precarga `app.js` para que la interfaz pueda abrirse offline.
 - Respaldo manual mediante archivos JSON.
 
 La persistencia local no equivale a sincronización multi-dispositivo ni proporciona por sí sola autenticación, aislamiento entre familias o respaldo remoto.
@@ -207,3 +209,10 @@ Las relaciones, restricciones, índices y políticas de acceso se definirán ant
 - Se describen los roles y el modelo multi-familia previsto.
 - Se separa la arquitectura actual de la arquitectura objetivo.
 - Se incorpora un roadmap inicial.
+
+### MOD-001 — Extracción del JavaScript
+
+- Se documenta la arquitectura comprobada en `docs/arquitectura/diagnostico-modularizacion.md`, basada en `fa78806b53f601ce6aa070e75573df065043f4d3`.
+- En la rama de tarea, el bloque JavaScript se trasladó literalmente a `app.js`; no se dividió en más módulos ni se refactorizó.
+- `index.html` carga el archivo después del DOM y `sw.js` lo precarga con caché `cuidados-v8` para uso offline.
+- Estado de esta rama: pruebas aprobadas; pendiente revisión e integración. No desplegada.
