@@ -12,7 +12,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 
 | ID | Área / chat | Tarea | Rama | Archivos previstos | Estado | Inicio | Última actualización |
 |---|---|---|---|---|---|---|---|
-| BACKEND-001 | Backend y datos | Protección de persistencia ante fallos de lectura o migración inicial | `development` | `index.html` (registro: `TRABAJO_ACTIVO.md`) | En curso | 2026-10-30 | 2026-10-30 |
+| BACKEND-001 | Backend y datos | Protección de persistencia inicial, restauración JSON en modo protegido, validación de integridad de migraciones y pruebas de integración en navegador | `development` | `index.html`, `tests/persistence.spec.js`, `package.json` y `package-lock.json` solo si son necesarios; registro: `TRABAJO_ACTIVO.md` | En curso — ampliación aprobada | 2026-10-30 | 2026-10-30 |
 
 ## Plantilla para registrar una tarea aprobada
 
@@ -55,7 +55,7 @@ Dar visibilidad sobre quién (chat o área) está trabajando en cada tarea, qué
 
 ## Limitación operativa
 
-Este archivo es un registro manual de coordinación. No bloquea archivos en GitHub ni evita que dos chats hagan commits concurrentes. Para reducir conflictos:
+Este archivo es un registro manual de coordinación. No bloquea archivos en GitHub ni evita que dos chats hagan commits simultáneamente. Para reducir conflictos:
 - Usar ramas de tarea cuando haya trabajo paralelo sobre el mismo repositorio.
 - Mantener commits pequeños.
 - Revisar diferencias antes de integrar.
