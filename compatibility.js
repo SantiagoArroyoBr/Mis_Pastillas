@@ -40,10 +40,11 @@ function migrate(d){
   if(!Array.isArray(z.nurses))z.nurses=[];
   z.nurses=z.nurses.map(a=>Array.isArray(a)?a.map((x,k)=>{
     if(typeof x==='string'&&x)return{n:x,c:NPAL[k%NPAL.length]};
-    if(x&&typeof x.n==='string'&&x.n)return{n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length]};
+    if(x&&typeof x.n==='string'&&x.n)return{...(typeof x.id==='string'&&x.id?{id:x.id}:{}),n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length]};
     return null;
   }).filter(Boolean):[]);
   if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
+  if(!Array.isArray(z.ledger))z.ledger=[];
   const defShifts=()=>[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
   const normShifts=a=>{
     const o=(Array.isArray(a)?a:[]).filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
@@ -114,6 +115,11 @@ function validateStoredState(d){
     if(!z||typeof z!=='object'||Array.isArray(z))fail('Datos de pagos no válidos.');
     ['w','shifts','nurses','cfg'].forEach(k=>{if(own(z,k)&&!Array.isArray(z[k]))fail('Estructura de pagos no válida: '+k+'.')});
     if(own(z,'v')&&(!z.v||typeof z.v!=='object'||Array.isArray(z.v)))fail('Asignaciones de pagos no válidas.');
+    if(own(z,'ledger')&&!Array.isArray(z.ledger))fail('Libro de pagos individuales no válido.');
+    if(z.v&&typeof z.v==='object')Object.values(z.v).forEach(byPatient=>{
+      if(!byPatient||typeof byPatient!=='object'||Array.isArray(byPatient))fail('Asignación por fecha no válida.');
+      Object.values(byPatient).forEach(list=>{if(!Array.isArray(list))fail('Lista de asignaciones no válida.');list.forEach(e=>{if(e&&own(e,'service')){const s=e.service;if(!s||typeof s!=='object'||typeof s.id!=='string'||!s.id||typeof s.nurseId!=='string'||!s.nurseId||!['full','half'].includes(s.type)||!Number.isSafeInteger(s.amountCents)||s.amountCents<0)fail('Servicio nuevo incompleto.')}})});
+    });
     if(Array.isArray(z.shifts))z.shifts.forEach(s=>{if(!s||typeof s!=='object'||s.id===undefined||s.id==='')fail('Registro de turno incompleto.')});
     if(Array.isArray(z.cfg))z.cfg.forEach(c=>{
       if(!c||typeof c!=='object'||Array.isArray(c))fail('Configuración de pagos no válida.');
@@ -124,7 +130,26 @@ function validateStoredState(d){
     });
     if(Array.isArray(z.nurses))z.nurses.forEach(n=>{
       if(!Array.isArray(n))fail('Lista de enfermeros no válida.');
-      n.forEach(x=>{if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.')});
+      n.forEach(x=>{if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.');if(x&&typeof x==='object'&&own(x,'id')&&(typeof x.id!=='string'||!x.id))fail('Identificador de enfermero no válido.')});
+    });
+    if(Array.isArray(z.ledger))z.ledger.forEach(m=>{
+      if(!m||typeof m!=='object'||typeof m.id!=='string'||!m.id||!Number.isInteger(m.patientIndex)||m.patientIndex<0||m.patientIndex>=d.p.length||typeof m.nurseId!=='string'||!m.nurseId||typeof m.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(m.date)||!Number.isSafeInteger(m.amountCents)||m.amountCents<=0||!Array.isArray(m.allocations))fail('Movimiento de pago individual incompleto.');
+      let sum=0;m.allocations.forEach(a=>{if(!a||typeof a.serviceId!=='string'||!a.serviceId||!Number.isSafeInteger(a.amountCents)||a.amountCents<=0)fail('Aplicación de abono no válida.');sum+=a.amountCents});
+      if(sum!==m.amountCents)fail('El importe del movimiento no coincide con sus aplicaciones.');
+    });
+    const nurseIds=new Set(),serviceIds=new Map(),movementIds=new Set();
+    (z.nurses||[]).forEach((list,i)=>list.forEach(n=>{if(n&&typeof n==='object'&&n.id){if(nurseIds.has(n.id))fail('Hay identificadores de enfermero duplicados.');nurseIds.add(n.id)}}));
+    Object.entries(z.v||{}).forEach(([date,byPatient])=>Object.entries(byPatient||{}).forEach(([patientIndex,list])=>list.forEach(e=>{
+      if(!e||!e.service)return;const s=e.service;
+      if(serviceIds.has(s.id))fail('Hay identificadores de servicio duplicados.');
+      if(!((z.nurses&&z.nurses[+patientIndex])||[]).some(n=>n&&typeof n==='object'&&n.id===s.nurseId))fail('El servicio no coincide con un enfermero de su ficha.');
+      serviceIds.set(s.id,{nurseId:s.nurseId,patientIndex:+patientIndex,amountCents:s.amountCents,date});
+    })));
+    const serviceCosts=new Map();serviceIds.forEach(s=>{const total=(serviceCosts.get(s.nurseId)||0)+s.amountCents;if(!Number.isSafeInteger(total))fail('El total de costos excede la precisión monetaria segura.');serviceCosts.set(s.nurseId,total)});
+    const allocated=new Map();
+    (z.ledger||[]).forEach(m=>{
+      if(movementIds.has(m.id))fail('Hay identificadores de movimiento duplicados.');movementIds.add(m.id);
+      m.allocations.forEach(a=>{const service=serviceIds.get(a.serviceId);if(!service||service.nurseId!==m.nurseId||service.patientIndex!==m.patientIndex)fail('Un abono está aplicado a un servicio de otra persona o ficha.');if(service.date>m.date)fail('Un abono no puede aplicarse a un servicio posterior a su fecha.');const total=(allocated.get(a.serviceId)||0)+a.amountCents;if(!Number.isSafeInteger(total)||total>service.amountCents)fail('Los abonos exceden el costo registrado del servicio.');allocated.set(a.serviceId,total)});
     });
   }
   return d;
@@ -235,6 +260,11 @@ function assertMigrationIntegrity(before,after){
   const beforeAppts=Array.isArray(before.appts)?before.appts.length:0;
   if(beforeAppts!==after.appts.length)fail('cambió la cantidad de citas.');
   const oldPay=before.pay||{},newPay=after.pay;
+  if(Array.isArray(oldPay.ledger)&&(oldPay.ledger.length!==(newPay.ledger||[]).length))fail('cambió el libro de pagos individuales.');
+  if(oldPay.v&&newPay.v)Object.entries(oldPay.v).forEach(([day,byPatient])=>Object.entries(byPatient||{}).forEach(([i,list])=>{
+    const migrated=newPay.v[day]&&newPay.v[day][i];if(!Array.isArray(migrated)||migrated.length!==list.length)fail('cambió la cantidad de asignaciones del '+day+'.');
+    list.forEach((e,j)=>{if(e&&e.service&&JSON.stringify(e.service)!==JSON.stringify(migrated[j]&&migrated[j].service))fail('cambió el detalle de un servicio guardado.')});
+  }));
   if(Array.isArray(oldPay.shifts)&&oldPay.shifts.length&&oldPay.shifts.length!==newPay.shifts.length)fail('cambió la cantidad de turnos.');
   if(Array.isArray(oldPay.cfg))oldPay.cfg.forEach((c,i)=>{
     const a=Array.isArray(c.pays)?c.pays.length:0;

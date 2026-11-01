@@ -97,6 +97,20 @@ Evidencia técnica separada:
 
 La declaración del responsable cierra PREVIEW-001 como validación manual en el alcance que realizó. La ausencia de matriz/resultados impide atribuir aprobaciones individuales de HTTPS, instalación, manifest, navegación, offline, actualización del service worker, persistencia, JSON, responsive o consola. La configuración de Vercel y la versión actualmente asociada al dominio productivo no fueron comprobadas independientemente desde el panel.
 
+### Pagos y enfermeros: límites previos a PAG-001 — 2026-10-31
+
+La cobertura actual se calcula por fecha asignada y por ficha. Dos o más asignaciones en una fecha cuentan como una fecha cubierta; el resumen también muestra cuántos servicios/asignaciones aparecen en esas fechas. La tarifa guardada es global por día, no por persona o servicio, por lo que el cálculo solo puede mostrar una estimación diaria; no demuestra el costo total de varios servicios.
+
+En el estado previo a PAG-001, los pagos se registraban para la ficha completa mediante días e importe informativo, sin identificar qué enfermero recibió el importe. Los registros previos tampoco contienen destinatario y deben tratarse como pagos históricos no conciliados; no se deben repartir entre personas ni marcar servicios individuales como pagados a partir de la mera cobertura de una fecha. El nuevo flujo de registros futuros está descrito a continuación y en [PAG-001](PAG-001-sistema-pagos-individuales.md).
+
+### PAG-001 — uso del registro individual
+
+En el calendario, al asignar un enfermero/a nuevo a una fecha, captura el costo de ese servicio y el tipo de jornada. El costo queda fijo para esa asignación. Una asignación repetida en otra fecha constituye otro servicio y vuelve a solicitar su costo.
+
+En Pagos, la tarjeta separa los movimientos globales antiguos del resumen nuevo por enfermero/a. Para abonar, elige la persona, fecha e importe. Los abonos se aplican FIFO a sus servicios pendientes hasta la fecha del pago y la aplicación queda guardada para no redistribuir movimientos posteriores. Se permiten abonos parciales. Un excedente se rechaza y no se convierte en anticipo. Un servicio con abonos no se puede quitar desde el calendario; tampoco se puede retirar de la lista a una persona que tenga servicios nuevos. No hay edición ni eliminación de movimientos nuevos: ante un error, conserva el registro y solicita una corrección soportada por una futura etapa, sin editar JSON manualmente.
+
+La tarifa diaria de estimación sigue siendo global y no participa en costos individuales. Los pagos históricos `{d,n,a,old}` y asignaciones sin metadatos permanecen como legados no conciliados; no se completan sus destinatarios o importes. Antes de una restauración, exporta y resguarda privadamente un respaldo, revisa la vista previa y confirma solo el archivo elegido. Prueba estas acciones primero con datos ficticios y una instalación de Preview; la automatización local de PAG-001 no sustituye esa revisión manual.
+
 ### Revisión de Vercel y publicación de DEV-001 — 2026-10-31
 
 En esta sesión se volvió a comprobar el repositorio GitHub `SantiagoArroyoBr/Mis_Pastillas`. El check combinado de GitHub para `f381219e31e515ba34096446d5c7109d8ae73937` devuelve un estado `Vercel` exitoso con enlace a una deployment de Vercel. Para el commit local DEV-001 `f4070022d6c7b71cb6079fe48da1dc0181eed0b0`, GitHub no devuelve checks porque todavía no está publicado.

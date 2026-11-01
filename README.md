@@ -16,6 +16,8 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Backlog PLAN-002](docs/PLAN-002-backlog-funcional.md): prioridades y propuestas funcionales; DEV-001 y DEV-002 están en la rama `development`.
 - [Diagnóstico DEV-003A](docs/auditorias/DEV-003A-diagnostico-pagos-cobertura.md): reglas actuales de pagos/turnos, riesgos históricos, alternativas y decisiones pendientes; no cambia cálculos.
 - [Propuesta DEV-003B](docs/DEV-003B-propuesta-reglas-pagos-cobertura.md): alternativas de cobertura, costos, pagos parciales, periodos e historial; reglas pendientes de aprobación.
+- [Propuesta FIX-003](docs/FIX-003-propuesta-pagos-individuales.md): extensión compatible necesaria para identificar destinatarios sin atribuir pagos históricos por inferencia.
+- [PAG-001](docs/PAG-001-sistema-pagos-individuales.md): modelo aditivo y reglas del registro de servicios, pagos individuales, abonos y saldos.
 - [Auditoría de seguridad y privacidad AUD-003](docs/auditorias/AUD-003-seguridad-privacidad.md): hallazgos AUD-003–AUD-012, verificaciones, tipografía local y riesgos residuales aceptados expresamente para el contexto familiar y controlado actual.
 - [Revisión independiente AUD-011](docs/auditorias/AUD-011-revision-independiente.md): registra los hallazgos y el seguimiento de corrección/verificación AUD-012.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
@@ -75,3 +77,13 @@ La suite crea un perfil temporal aislado, usa registros ficticios y borra sus ar
 La rama `development` es la rama de trabajo. `main` es producción y no se modifica como parte del desarrollo ordinario. Los datos existentes, la clave `pastillas-v1`, la exportación y restauración JSON, la PWA y el funcionamiento offline se preservan; cualquier tarea que los afecte debe definir compatibilidad, respaldo, restauración y validación antes de implementarse. Utilizar datos ficticios en pruebas y documentación compartida.
 
 El contenido de este README es una guía de entrada. El plan, la arquitectura y el historial enlazados arriba son las referencias centrales para sus respectivos temas.
+
+## Pagos: correcciones compatibles DEV-003C
+
+La cobertura mantiene el conteo por fechas. Los montos calculados se rotulan como estimaciones con tarifa actual; la asistencia por persona no reparte dinero. El importe registrado es informativo y se captura sin precargar una estimación. Pagos parciales monetarios y períodos explícitos permanecen propuestos. Ver [reglas, compatibilidad y límites](docs/DEV-003C-correcciones-compatibles-pagos.md). Ejecutar ambas suites con `node --test tests/payments.spec.js tests/persistence.spec.js`.
+
+Validación DEV-003C: 33/33 pruebas automatizadas aprobadas (4 de motor y 29 en Edge 156.0.4314.50), con datos ficticios; sintaxis, manifest y diff verificados. Validación manual pendiente del responsable.
+
+**FIX-002/FIX-003 (estado anterior a PAG-001, 2026-10-31):** la interfaz distinguía fechas de cobertura de servicios registrados; entonces el modelo solo tenía una tarifa global diaria y pagos por ficha sin destinatario. PAG-001 añade el registro individual para servicios y movimientos nuevos. Ningún pago histórico se atribuyó a una persona.
+
+**PAG-001 (2026-10-31):** en el checkout local de `development` se amplió el registro de nuevas asignaciones con tarifa fija por servicio e ID estable, y se añadió un libro de abonos individuales con asignación FIFO explícita, cálculo en centavos y rechazo de excedentes. Los pagos anteriores quedan globales y no conciliados. `pastillas-v1` y el formato JSON anterior se conservan; consulta el [informe PAG-001](docs/PAG-001-sistema-pagos-individuales.md) para reglas, límites y validación. La suite automatizada local pasó 39/39 en Edge 156.0.4314.50 con fixtures ficticios. Validación manual del propietario pendiente.

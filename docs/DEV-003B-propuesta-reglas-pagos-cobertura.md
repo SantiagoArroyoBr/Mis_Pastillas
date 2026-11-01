@@ -135,3 +135,17 @@ La primera entrega debe ser un motor de cálculo puro aislado de la UI, usando l
 10. ¿Se autoriza considerar nuevos campos/migración si la regla elegida no puede representarse con el esquema actual? Aprobarlo como cambio separado y definir copia/restauración.
 
 Hasta recibir esas respuestas, solo están autorizados los cambios de preservación FIX-001 y las pruebas/documentación asociadas; los cálculos de cobertura, tarifas y pagos quedan sin cambios.
+
+## Continuidad posterior — DEV-003C
+
+El responsable delegó criterio para correcciones compatibles. La pausa descrita en este informe corresponde a su fecha original; ver [DEV-003C](DEV-003C-correcciones-compatibles-pagos.md) para el alcance implementado y las decisiones que siguen diferidas. No se introdujeron períodos, fracciones ni conciliación monetaria.
+
+## Continuidad FIX-002/FIX-003 — 2026-10-31
+
+La reproducción sintética confirmó dos límites. Primero, `rate` es global por día y `pay.v` cuenta fechas únicas; un fixture con dos asignaciones y `rate:100` produce una sola fecha y `$100` estimados, aunque muestra dos servicios. No existen tarifas por enfermero/servicio con las que confirmar `$200`; no se cambiará la unidad de `rate` por inferencia. Segundo, el registro `pays[]` es de ficha y no tiene destinatario; la cobertura de una fecha con A y B no prueba que se pagara a ninguno de manera individual.
+
+DEV-003C conserva la estimación diaria y el historial global. FIX-002 amplía el resumen con un conteo de servicios separado e informa el límite de costos; no afirma costo total por servicio cuando las tarifas individuales no existen. FIX-003 queda pendiente porque exige identidad estable y un movimiento persistido con destinatario. Ver [propuesta FIX-003](FIX-003-propuesta-pagos-individuales.md). Pagos legados siguen sin conciliar; no se cambió esquema ni `pastillas-v1`.
+
+### Actualización posterior: PAG-001 — 2026-10-31
+
+El responsable autorizó después una extensión aditiva. PAG-001 implementa costos de asignaciones nuevas, pagos por ID de enfermero, abonos parciales y saldo por aplicaciones explícitas. La decisión adoptada es FIFO por fecha hasta la fecha del pago y rechazo de excedentes; no se crean anticipos. La cobertura por día y las demás opciones de DEV-003B no se reinterpretaron. Ver [modelo, límites y pruebas PAG-001](PAG-001-sistema-pagos-individuales.md).

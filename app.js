@@ -79,8 +79,12 @@ const ents=(ds,i)=>{const a=(S.pay.v[ds]||{})[i];return Array.isArray(a)?a.filte
 const nurList=i=>S.pay.nurses[i]||[];
 const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A'};
 const nextColor=i=>{const used=new Set(nurList(i).map(x=>x.c));return NPAL.find(c=>!used.has(c))||NPAL[nurList(i).length%NPAL.length]};
+const newLedgerId=prefix=>{if(!window.crypto||typeof window.crypto.randomUUID!=='function')throw new Error('Este navegador no permite crear identificadores seguros.');return prefix+'_'+window.crypto.randomUUID()};
 
-const {cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue}=window.AcompanaPayments.create({getState:()=>S,config:cfg,entries:ents,calc,ymd});
+const {cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,ledgerSummary,allocatePayment,toCents}=window.AcompanaPayments.create({getState:()=>S,config:cfg,entries:ents,calc,ymd});
+const serviceRows=i=>Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).filter(e=>e&&e.service&&e.service.id).map(e=>({...e.service,date,n:e.n,patientIndex:i})));
+const ledgerRows=()=>Array.isArray(S.pay.ledger)?S.pay.ledger:[];
+const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
 function payNotice(){
   const d=payDue();
   if(!d.length)return'';
@@ -169,6 +173,7 @@ function payAction(t){
   else if(pa==='hp'){homeP=i;render()}
   else if(pa==='cfg')payForm(i);
   else if(pa==='payreg')payRegForm(i);
+  else if(pa==='ipay')individualPayForm(i);
   else if(pa==='creset')resetForm(i);
   else if(pa==='pdel'){
     const k=+t.dataset.k;if(!cfg(i).pays[k])return;
@@ -185,12 +190,15 @@ function payAction(t){
   else if(pa==='nedit')nurseForm(i,+t.dataset.k);
   else if(pa==='nrm'){
     const nm=nurList(i)[+t.dataset.k];if(!nm)return;
+    if(nm.id&&serviceRows(i).some(s=>s.nurseId===nm.id)){form('No se puede quitar este enfermero/a',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>La persona tiene servicios nuevos asociados. Conserva su identificador para mantener costos y pagos históricos íntegros.</p>');return}
     form('¿Quitar a '+esc(nm.n)+' de la lista?',[],()=>{nurList(i).splice(+t.dataset.k,1);save();render()},'Sí, quitar');
   }
   else if(pa==='ren')renForm(i);
   else if(pa==='rm'){
     const a=S.pay.v[ds]&&S.pay.v[ds][i];
     if(Array.isArray(a)){
+      const service=a[+t.dataset.k]&&a[+t.dataset.k].service;
+      if(service&&ledgerRows().some(m=>m.allocations&&m.allocations.some(x=>x.serviceId===service.id))){form('Servicio con pagos aplicados',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>No se puede quitar un servicio que ya tiene abonos aplicados. Mantén el registro para conservar la conciliación.</p>');return}
       a.splice(+t.dataset.k,1);
       if(!a.length)delete S.pay.v[ds][i];
       if(!Object.keys(S.pay.v[ds]).length)delete S.pay.v[ds];
@@ -215,7 +223,7 @@ function notifyDaily(){
   if(S.last===k)return;
   const parts=[];
   if(S.p.some(p=>p.meds.some(m=>calc(m).st!=='green')))parts.push('Hay pendientes de reposición.');
-  if(payDue().length)parts.push('Hay pagos de cuidado próximos.');
+  if(payDue().length)parts.push('Hay días de cuidado sin cubrir.');
   if(apptDue().length)parts.push('Hay citas próximas.');
   if(!parts.length)return;
   S.last=k;save();
@@ -282,7 +290,7 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG});
+const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,ledger:ledgerRows,ledgerSummary,allocatePayment,toCents,newId:newLedgerId});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;

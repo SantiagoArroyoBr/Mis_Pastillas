@@ -55,3 +55,7 @@ Escala: utilidad/impacto/verificabilidad se expresan como alto, medio o bajo; co
 ## Recomendación
 
 DEV-001 resolvió la asociación de citas y DEV-002 aclaró el saldo común entre pautas, sin cambiar esquema. DEV-003A concluyó el diagnóstico de pagos; DEV-003B requiere reglas expresas antes de alterar cobertura, montos o registros históricos.
+
+## Estado posterior — 2026-10-31
+
+DEV-003A/P3 motivó el ciclo PAG-001 autorizado, que añade costos por servicio nuevo y libro individual sin conciliar el historial anterior. Las reglas ahora implementadas y su verificación local están en [PAG-001](PAG-001-sistema-pagos-individuales.md). El backlog original describe prioridades y propuestas al corte previo; esta actualización no implica implementación de otras propuestas.

@@ -351,7 +351,7 @@ test('asignar personal conserva íntegros los registros anteriores a 400 días',
   assert.equal(coverageBefore.unused, 0);
 
   const assignToday = async () => {
-    await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelector('#dlg .pbtn[data-set="nm"]').click();document.querySelector('#f').requestSubmit()`);
+    await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelector('#dlg .pbtn[data-set="nm"]').click();document.querySelector('#serviceAmount').value='12.50';document.querySelector('#f').requestSubmit()`);
     await waitFor(`JSON.parse(__persistenceTest.read()).pay.v[${JSON.stringify(today)}]?.[0]?.length`, 'asignación ficticia guardada');
   };
   await assignToday();
@@ -635,4 +635,93 @@ test('el service worker limpia solo sus cachés y sirve / y /index.html offline'
   assert.ok(remainingCaches.includes('other-component-v1'));
   const otherComponentEntry = await evaluate("(async()=>{const c=await caches.open('other-component-v1');return Boolean(await c.match(location.origin+'/fixture-other-component-v1'))})()");
   assert.equal(otherComponentEntry, true);
+});
+
+test('pagos distingue estimaciones, asistencia e importe informativo sin alterar historial', async () => {
+  const backup=validBackup('Ficha ficticia de pagos');backup.mode='pay';
+  backup.pay={cfg:[{who:'Responsable ficticio',base:'2020-01-01',rate:100,time:'half',pays:[{d:'2020-01-01',n:1,a:20,old:false}]}],nurses:[[{n:'A ficticia',c:'#C92A2A'},{n:'B ficticia',c:'#C92A2A'}]],v:{'2020-01-01':{0:[{n:'A ficticia'},{n:'B ficticia'}]},'2020-01-02':{0:[{n:'A ficticia'},{n:'B ficticia'}]}}};
+  await seed(JSON.stringify(backup));await navigate();
+  const before=await evaluate('__persistenceTest.read()');
+  assert.equal(await evaluate('lastPay(0).total'),100);
+  assert.equal(await evaluate('lastPay(0).services'),2);
+  const text=await evaluate("document.querySelector('#payView').textContent");
+  assert.match(text,/Estimación de tarifa diaria para días sin cobertura/);assert.match(text,/Asistencia en fechas sin cubrir/);assert.match(text,/no determina cobertura ni saldo monetario/);
+  assert.match(text,/1 fecha con asignaciones · 2 servicios registrados/);
+  assert.match(text,/No hay tarifas guardadas por enfermero o servicio/);
+  assert.match(text,/Los pagos se guardan para la ficha completa/);
+  assert.equal(await evaluate("document.querySelector('#payView').textContent.includes('Lo que se debe, por enfermero')"),false);
+  await evaluate('payRegForm(0)');assert.equal(await evaluate("document.querySelector('#a').value"),'');
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/no convierte dinero a días/);
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/No se selecciona un enfermero/);
+  assert.equal(await evaluate("Boolean(document.querySelector('#nurseId'))"),false);
+  assert.equal(await evaluate('__persistenceTest.read()'),before);
+});
+
+test('servicios con tarifa y pagos individuales parciales sobreviven exportación y restauración', async () => {
+  const backup=validBackup('Ficha ficticia PAG-001');backup.mode='pay';
+  backup.pay={cfg:[{who:'Responsable ficticio',base:'2020-01-01',rate:100,pays:[{d:'2020-01-01',n:2,a:50,old:false}]}],nurses:[[{n:'Enfermera A ficticia',c:'#C92A2A'},{n:'Enfermero B ficticio',c:'#1864AB'},{n:'Enfermera C ficticia',c:'#2B8A3E'}]],v:{'2020-01-01':{0:[{n:'Enfermera A ficticia'}]} }};
+  await seed(JSON.stringify(backup));await navigate();
+  const today=await evaluate('ymd(new Date())');
+  const assign=async(nurse,cost)=>{
+    await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelectorAll('#dlg .pbtn[data-set="nm"]')[${nurse}].click();document.querySelector('#serviceAmount').value=${JSON.stringify(cost)};document.querySelector('#f').requestSubmit()`);
+    await waitFor(`JSON.parse(__persistenceTest.read()).pay.v[${JSON.stringify(today)}]?.[0]?.length>=${nurse+1}`,'servicio nuevo persistido');
+  };
+  await assign(0,'500.00');await assign(1,'300.00');await assign(2,'150.00');
+  let state=await evaluate('JSON.parse(__persistenceTest.read())');
+  const services=state.pay.v[today][0];assert.equal(services.length,3);
+  assert.equal(services[0].service.amountCents,50000);assert.equal(services[1].service.amountCents,30000);assert.equal(services[2].service.amountCents,15000);
+  assert.ok(services[0].service.id&&services[0].service.nurseId);
+  await evaluate("payForm(0);document.querySelector('#rt').value='999';document.querySelector('#f').requestSubmit()");
+  state=await evaluate('JSON.parse(__persistenceTest.read())');
+  assert.equal(state.pay.cfg[0].rate,999);assert.deepEqual(state.pay.v[today][0].map(e=>e.service.amountCents),[50000,30000,15000],'cambiar la tarifa diaria no reescribe costos fijados por servicio');
+  const nurseA=services[0].service.nurseId,nurseB=services[1].service.nurseId,nurseC=services[2].service.nurseId;
+  const pay=async(nurseId,amount)=>{
+    await evaluate('individualPayForm(0)');
+    await evaluate(`document.querySelector('#nurse').value=${JSON.stringify(nurseId)};document.querySelector('#amount').value=${JSON.stringify(amount)};document.querySelector('#f').requestSubmit()`);
+    await waitFor(`JSON.parse(__persistenceTest.read()).pay.ledger.length===${state.pay.ledger?.length||0}+1`,'abono individual guardado');
+    state=await evaluate('JSON.parse(__persistenceTest.read())');
+  };
+  await pay(nurseA,'200.00');await pay(nurseA,'100.00');await pay(nurseB,'300.00');await pay(nurseC,'150.00');
+  assert.equal(state.pay.ledger.length,4);
+  assert.equal(state.pay.ledger[0].allocations[0].serviceId,services[0].service.id);
+  assert.equal(state.pay.ledger[0].amountCents,20000);
+  assert.equal(await evaluate(`ledgerSummary(serviceRows(0),ledgerRows(),${JSON.stringify(nurseA)}).balanceCents`),20000);
+  assert.equal(await evaluate(`ledgerSummary(serviceRows(0),ledgerRows(),${JSON.stringify(nurseB)}).balanceCents`),0);
+  assert.equal(await evaluate(`ledgerSummary(serviceRows(0),ledgerRows(),${JSON.stringify(nurseC)}).balanceCents`),0);
+  await evaluate(`individualPayForm(0);document.querySelector('#nurse').value=${JSON.stringify(nurseA)};document.querySelector('#amount').value='200.01';document.querySelector('#f').requestSubmit()`);
+  assert.match(await evaluate("document.querySelector('#err').textContent"),/supera el saldo de servicios/);
+  await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelector('[data-pa="rm"]').click()`);
+  assert.match(await evaluate("document.querySelector('#dlg h2').textContent"),/Servicio con pagos aplicados/);
+  await evaluate("document.querySelector('#no').click()");
+  assert.deepEqual(state.pay.cfg[0].pays,backup.pay.cfg[0].pays,'el pago legado se conserva sin asignarlo a un enfermero');
+  await navigate();state=await evaluate('JSON.parse(__persistenceTest.read())');assert.equal(state.pay.ledger.length,4,'la recarga conserva todos los movimientos individuales');
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:true});
+  assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true);
+  await cdp.send('Emulation.clearDeviceMetricsOverride');
+  await evaluate("document.querySelector('#exp').click()");await waitFor('__persistenceTest.exportBlob!==null','respaldo ampliado exportado');
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(text=>JSON.parse(text))');
+  await uploadJson(exported,'pagos-individuales-ficticios.json');await continueRestore();await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor('JSON.parse(__persistenceTest.read()).pay.ledger.length===4','restauración ampliada');
+  const restored=await evaluate('JSON.parse(__persistenceTest.read())');
+  assert.deepEqual(restored.pay.ledger,state.pay.ledger);assert.deepEqual(restored.pay.cfg[0].pays,backup.pay.cfg[0].pays);
+});
+
+test('un fallo de escritura al registrar un servicio conserva el JSON anterior', async () => {
+  const backup=validBackup('Ficha ficticia para fallo de escritura');
+  backup.pay={cfg:[{who:'Responsable ficticio',base:'2020-01-01',pays:[]}],nurses:[[{n:'Enfermera ficticia',c:'#C92A2A'}]],v:{}};
+  const raw=JSON.stringify(backup);await seed(raw);await navigate('?failSet=1');
+  const today=await evaluate('ymd(new Date())');
+  await evaluate(`dayForm(0,${JSON.stringify(today)});document.querySelector('#dlg .pbtn[data-set="nm"]').click();document.querySelector('#serviceAmount').value='500.00';document.querySelector('#f').requestSubmit()`);
+  await waitFor("document.querySelector('#persistenceWarning') && !document.querySelector('#persistenceWarning').hidden",'aviso de fallo de persistencia');
+  assert.equal(await evaluate('__persistenceTest.read()'),raw,'el valor guardado previo debe quedar intacto');
+});
+
+test('restauración rechaza un abono asociado a otro destinatario sin tocar el estado actual', async () => {
+  const current=JSON.stringify(validBackup('Estado local intacto'));
+  const malformed=validBackup('Fixture inválido');
+  malformed.pay={cfg:[{who:'Responsable ficticio',base:'2020-01-01',pays:[]}],nurses:[[{id:'nurse_A',n:'Enfermera A',c:'#C92A2A'}]],v:{'2026-10-31':{0:[{n:'Enfermera A',service:{id:'service_A',nurseId:'nurse_A',type:'full',amountCents:50000}}]}},ledger:[{id:'move_A',patientIndex:0,nurseId:'nurse_B',date:'2026-10-31',amountCents:10000,allocations:[{serviceId:'service_A',amountCents:10000}]}]};
+  await seed(current);await navigate();await uploadJson(malformed,'abono-cruzado-invalido.json');
+  await waitFor("document.querySelector('#closeImportMessage')",'rechazo de respaldo no íntegro');
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/no superó la validación/);
+  assert.equal(await evaluate('__persistenceTest.read()'),current,'la importación inválida conserva el valor local anterior');
 });

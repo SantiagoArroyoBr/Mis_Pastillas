@@ -30,7 +30,7 @@ styles.css                 identidad visual y adaptación responsive
 app.js                     composición, estado, persistencia, vistas principales e importación/restauración
 compatibility.js           estado inicial, migración y validación compatible
 domain.js                  fechas, calendarios y cálculos puros
-payments.js                cobertura, adeudos y vencimientos
+payments.js                cobertura, adeudos, vencimientos y cálculos monetarios puros del libro individual
 inventory.js               inventario, compras, consumos y precios
 care-ui.js                 pantallas y formularios de pacientes y pagos
 appointments.js            citas y sus acciones
@@ -44,6 +44,10 @@ tests/persistence.spec.js  regresión de persistencia, PWA e integraciones
 ### Mapa de dependencias
 
 `index.html` carga `compatibility.js` y `domain.js` antes de los consumidores. `app.js` los usa y crea `payments.js` con acceso al estado/configuración mediante dependencias inyectadas. Después de preparar el diálogo y el formulario común, compone `sharing.js`, `appointments.js`, `inventory.js` y `care-ui.js`, inyectándoles estado, renderizado, cálculos y utilidades que necesitan. Los módulos no se importan entre sí ni forman ciclos; los scripts se comunican mediante APIs acotadas en `window.Acompana…`. `forms.js` es compartido por los módulos que presentan formularios. La persistencia y la ruta sensible de importación/restauración permanecen en `app.js` para mantener un único punto transaccional de escritura a `pastillas-v1`.
+
+### PAG-001 — servicios y libro individual
+
+Las asignaciones nuevas conservan su forma exterior en `pay.v[fecha][índiceDeFicha]` y añaden `service` con ID propio, ID estable del enfermero, tipo e importe en centavos. `pay.ledger[]` guarda los movimientos individuales y aplicaciones explícitas a servicios; el ID evita depender del orden de la lista de enfermeros. `compatibility.js` valida el grafo antes de restaurar/migrar, conserva el historial previo y agrega un arreglo vacío cuando el campo aún no existía. `payments.js` contiene la conversión decimal y la aplicación FIFO hasta la fecha del movimiento, rechaza excedentes y calcula saldos; `care-ui.js` recoge tarifas y pagos y presenta costos/saldos; `app.js` compone el estado y conserva el guardado único. No se enlazan pagos legados ni se reutiliza la estimación diaria como tarifa por servicio. Detalle de formato, límites y resultados en [PAG-001](docs/PAG-001-sistema-pagos-individuales.md).
 
 El diagnóstico [histórico de modularización](docs/arquitectura/diagnostico-modularizacion.md) recoge el análisis de `fa78806b53f601ce6aa070e75573df065043f4d3`; sus referencias a la caché anterior describen aquel SHA, no la versión vigente.
 
