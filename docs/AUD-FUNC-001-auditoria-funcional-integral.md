@@ -128,3 +128,7 @@ El primer intento de la suite de navegador en esta sesión falló porque el ento
 5. Planear verificación manual de accesibilidad con teclado/lector/zoom y dispositivos, ya que la regresión automatizada no prueba esos entornos.
 
 **Dictamen:** no aparecen fallos críticos/altos reproducidos y la regresión automatizada actual pasa. El flujo auditado tiene un defecto de integridad de fecha de severidad media reproducible que conviene corregir en una fase autorizada. Este informe no aprueba la aplicación como libre de errores ni modifica el código.
+
+## Seguimiento PLAN-004 — 2026-10-31
+
+El responsable autorizó el ciclo acotado CONS-006/PLAN-004. FIX-FECHA-001 valida fechas calendario nuevas y conserva sin normalizar fechas históricas imposibles, excluyéndolas de cálculos temporales; las pruebas sintéticas pasaron. DATA-001 se reprodujo en dos pestañas Chromium y recibió protección preventiva (evento `storage` y comparación previa a escritura), con una ventana de carrera residual documentada. ACC-001 cambió roles ARIA de pestañas incompletos por botones agrupados; la automatización verificó atributos y responsive, pero no se usó lector de pantalla ni zoom asistivo. QA-006 pasó 39/39 en Edge 156.0.4314.50. No se cambió el esquema, la clave `pastillas-v1` ni los cálculos de cobertura. Ver detalles y pendientes en [PLAN-004](PLAN-004-prioridades-post-auditoria.md), [COB-001](COB-001-propuesta-cobertura.md), [UX-004](UX-004-propuesta-gestion-fichas.md) y [ACC-001](auditorias/ACC-001-auditoria-accesibilidad.md).

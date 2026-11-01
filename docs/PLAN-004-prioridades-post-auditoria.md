@@ -24,3 +24,17 @@ Comenzar por FIX-DATE-001 con diseño de compatibilidad antes de alterar validac
 - Preservar `pastillas-v1`, compatibilidad JSON, historiales, respaldo/restauración y lógica no relacionada.
 - Ejecutar regresión completa y documentar cualquier límite no probado.
 - Los cinco puntos son propuestas; no cambiar estados del `PLAN_DESARROLLO.md` ni realizar commits de implementación hasta autorización.
+
+**Nota de vigencia:** la regla de no cambiar estados ni crear commits correspondía a la preparación previa. Quedó sustituida por la autorización explícita CONS-006/PLAN-004; el estado y los commits locales descritos abajo reflejan ese alcance autorizado.
+
+## Ejecución autorizada — 2026-10-31
+
+El responsable autorizó el ciclo acotado tras CONS-006. Resultado local:
+
+- **FIX-FECHA-001:** aplicado en formularios a través de validador estricto de fechas calendario. Valores históricos con forma `YYYY-MM-DD` pero imposibles se conservan literalmente; el parseo de fecha los representa como inválidos y los excluye de las estimaciones/calendarios temporales correspondientes. Sin migración ni cambio de esquema.
+- **DATA-001:** reproducido en dos pestañas Chromium aisladas con datos sintéticos. La pestaña obsoleta recibe evento `storage`, bloquea guardados y ofrece recarga. Se compara además el valor persistido antes de escritura y antes de restaurar. Esto reduce el riesgo secuencial, pero no elimina la carrera entre lectura y escritura ni ofrece exclusión mutua; no se fusionan datos.
+- **COB-001 / UX-004:** propuestas documentales terminadas en `docs/COB-001-propuesta-cobertura.md` y `docs/UX-004-propuesta-gestion-fichas.md`; no se cambiaron cálculos ni se añadieron/eliminaron fichas.
+- **ACC-001:** semánticas de pestaña incompletas sustituidas por grupos de botones nativos con `aria-pressed`. Quedan pendientes pruebas manuales con lectores/zoom.
+- **QA-006:** `tests/persistence.spec.js` pasó **39/39** con Microsoft Edge `156.0.4314.50`, perfil temporal y datos ficticios. Incluyó persistencia, importación/restauración, service worker offline, vistas a 320–768 px, dos pestañas y compatibilidad con fechas históricas inválidas. `node --check` pasó para los scripts de aplicación y pruebas, `manifest.json` validó y `git diff --check` pasó. La primera ejecución en entorno restringido no pudo abrir loopback (`EACCES`); la ejecución local con permiso para el servidor de pruebas sí completó 39/39.
+
+Los detalles técnicos y límites se registran en [COB-001](COB-001-propuesta-cobertura.md), [UX-004](UX-004-propuesta-gestion-fichas.md), [ACC-001](auditorias/ACC-001-auditoria-accesibilidad.md) y `HISTORIAL_CAMBIOS.md`. No se hicieron pruebas asistivas manuales, ni se afirma que la protección entre pestañas sea transaccional. `pastillas-v1` permanece igual como clave y no se añadió migración.

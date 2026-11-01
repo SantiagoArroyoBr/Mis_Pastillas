@@ -11,6 +11,8 @@
 ## Organización básica
 
 - La aplicación inicia con dos fichas locales de personas. Selecciona la ficha correspondiente antes de añadir o editar información; cambiar de ficha cambia el contexto de las vistas.
+- Evita editar la misma instalación en varias pestañas a la vez. Si otra pestaña cambia los datos, Acompaña bloquea los guardados de esta pestaña y ofrece recargar el estado más reciente. Antes de recargar, copia aparte cualquier nota que aún no hayas guardado. Esta protección detecta cambios observados, pero no constituye una transacción entre pestañas.
+- Las fechas nuevas deben ser fechas reales del calendario. Los datos anteriores con una fecha imposible se conservan y se señalan como inválidos; no se convierten automáticamente. Las entradas inválidas no se usan como fechas válidas en calendarios o estimaciones temporales.
 - En **Inicio** se muestran resúmenes y pendientes derivados de la información capturada.
 - En **Medicinas** se administran medicinas e insumos, existencias, consumos, compras y precios según los controles disponibles. Revisa los datos antes de guardar; los avisos de reposición son estimaciones de inventario.
 - En **Pagos** se consultan asignaciones, citas y cobertura administrativa según los registros guardados.
