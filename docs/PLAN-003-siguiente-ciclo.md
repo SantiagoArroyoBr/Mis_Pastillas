@@ -1,6 +1,6 @@
 # PLAN-003 — Propuesta del siguiente ciclo funcional
 
-**Estado:** parcialmente consolidado por decisión del responsable el 2026-10-31. BACKUP-001, NOTIF-001 y QA-005 están aprobadas para este ciclo. DEV-003B y cambios de cálculos/pagos siguen pendientes y no autorizados. Código inspeccionado en `development` a partir del commit `12fa3a70dc4989957a2d5a22057b78bd07fbfdb8`.
+**Estado:** BACKUP-001, NOTIF-001, QA-005 y PREVIEW-003 cerradas funcionalmente según declaración del responsable del 2026-10-31. DEV-003B y cambios de cálculos/pagos siguen pendientes y no autorizados. Código inspeccionado para PLAN-003 en `development` a partir del commit `12fa3a70dc4989957a2d5a22057b78bd07fbfdb8`.
 
 ## Estado comprobado
 
@@ -25,6 +25,8 @@ Antes de cualquier corrección de cálculo, ejecutar una sesión de decisión DE
 ## Resultado del ciclo aprobado — 2026-10-31
 
 CONS-005 consolidó BACKUP-001, NOTIF-001 y QA-005 como trabajo autorizado. Los tres se implementaron localmente y la regresión pasó 45/45. La claridad de avisos y respaldo se completó sin cambiar persistencia ni reglas de negocio. DEV-003B y cambios al modelo/cálculos de pagos quedan fuera de este ciclo y requieren decisión/autorización futura.
+
+CIERRE-002 registra que el propietario probó PREVIEW-003 y aprobó el cierre funcional del alcance. No hay resultados detallados comunicados. La aprobación no autoriza producción.
 
 ## Decisiones pendientes del responsable
 

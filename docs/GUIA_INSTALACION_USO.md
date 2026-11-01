@@ -176,3 +176,7 @@ El responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualment
 **Avisos:** reposición se refiere a inventario, no a recordatorios de toma. El calendario aclara que una fecha asignada aún no cubierta en el conteo anterior no significa por sí sola deuda monetaria; el saldo general corresponde a costos de jornadas registrados menos abonos generales, no a adeudos individuales a enfermeros. Las citas próximas se distinguen de las recientes. Las notificaciones del sistema mantienen texto genérico, sin nombres de personas, medicamentos, citas ni importes. No cambiaron umbrales, cálculos, permisos ni frecuencia.
 
 QA-005: `node --test tests/payments.spec.js tests/persistence.spec.js`, 45/45 en Edge 156.0.4314.50, perfil temporal y datos ficticios; se recorrieron seis anchuras responsive desde 320 px y se incluyó el flujo de persistencia/PWA/offline existente. La prueba de lectura fallida usa error simulado. No se probó Firefox ni dispositivo físico.
+
+### CIERRE-002 y PREVIEW-003 — 2026-10-31
+
+El propietario declaró: “He probado PREVIEW-003 y autorizo el cierre funcional de BACKUP-001, NOTIF-001, QA-005 y PREVIEW-003.” Se registra esa aprobación manual, sin especificar casos, navegadores, dispositivos ni resultados no comunicados. El push a `development` llegó a `c4512dbd6eb97ef5aeb660d812a93078c943459a`; el check GitHub de Vercel reportó `success`. Esta comprobación del check no es una prueba funcional independiente. La publicación en producción no está autorizada.
