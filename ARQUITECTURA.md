@@ -8,6 +8,7 @@ Este documento describe hechos comprobados en el repositorio y los distingue de 
 - **PWA y caché:** `manifest.json` describe la instalación; `sw.js` usa `acompanha-v9` con el prefijo de caché propio `acompanha-`. La activación limpia versiones anteriores de ese prefijo y la caché legada conocida `cuidados-v8`, preservando cachés ajenas del origen. Precarga por separado `/` y `/index.html` junto con recursos estáticos conocidos; usa red primero y su caché como fallback offline.
 - **Persistencia:** el estado de la aplicación se almacena en el navegador mediante `localStorage`, bajo la clave `pastillas-v1`. El código valida y carga el estado y contiene rutas para fallos de almacenamiento. Los respaldos se exportan y restauran como JSON con validación.
 - **Privacidad local:** `localStorage` no cifra los datos por sí mismo. Los respaldos JSON también contienen la información de cuidado y requieren protección del dispositivo y custodia privada.
+- **Modelo administrativo de enfermería (ADMIN-001, local en `development`):** las tarifas opcionales por enfermero viven en `pay.nurses[].ratesCents` (centavos, jornada completa/media); un servicio nuevo conserva su ID, enfermero, modalidad e importe histórico en `pay.v`. Los abonos administrativos y sus cancelaciones append-only viven separados en `pay.generalLedger`. El resumen se limita a servicios con costo verificable y abonos generales activos; no descuenta `pay.ledger` de PAG-001, pagos globales legados ni asignaciones antiguas sin costo. La extensión usa la misma clave `pastillas-v1` y no reasigna movimientos previos.
 - **Avisos y compartir:** las notificaciones locales muestran categorías generales de pendientes. WhatsApp y Google Calendar presentan contenido editable antes de abrir el servicio externo.
 - **Tipografía:** Nunito se sirve desde `fonts/Nunito[wght].ttf`, variable en pesos 200–1000, con licencia SIL Open Font License 1.1 incluida en `fonts/OFL.txt`. La interfaz no requiere Google Fonts y el recurso está precargado por el service worker.
 - **UX/UI:** se aplican verde bosque `#315B50`, crema `#F4EBDD`, superficie `#FAF8F3`, carbón `#293A34` y borde `#E4E0D6`. El énfasis ámbar usa `#8A5200` para alcanzar contraste de texto; el respaldo se presenta en columna en ventanas de hasta 360 px. No se añadieron dependencias visuales ni recursos remotos.
@@ -28,11 +29,11 @@ Antes de cualquier publicación pública se requiere una etapa específica de ev
 index.html                 estructura de interfaz y orden de carga
 styles.css                 identidad visual y adaptación responsive
 app.js                     composición, estado, persistencia, vistas principales e importación/restauración
-compatibility.js           estado inicial, migración y validación compatible
+compatibility.js           estado inicial, migración y validación compatible de tarifas, servicios y libros de pago
 domain.js                  fechas, calendarios y cálculos puros
-payments.js                cobertura, adeudos, vencimientos y cálculos monetarios puros del libro individual
+payments.js                cobertura y cálculos monetarios puros de PAG-001 y del saldo general administrativo
 inventory.js               inventario, compras, consumos y precios
-care-ui.js                 pantallas y formularios de pacientes y pagos
+care-ui.js                 pantallas compactas de enfermería/pagos, tarifas, jornadas y abonos generales
 appointments.js            citas y sus acciones
 forms.js                   renderizado de formularios
 sharing.js                 vistas previas e integración de compartir

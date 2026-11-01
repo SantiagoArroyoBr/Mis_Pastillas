@@ -55,6 +55,26 @@
       });
       return remaining ? null : allocations;
     }
+
+    function generalSummary(services, movements) {
+      const costCents = services.reduce((sum, service) => {
+        const amount = service && service.amountCents;
+        if (!Number.isSafeInteger(amount) || amount < 0) return sum;
+        const next = sum + amount;
+        if (!Number.isSafeInteger(next)) throw new Error('El total de costos excede la precisión monetaria segura.');
+        return next;
+      }, 0);
+      const cancelledIds = new Set(movements.filter(m => m && m.type === 'cancellation').map(m => m.originalId));
+      const receipts = movements.filter(m => m && m.type === 'receipt');
+      const receivedCents = receipts.reduce((sum, receipt) => {
+        if (cancelledIds.has(receipt.id)) return sum;
+        const next = sum + receipt.amountCents;
+        if (!Number.isSafeInteger(next)) throw new Error('El total de abonos excede la precisión monetaria segura.');
+        return next;
+      }, 0);
+      return { costCents, receivedCents, balanceCents: costCents - receivedCents,
+        cancelledIds, receipts: receipts.map(receipt => ({...receipt,cancelled:cancelledIds.has(receipt.id)})) };
+    }
     function cover(i) {
       const state = getState(), cfg = config(i);
       const total = cfg.pays.filter(x => !x.old).reduce((sum, x) => sum + x.n, 0);
@@ -128,7 +148,7 @@
       return out;
     }
 
-    return Object.freeze({ cover, oweSummary, lastPay, pillEvents, due, toCents, ledgerSummary, allocatePayment });
+    return Object.freeze({ cover, oweSummary, lastPay, pillEvents, due, toCents, ledgerSummary, allocatePayment, generalSummary });
   }
   window.AcompanaPayments = Object.freeze({ create });
 })();

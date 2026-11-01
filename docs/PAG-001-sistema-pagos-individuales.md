@@ -61,3 +61,9 @@ En un perfil/navegador aislado, con una ficha y personas ficticias:
 7. Repite la lectura a 320 px y navega los formularios con teclado. Confirma el servicio pagado bloqueado contra eliminación.
 
 No reutilizar el perfil familiar ni datos reales. La prueba automatizada local no reemplaza esta validación visual o en dispositivos físicos.
+
+## Continuidad del modelo — ADMIN-001, 2026-10-31
+
+PAG-001 documenta el libro individual histórico y las relaciones de abono asociadas. En la evolución ADMIN-001, la experiencia principal de pagos cambia a un adeudo general del cliente con la administradora. Los movimientos ya guardados en `pay.ledger` siguen intactos, conservan sus aplicaciones y se muestran en el archivo histórico; no se descuentan del nuevo saldo general ni se transforman en pagos administrativos. No se ofrece conciliación individual nueva desde el flujo principal.
+
+Las tarifas ahora se configuran por enfermero y modalidad en Pagos; una jornada nueva fija su costo al asignarse desde Calendario. El nuevo libro administrativo `pay.generalLedger` permanece separado del individual. Para el comportamiento vigente, compatibilidad, riesgos y pruebas, consultar [ADMIN-001](ADMIN-001-tarifas-adeudo-general.md). Automatización integrada local: 42/42 aprobada en Edge 156.0.4314.50 con fixtures ficticios; revisión manual del responsable pendiente. `pastillas-v1` no cambió.

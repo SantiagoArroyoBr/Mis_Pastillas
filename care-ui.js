@@ -1,73 +1,54 @@
 // Presentación y formularios del área Pagos/calendario de cuidados.
 (() => {
-  function create({getState,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,amountVisible,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,ledger,ledgerSummary,allocatePayment,toCents,newId}) {
+  function create({getState,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,amountVisible,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,allServices,ledger,generalLedger,ledgerSummary,allocatePayment,generalSummary,toCents,newId}) {
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
-    const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;function patientHTML(p,i){
-  const c=cfg(i),conf=!!c.who;
-  const nur=nurList(i);
-  const chips=nur.map((x,k)=>`<button class="nchip" style="background:${x.c}" data-pa="nedit" data-i="${i}" data-k="${k}">${esc(x.n)}</button>`).join('')+`<button class="nchip add" data-pa="nadd" data-i="${i}">+ Agregar enfermero/a</button>`;
-  const nurH=`<p class="info nurses"><b>Enfermeros</b> <span class="hint">· Los días se asignan en Inicio.</span></p><div class="nlist">${chips}</div>`;
-  const ren=`<div class="row" style="margin-top:8px"><button class="btn ghost small" data-pa="ren" data-i="${i}">Cambiar nombre</button></div>`;
-  const individual=services&&ledger?nur.map(n=>n.id?{n,s:ledgerSummary(services(i),ledger(),n.id)}:null).filter(Boolean):[];
-  const ledgerHTML=individual.length?`<p class="info"><b>Servicios y saldos individuales</b> <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></p>${individual.map(({n,s})=>{
-    const movements=ledger().filter(m=>m.nurseId===n.id).sort((a,b)=>b.date.localeCompare(a.date));
-    return `<div class="vrow"><div><b>${esc(n.n)}</b><br><span class="hint">${s.services.length} servicios · costo ${A(s.costCents/100)} · pagado ${A(s.paidCents/100)} · pendiente ${A(s.balanceCents/100)} MXN</span></div></div>`
-      +(movements.length?`<p class="hint">Movimientos individuales</p>${movements.map(m=>{
-        const applied=m.allocations.map(a=>{const service=services(i).find(x=>x.id===a.serviceId);return service?`${fmtD(service.date)} · ${A(a.amountCents/100)} MXN`:''}).filter(Boolean).join(', ');
-        return `<div class="vrow"><div>${esc(fmtD(m.date))}${m.concept?' · '+esc(m.concept):''}<br><span class="amtv">${A(m.amountCents/100)} MXN</span>${applied?`<br><span class="hint">Aplicado a: ${esc(applied)}</span>`:''}</div><span class="hint">${m.allocations.length} aplicación(es)</span></div>`;
-      }).join('')}`:'' );
-  }).join('')}<p class="hint">Los pagos históricos globales y los servicios antiguos sin tarifa quedan fuera de estos saldos.</p><button class="btn ghost small" data-pa="ipay" data-i="${i}">Registrar abono individual</button>`:'';
-  if(!conf){
-    return `<article class="card gray">
-      <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3></div>
-      <p class="info">Aún no hay un pago configurado para ${esc(p.name)}. Anota a quién se le paga, el tipo de turno de sus enfermeros y desde cuándo se cuentan los días.</p>
-      <button class="btn" data-pa="cfg" data-i="${i}">Configurar pago</button>
-    ${nurH}${ren}
+    const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
+function patientHTML(p,i){
+  const nurses=nurList(i),today=ymd(new Date());
+  const assignments=Object.entries(S.pay.v).filter(([date])=>date<=today).flatMap(([date,byPatient])=>(byPatient[i]||[]).map(entry=>({date,entry})));
+  const nurseRows=nurses.map((n,k)=>{
+    const rows=assignments.filter(({entry})=>entry.service?.nurseId===n.id||entry.n===n.n);
+    const full=rows.filter(({entry})=>(entry.service&&entry.service.type==='full')||(!entry.service&&entry.s==='full')).length;
+    const half=rows.filter(({entry})=>(entry.service&&entry.service.type==='half')||(!entry.service&&entry.s==='half')).length;
+    const unknown=rows.length-full-half;
+    const rates=n.ratesCents||{};
+    const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:''].filter(Boolean).join(' · ');
+    return `<div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b><br><span class="hint">${rateLabel||'Sin tarifa para nuevas jornadas'}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}">Editar</button></div>`;
+  }).join('');
+  const oldPayments=cfg(i).pays||[],oldIndividual=(ledger()||[]).filter(m=>m.patientIndex===i);
+  const oldArchive=oldPayments.length||oldIndividual.length?`<details class="legacy-payments"><summary>Historial anterior no incluido en el saldo general</summary><p class="hint">Estos registros se conservan como fueron guardados. No se reinterpretan ni se descuentan del saldo general porque su relación con los cargos no está confirmada.</p>${oldPayments.map(m=>`<div class="vrow"><div>${m.d?esc(fmtD(m.d)):'Fecha anterior sin dato'} · ${m.n} días${m.a!==null&&m.a!==undefined?` · ${A(m.a)} (importe histórico)`:''}${m.old?' · anterior':''}</div></div>`).join('')}${oldIndividual.map(m=>`<div class="vrow"><div>${esc(fmtD(m.date))} · movimiento individual anterior · ${A(m.amountCents/100)} MXN</div><span class="hint">Conservado</span></div>`).join('')}</details>`:'';
+  const ratesVisible=nurses.some(n=>n.ratesCents&&Object.values(n.ratesCents).some(v=>v!==null&&v!==undefined));
+  return `<article class="card care-staff"><div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><button class="link" data-pa="ren" data-i="${i}">Editar ficha</button></div>
+    <h4>Enfermeros y tarifas</h4>${nurseRows||'<p class="hint">Aún no hay enfermeros configurados.</p>'}
+    <button class="btn ghost small" data-pa="nadd" data-i="${i}">Agregar enfermero/a</button>
+    ${ratesVisible?'<p class="hint">Las tarifas de nuevas jornadas se eligen aquí y quedan guardadas en cada asignación.</p>':''}${oldArchive}</article>`;
+}
+
+function generalSummaryHTML(){
+  const servicesAll=allServices(),moves=generalLedger(),summary=generalSummary(servicesAll,moves);
+  const oldAssignments=Object.values(S.pay.v).reduce((sum,byPatient)=>sum+Object.values(byPatient||{}).reduce((n,list)=>n+(Array.isArray(list)?list.filter(e=>e&&!e.service).length:0),0),0);
+  const oldPayments=(S.pay.cfg||[]).reduce((sum,c)=>sum+((c&&Array.isArray(c.pays))?c.pays.length:0),0);
+  const oldIndividual=ledger().length;
+  const count=(n,one,many)=>`${n} ${n===1?one:many}`;
+  const warning=oldAssignments||oldPayments||oldIndividual?`<p class="hint">Saldo verificable con jornadas nuevas que tienen tarifa. No incluye ${count(oldAssignments,'asignación antigua sin costo','asignaciones antiguas sin costo')}, ${count(oldPayments,'pago global anterior','pagos globales anteriores')} ni ${count(oldIndividual,'movimiento individual PAG-001','movimientos individuales PAG-001')}. No representa conciliación completa de la historia.</p>`:'<p class="hint">Saldo calculado con los costos registrados y los abonos generales activos.</p>';
+  const movements=moves.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const rows=movements.map(m=>{
+    if(m.type==='cancellation')return `<div class="vrow"><div>${esc(fmtD(m.date))} · Cancelación de abono<br><span class="hint">Referencia ${esc(m.originalId)}${m.concept?' · '+esc(m.concept):''}</span></div><span class="amtv">${A(m.amountCents/100)} MXN</span></div>`;
+    const cancelled=summary.cancelledIds.has(m.id);
+    return `<div class="vrow"><div>${esc(fmtD(m.date))}${m.concept?' · '+esc(m.concept):''}<br><span class="hint">${cancelled?'Cancelado':'Abono general recibido'}</span></div><span class="amtv">${A(m.amountCents/100)} MXN</span>${cancelled?'':`<button class="link" data-pa="adminCancel" data-id="${esc(m.id)}">Cancelar</button>`}</div>`;
+  }).join('');
+  const canReceive=summary.balanceCents>0;
+  return `<article class="card admin-summary"><div class="top"><h2>Total pendiente de pago</h2><button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></div>
+    <p class="big">${A(summary.balanceCents/100)} <small>MXN</small></p>
+    <div class="vrow"><span>Costo de jornadas registradas</span><b>${A(summary.costCents/100)} MXN</b></div>
+    <div class="vrow"><span>Abonos generales recibidos</span><b>${A(summary.receivedCents/100)} MXN</b></div>${warning}
+    <button class="btn" data-pa="adminPay"${canReceive?'':' disabled'}>Registrar abono</button>
+    <details><summary>Historial de abonos y cancelaciones</summary>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
     </article>`;
-  }
-  const cv=cover(i),[ic,tx]=PLBL[cv.st];
-  const lp=lastPay(i),ow=oweSummary(i);
-  const anyAmt=c.rate!=null||c.pays.some(x=>x.a!=null);
-  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
-  const head=cv.has
-    ? `<p class="big">${cv.owed} <small>${cv.owed===1?'día sin cubrir':'días sin cubrir'}</small></p>
-      ${c.rate!=null?`<p class="info">Estimación de tarifa diaria para días sin cobertura: <b>${A(cv.owed*c.rate)}</b> <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver monto'}</button></p>`:''}
-      <p class="info"><span class="hint">${cv.remaining>0?'Hay '+pl(cv.remaining,'día')+' de cobertura anotada por delante. ':''}${cv.future?'Hay '+pl(cv.future,'día')+' asignado'+(cv.future===1?'':'s')+' más adelante sin cobertura. ':''}Se cuentan las fechas con enfermero registrado desde el ${esc(fmtD(c.base))}.</span></p>`
-    : '<p class="info">Indica desde cuándo se cuentan los días: toca “Editar pago”.</p>';
-  const uncoveredServices=ow.rows.reduce((sum,row)=>sum+row.c,0);
-  const oweH=(cv.has&&cv.owed)
-    ? `<p class="info" style="margin-top:6px"><b>Asistencia en fechas sin cubrir</b></p><p class="hint">${uncoveredServices} servicios registrados en ${pl(cv.owed,'fecha')}. Esto cuenta asignaciones; no determina importes ni a quién se pagó.</p>`
-      +ow.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'día')}</span></div></div>`).join('')
-    : '';
-  const hist=c.pays.map((x,k)=>({x,k})).slice(-5).reverse().map(({x,k})=>`<div class="vrow"><div>${x.d?esc(fmtD(x.d)):'—'} · <b>${pl(x.n,'día')}</b>${x.old?' <span class="hint">(conteo anterior)</span>':''}${x.a!=null?`<br><span class="amtv">${A(x.a)}</span>`:''}</div><button class="link" data-pa="pdel" data-i="${i}" data-k="${k}">Quitar</button></div>`).join('');
-  const sumH=lp
-    ? `<p class="info" style="margin-top:14px"><b>Alcance calculado del último registro</b> <span class="hint">(${pl(lp.n,'día')} de cobertura anotada)</span></p><p class="hint">${pl(lp.days,'fecha')} con asignaciones · ${pl(lp.services,'servicio')} registrados. La cobertura cuenta fechas únicas.</p>`
-      +(lp.rows.length
-        ? `<p class="hint">Asistencia por persona en esas fechas; no indica a quién se entregó el dinero.</p>`
-          +lp.rows.map(o=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,o.n)}"></span><b>${esc(o.n)}</b><br><span class="hint">${pl(o.c,'servicio')}</span></div></div>`).join('')
-          +(c.rate!=null?`<div class="vrow"><b>Estimación con tarifa diaria vigente para esas fechas</b><span class="amtv">${A(lp.total)}</span></div><p class="hint">No hay tarifas guardadas por enfermero o servicio; este monto no es el costo total individual de los servicios.</p>`:'<p class="hint">No hay tarifa diaria para calcular una estimación; tampoco hay tarifas por persona o servicio.</p>')
-        : '<p class="hint">Aún no hay enfermeros registrados en esos días.</p>')
-      +`<p class="hint">${lp.n-lp.days} día(s) de cobertura anotada aún sin fecha asignada. El registro de pago corresponde a la ficha completa, no a un enfermero. Este cálculo puede cambiar al editar asignaciones; no es un comprobante histórico ni un período vinculado al pago.</p>`
-    : '';
-  return `<article class="card ${cv.st}">
-    <div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><span class="badge">${ic} ${tx}</span></div>
-    <p class="info">Se le paga a <b>${esc(c.who)}</b>. Enfermeros de <b>${TIMES[c.time].toLowerCase()}</b>.${c.note?'<br><span class="hint">'+esc(c.note)+'</span>':''}</p>
-    ${head}
-    <p class="hint">Cada fecha con asignación cuenta como un día, aunque haya varias personas o medio tiempo. Los días registrados cubren primero las fechas más antiguas desde la fecha base. El monto anotado no determina cobertura ni saldo monetario; las estimaciones usan la tarifa actual.</p>
-    <p class="hint">Los pagos se guardan para la ficha completa. No se selecciona un enfermero ni se puede atribuirle el importe a una persona de la lista.</p>
-    ${oweH}
-    <button class="btn" style="margin-top:10px" data-pa="payreg" data-i="${i}">Registrar pago</button>
-    <div class="row"><button class="btn ghost small" data-pa="cfg" data-i="${i}">Editar pago</button></div>
-    ${c.pays.length?`<p class="info" style="margin-top:14px"><b>Pagos registrados</b>${anyAmt?` <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button>`:''}</p>${hist}<button class="link" data-pa="creset" data-i="${i}">Empezar un conteo nuevo…</button>`:''}
-    ${nurH}
-    ${sumH}
-    ${ledgerHTML}
-    ${ren}
-  </article>`;
 }
 
 function renderPay(){
-  $('#payView').innerHTML=S.p.map((p,i)=>patientHTML(p,i)).join('');
+  $('#payView').innerHTML=generalSummaryHTML()+S.p.map((p,i)=>patientHTML(p,i)).join('');
 }
 
 function payForm(i){
@@ -127,6 +108,41 @@ function individualPayForm(i){
   },'Guardar abono');
 }
 
+function generalPayForm(){
+  const movements=generalLedger(),summary=generalSummary(allServices(),movements);
+  if(summary.balanceCents<=0){form('No hay saldo verificable para abonar',[],()=>{},'Entendido');return}
+  form('Registrar abono a la administradora',[
+    {id:'adminDate',l:'Fecha',t:'date',v:ymd(new Date())},
+    {id:'adminAmount',l:'Importe recibido (MXN)',v:'',h:'El abono reduce el saldo general. No se distribuye entre enfermeros.'},
+    {id:'adminConcept',l:'Concepto o nota (opcional)',t:'text',ph:'Ej. transferencia',v:''}
+  ],v=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.adminDate))return'Elige una fecha válida.';
+    const cents=toCents(v.adminAmount);if(!Number.isSafeInteger(cents)||cents<=0)return'Escribe un importe mayor que cero, con hasta dos decimales.';
+    const current=generalSummary(allServices(),movements);
+    if(cents>current.balanceCents)return'El abono supera el saldo verificable. No se registran anticipos.';
+    movements.push({id:newId('admin_receipt'),type:'receipt',date:v.adminDate,amountCents:cents,concept:v.adminConcept.trim().slice(0,120)});
+    save();render();
+  },'Guardar abono');
+}
+
+function cancelGeneralPayForm(id){
+  const movements=generalLedger(),summary=generalSummary(allServices(),movements);
+  const receipt=movements.find(m=>m.id===id&&m.type==='receipt');
+  if(!receipt||summary.cancelledIds.has(id)){form('Abono no disponible para cancelar',[],()=>{},'Entendido');return}
+  form('Cancelar abono recibido',[
+    {id:'cancelDate',l:'Fecha de cancelación',t:'date',v:ymd(new Date())},
+    {id:'cancelReason',l:'Motivo (opcional)',t:'text',ph:'Ej. importe capturado incorrectamente',v:''}
+  ],v=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.cancelDate))return'Elige una fecha válida.';
+    if(v.cancelDate<receipt.date)return'La cancelación no puede tener una fecha anterior al abono.';
+    const latest=generalSummary(allServices(),movements);
+    if(latest.cancelledIds.has(id))return'Este abono ya fue cancelado.';
+    movements.push({id:newId('admin_cancel'),type:'cancellation',originalId:id,date:v.cancelDate,amountCents:receipt.amountCents,concept:v.cancelReason.trim().slice(0,120)});
+    save();render();
+  },'Confirmar cancelación');
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>Se cancelará el abono de <b>${A(receipt.amountCents/100)} MXN</b> del ${esc(fmtD(receipt.date))}. El registro original se conservará y el saldo aumentará en ese importe.</p>`);
+}
+
 function resetForm(i){
   const p=S.p[i],c=cfg(i);
   form('Empezar un conteo nuevo: '+esc(p.name),[
@@ -141,27 +157,53 @@ function resetForm(i){
 function nurseForm(i,k){
   const p=S.p[i],cur=k===undefined?null:nurList(i)[k];
   if(k!==undefined&&!cur)return;
+  const rates=cur&&cur.ratesCents?cur.ratesCents:{full:null,half:null};
+  const dollars=c=>c===null||c===undefined?'':`${Math.floor(c/100)}.${String(c%100).padStart(2,'0')}`;
   form(cur?'Editar a '+esc(cur.n):'Agregar enfermero/a de '+esc(p.name),[
     {id:'nn',l:'Nombre',t:'text',ph:'Ej. María',v:cur?cur.n:''},
-    {id:'nc',l:'Color en el calendario',t:'color',v:cur?cur.c:nextColor(i)}
+    {id:'nc',l:'Color en el calendario',t:'color',v:cur?cur.c:nextColor(i)},
+    {id:'rateFull',l:'Tarifa de jornada completa (MXN; vacío si no la ofrece)',v:dollars(rates.full),h:'Importe independiente. Se guarda en centavos; $0 es una tarifa válida.'},
+    {id:'rateHalf',l:'Tarifa de media jornada (MXN; vacío si no la ofrece)',v:dollars(rates.half),h:'Importe independiente. No se calcula a partir de la otra modalidad.'}
   ],v=>{
     const n=v.nn.trim().slice(0,40);
     if(!n)return'Escribe el nombre.';
     if(!NPAL.includes(v.nc))return'Elige un color.';
     if(nurList(i).some((x,j)=>j!==k&&x.n.toLowerCase()===n.toLowerCase()))return'Ya hay un enfermero/a con ese nombre.';
+    const parseRate=(raw,label)=>{
+      if(String(raw).trim()==='')return null;
+      const cents=toCents(raw);return Number.isSafeInteger(cents)&&cents>=0?cents:label;
+    };
+    const full=parseRate(v.rateFull,'La tarifa de jornada completa no es válida.');if(typeof full==='string')return full;
+    const half=parseRate(v.rateHalf,'La tarifa de media jornada no es válida.');if(typeof half==='string')return half;
+    if(full===null&&half===null&&(!cur||cur.ratesCents))return'Configura al menos una modalidad con tarifa. Una tarifa de $0 sí cuenta como configurada.';
+    if(cur&&cur.ratesCents){
+      if((cur.ratesCents.full!==null&&full===null)||(cur.ratesCents.half!==null&&half===null))return'Para retirar una modalidad usa su acción de retiro, que solicita confirmación.';
+    }
     if(cur){
       if(cur.n!==n){
         Object.keys(S.pay.v).forEach(dk=>{const a=S.pay.v[dk][i];if(Array.isArray(a))a.forEach(e=>{if(e.n===cur.n)e.n=n})});
         cur.n=n;
       }
-      cur.c=v.nc;
+      cur.c=v.nc;cur.id=cur.id||newId('nurse');if(full!==null||half!==null)cur.ratesCents={full,half};
     }else{
       const L=(S.pay.nurses[i]=Array.isArray(S.pay.nurses[i])?S.pay.nurses[i]:[]);
-      L.push({n,c:v.nc});
+      L.push({id:newId('nurse'),n,c:v.nc,ratesCents:{full,half}});
     }
     save();render();
   },'Guardar');
-  if(cur)$('#nc').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="nrm" data-i="${i}" data-k="${k}">Quitar de la lista</button>`);
+  if(cur){
+    $('#nc').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="nrm" data-i="${i}" data-k="${k}">Quitar de la lista</button>`);
+    ['full','half'].forEach(type=>{
+      if(rates[type]===null||rates[type]===undefined)return;
+      const id=type==='full'?'rateFull':'rateHalf',other=type==='full'?'half':'full',label=type==='full'?'jornada completa':'media jornada';
+      $('#'+id).insertAdjacentHTML('afterend',`<button type="button" class="link" id="removeRate-${type}">Retirar modalidad ${label}</button>`);
+      $('#removeRate-'+type).onclick=()=>{
+        if(rates[other]===null||rates[other]===undefined){form('Configura otra modalidad primero',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>El enfermero debe conservar al menos una modalidad con tarifa. Agrega la otra tarifa antes de retirar esta.</p>');return}
+        form('¿Retirar modalidad '+label+'?',[],()=>{cur.ratesCents={...rates,[type]:null};save();render()},'Retirar modalidad');
+        dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>Dejará de estar disponible para nuevas asignaciones. Los servicios existentes conservarán su jornada y costo.</p>');
+      };
+    });
+  }
 }
 
 function renForm(i){
@@ -180,8 +222,8 @@ function dayForm(i,ds){
   const label=dt.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   const ev=pillEv(i)[ds];
   let info='';
-  if(cv.covered.has(ds))info+='<p class="info">✓ Día pagado.</p>';
-  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">💵 Día con enfermero sin pagar.</p>';
+  if(cv.covered.has(ds))info+='<p class="info">Fecha cubierta según el conteo anterior de pagos.</p>';
+  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">Fecha asignada sin cubrir según el conteo anterior.</p>';
   S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</p>`});
   if(dt.getDay()===0)info+='<p class="hint">Los domingos solo cuentan como día si hay un enfermero registrado.</p>';
   if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
@@ -189,40 +231,52 @@ function dayForm(i,ds){
   const cur=ents(ds,i);
   const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>${e.service?`<br><span class="hint">Servicio ${e.service.type==='half'?'medio turno':'completo'} · ${A(e.service.amountCents/100)} MXN</span>`:'<br><span class="hint">Registro anterior, sin tarifa conciliable</span>'}</div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
   const title=label+' · '+esc(p.name);
-  if(!nurses.length){
-    form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Ir a Pagos');
-    dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Aún no hay enfermeros para ${esc(p.name)}. Agrégalos en la pestaña Pagos y luego asígnalos aquí.</p>`);
+  const eligible=nurses.map((n,k)=>({n,k})).filter(({n})=>n.ratesCents&&(['full','half'].some(type=>Number.isSafeInteger(n.ratesCents[type])&&n.ratesCents[type]>=0)));
+  if(!eligible.length){
+    form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Configurar en Pagos');
+    dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Configura al menos una tarifa en Pagos para permitir nuevas asignaciones.</p>`);
     return;
   }
   const wdn=WD_LONG[dt.getDay()];
   const once='Solo este día',weekly='Cada '+wdn+' hasta fin de mes';
   form(title,[
-    {id:'nm',l:'Asignar enfermero o enfermera ('+TIMES[c.time].toLowerCase()+')',t:'text',ph:'Toca un nombre',v:'',presets:nurses.map(x=>({l:esc(x.n),v:esc(x.n)}))},
-    {id:'serviceAmount',l:'Costo de este servicio (MXN)',v:'',h:'Se guarda como tarifa histórica de este servicio y no cambia al editar tarifas futuras.'},
-    {id:'serviceType',l:'Tipo de jornada',t:'select',v:'full',options:[{v:'full',l:'Tiempo completo'},{v:'half',l:'Medio tiempo'}]},
+    {id:'nm',l:'Enfermero/a',t:'select',v:String(eligible[0].k),options:eligible.map(({n,k})=>({v:String(k),l:n.n}))},
+    {id:'serviceType',l:'Jornada',t:'select',v:'full',options:[{v:'full',l:'Jornada completa'},{v:'half',l:'Media jornada'}]},
     {id:'rp',l:'¿Repetir?',t:'text',v:once,presets:[{l:once,v:once},{l:weekly,v:weekly}]}
   ],v=>{
-    const n=v.nm.trim();
-    if(!n)return;
-    if(!nurses.some(x=>x.n===n))return'Elige un enfermero/a de los botones. Para agregar uno nuevo, ve a Pagos.';
-    const amountCents=toCents(v.serviceAmount);if(!Number.isSafeInteger(amountCents)||amountCents<0)return'Escribe el costo del servicio con hasta dos decimales.';
-    const nurse=nurses.find(x=>x.n===n);if(!nurse.id)nurse.id=newId('nurse');
+    const selected=eligible.find(x=>String(x.k)===v.nm);if(!selected)return'Elige un enfermero/a configurado.';
+    const nurse=selected.n,type=v.serviceType;
+    const amountCents=nurse.ratesCents&&nurse.ratesCents[type];
+    if(!['full','half'].includes(type)||!Number.isSafeInteger(amountCents)||amountCents<0)return'Esta jornada no está ofrecida por el enfermero/a seleccionado.';
+    if(!nurse.id)nurse.id=newId('nurse');
+    const n=nurse.n;
     const dates=[ds];
     if(v.rp.trim()===weekly){for(let k=1;;k++){const n2=new Date(y,m-1,d+7*k);if(n2.getMonth()!==m-1)break;dates.push(ymd(n2))}}
     dates.forEach(dk=>{
       const day=(S.pay.v[dk]=S.pay.v[dk]||{});
       const a=(day[i]=Array.isArray(day[i])?day[i]:[]);
-      if(!a.some(e=>e.n===n))a.push({n,service:{id:newId('service'),nurseId:nurse.id,type:v.serviceType==='half'?'half':'full',amountCents}});
+      if(!a.some(e=>e.n===n))a.push({n,service:{id:newId('service'),nurseId:nurse.id,type,amountCents}});
     });
     save();render();
   },'Asignar');
-  $('#nm').readOnly=true;$('#rp').readOnly=true;
-  dlg.querySelectorAll('.pbtn[data-set="nm"]').forEach(b=>{b.classList.add('col');b.style.background=nurColor(i,b.dataset.val)});
+  const nurseSelect=$('#nm'),typeSelect=$('#serviceType');
+  nurseSelect.addEventListener('change',updateType);
+  typeSelect.addEventListener('change',updateCost);
+  nurseSelect.insertAdjacentHTML('afterend','<p class="info" id="serviceCost" aria-live="polite"></p>');
+  function updateCost(){const item=eligible.find(x=>String(x.k)===nurseSelect.value),cents=item&&item.n.ratesCents[typeSelect.value];$('#serviceCost').textContent=Number.isSafeInteger(cents)?'Costo de la jornada: '+A(cents/100)+' MXN':''}
+  function updateType(){
+    const item=eligible.find(x=>String(x.k)===nurseSelect.value);if(!item)return;
+    const available=['full','half'].filter(type=>Number.isSafeInteger(item.n.ratesCents[type])&&item.n.ratesCents[type]>=0);
+    const selected=available.includes(typeSelect.value)?typeSelect.value:available[0];
+    typeSelect.innerHTML=available.map(type=>`<option value="${type}">${type==='full'?'Jornada completa':'Media jornada'}</option>`).join('');
+    typeSelect.value=selected;typeSelect.disabled=available.length===1;updateCost();
+  }
+  updateType();$('#rp').readOnly=true;
   dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list);
 }
 
 // ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
-  return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,resetForm,nurseForm,renForm,dayForm});
+  return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,renForm,dayForm});
   }
   window.AcompanaCareUI=Object.freeze({create});
 })();

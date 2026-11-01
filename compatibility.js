@@ -40,11 +40,15 @@ function migrate(d){
   if(!Array.isArray(z.nurses))z.nurses=[];
   z.nurses=z.nurses.map(a=>Array.isArray(a)?a.map((x,k)=>{
     if(typeof x==='string'&&x)return{n:x,c:NPAL[k%NPAL.length]};
-    if(x&&typeof x.n==='string'&&x.n)return{...(typeof x.id==='string'&&x.id?{id:x.id}:{}),n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length]};
+    if(x&&typeof x.n==='string'&&x.n)return{
+      ...(typeof x.id==='string'&&x.id?{id:x.id}:{}),n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length],
+      ...(x.ratesCents&&typeof x.ratesCents==='object'?{ratesCents:{full:x.ratesCents.full,half:x.ratesCents.half}}:{})
+    };
     return null;
   }).filter(Boolean):[]);
   if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
   if(!Array.isArray(z.ledger))z.ledger=[];
+  if(!Array.isArray(z.generalLedger))z.generalLedger=[];
   const defShifts=()=>[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
   const normShifts=a=>{
     const o=(Array.isArray(a)?a:[]).filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
@@ -116,6 +120,7 @@ function validateStoredState(d){
     ['w','shifts','nurses','cfg'].forEach(k=>{if(own(z,k)&&!Array.isArray(z[k]))fail('Estructura de pagos no válida: '+k+'.')});
     if(own(z,'v')&&(!z.v||typeof z.v!=='object'||Array.isArray(z.v)))fail('Asignaciones de pagos no válidas.');
     if(own(z,'ledger')&&!Array.isArray(z.ledger))fail('Libro de pagos individuales no válido.');
+    if(own(z,'generalLedger')&&!Array.isArray(z.generalLedger))fail('Libro de abonos generales no válido.');
     if(z.v&&typeof z.v==='object')Object.values(z.v).forEach(byPatient=>{
       if(!byPatient||typeof byPatient!=='object'||Array.isArray(byPatient))fail('Asignación por fecha no válida.');
       Object.values(byPatient).forEach(list=>{if(!Array.isArray(list))fail('Lista de asignaciones no válida.');list.forEach(e=>{if(e&&own(e,'service')){const s=e.service;if(!s||typeof s!=='object'||typeof s.id!=='string'||!s.id||typeof s.nurseId!=='string'||!s.nurseId||!['full','half'].includes(s.type)||!Number.isSafeInteger(s.amountCents)||s.amountCents<0)fail('Servicio nuevo incompleto.')}})});
@@ -130,7 +135,14 @@ function validateStoredState(d){
     });
     if(Array.isArray(z.nurses))z.nurses.forEach(n=>{
       if(!Array.isArray(n))fail('Lista de enfermeros no válida.');
-      n.forEach(x=>{if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.');if(x&&typeof x==='object'&&own(x,'id')&&(typeof x.id!=='string'||!x.id))fail('Identificador de enfermero no válido.')});
+      n.forEach(x=>{
+        if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.');
+        if(x&&typeof x==='object'&&own(x,'id')&&(typeof x.id!=='string'||!x.id))fail('Identificador de enfermero no válido.');
+        if(x&&typeof x==='object'&&own(x,'ratesCents')){
+          const r=x.ratesCents;
+          if(!r||typeof r!=='object'||Array.isArray(r)||!['full','half'].every(k=>Object.prototype.hasOwnProperty.call(r,k)&& (r[k]===null||(Number.isSafeInteger(r[k])&&r[k]>=0)))||(r.full===null&&r.half===null))fail('Las tarifas del enfermero no son válidas.');
+        }
+      });
     });
     if(Array.isArray(z.ledger))z.ledger.forEach(m=>{
       if(!m||typeof m!=='object'||typeof m.id!=='string'||!m.id||!Number.isInteger(m.patientIndex)||m.patientIndex<0||m.patientIndex>=d.p.length||typeof m.nurseId!=='string'||!m.nurseId||typeof m.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(m.date)||!Number.isSafeInteger(m.amountCents)||m.amountCents<=0||!Array.isArray(m.allocations))fail('Movimiento de pago individual incompleto.');
@@ -151,6 +163,20 @@ function validateStoredState(d){
       if(movementIds.has(m.id))fail('Hay identificadores de movimiento duplicados.');movementIds.add(m.id);
       m.allocations.forEach(a=>{const service=serviceIds.get(a.serviceId);if(!service||service.nurseId!==m.nurseId||service.patientIndex!==m.patientIndex)fail('Un abono está aplicado a un servicio de otra persona o ficha.');if(service.date>m.date)fail('Un abono no puede aplicarse a un servicio posterior a su fecha.');const total=(allocated.get(a.serviceId)||0)+a.amountCents;if(!Number.isSafeInteger(total)||total>service.amountCents)fail('Los abonos exceden el costo registrado del servicio.');allocated.set(a.serviceId,total)});
     });
+    const generalIds=new Set(),receipts=new Map(),cancelled=new Set();
+    (z.generalLedger||[]).forEach(m=>{
+      if(!m||typeof m!=='object'||typeof m.id!=='string'||!m.id||!['receipt','cancellation'].includes(m.type)||typeof m.date!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(m.date)||!Number.isSafeInteger(m.amountCents)||m.amountCents<=0||(own(m,'concept')&&typeof m.concept!=='string'))fail('Movimiento general incompleto.');
+      if(generalIds.has(m.id)||movementIds.has(m.id))fail('Hay identificadores de movimiento duplicados.');generalIds.add(m.id);
+      if(m.type==='receipt')receipts.set(m.id,m);
+      else{
+        const original=receipts.get(m.originalId);
+        if(typeof m.originalId!=='string'||!original||original.amountCents!==m.amountCents||m.date<original.date||cancelled.has(m.originalId))fail('La cancelación no coincide con un abono anterior o ya cancelado.');
+        cancelled.add(m.originalId);
+      }
+    });
+    const verifiedCosts=[...serviceIds.values()].reduce((sum,s)=>{const next=sum+s.amountCents;if(!Number.isSafeInteger(next))fail('El costo general excede la precisión monetaria segura.');return next},0);
+    const activeGeneral=[...receipts.values()].filter(m=>!cancelled.has(m.id)).reduce((sum,m)=>{const next=sum+m.amountCents;if(!Number.isSafeInteger(next))fail('Los abonos generales exceden la precisión monetaria segura.');return next},0);
+    if(!Number.isSafeInteger(verifiedCosts)||!Number.isSafeInteger(activeGeneral)||activeGeneral>verifiedCosts)fail('Los abonos generales exceden los costos verificables registrados.');
   }
   return d;
 }
@@ -261,6 +287,7 @@ function assertMigrationIntegrity(before,after){
   if(beforeAppts!==after.appts.length)fail('cambió la cantidad de citas.');
   const oldPay=before.pay||{},newPay=after.pay;
   if(Array.isArray(oldPay.ledger)&&(oldPay.ledger.length!==(newPay.ledger||[]).length))fail('cambió el libro de pagos individuales.');
+  if(Array.isArray(oldPay.generalLedger)&&(oldPay.generalLedger.length!==(newPay.generalLedger||[]).length))fail('cambió el libro de abonos generales.');
   if(oldPay.v&&newPay.v)Object.entries(oldPay.v).forEach(([day,byPatient])=>Object.entries(byPatient||{}).forEach(([i,list])=>{
     const migrated=newPay.v[day]&&newPay.v[day][i];if(!Array.isArray(migrated)||migrated.length!==list.length)fail('cambió la cantidad de asignaciones del '+day+'.');
     list.forEach((e,j)=>{if(e&&e.service&&JSON.stringify(e.service)!==JSON.stringify(migrated[j]&&migrated[j].service))fail('cambió el detalle de un servicio guardado.')});
@@ -275,6 +302,11 @@ function assertMigrationIntegrity(before,after){
     const a=Array.isArray(list)?list.length:0;
     const b=Array.isArray(newPay.nurses[i])?newPay.nurses[i].length:0;
     if(b<a)fail('se redujo la lista de enfermeros del paciente '+(i+1)+'.');
+    (list||[]).forEach((n,j)=>{
+      const m=newPay.nurses[i]&&newPay.nurses[i][j];
+      if(n&&typeof n==='object'&&n.id&&(!m||m.id!==n.id))fail('cambió el identificador de un enfermero.');
+      if(n&&typeof n==='object'&&n.ratesCents&&JSON.stringify(n.ratesCents)!==JSON.stringify(m&&m.ratesCents))fail('cambiaron las tarifas de un enfermero.');
+    });
   });
   return after;
 }
@@ -292,7 +324,7 @@ function prepareMigratedState(parsed){
 
 function validateMigratedState(d){
   if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p)||!d.p.length||!Number.isInteger(d.sel)||d.sel<0||d.sel>=d.p.length)throw new Error('La migración no produjo una estructura válida.');
-  if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v))throw new Error('La migración de pagos no se completó.');
+  if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay)||!Array.isArray(d.pay.cfg)||!Array.isArray(d.pay.nurses)||!d.pay.v||typeof d.pay.v!=='object'||Array.isArray(d.pay.v)||!Array.isArray(d.pay.generalLedger))throw new Error('La migración de pagos no se completó.');
   if(!Array.isArray(d.appts))throw new Error('La migración de citas no se completó.');
   d.p.forEach(p=>{if(!p||typeof p!=='object'||!Array.isArray(p.meds))throw new Error('La migración de pacientes no se completó.')});
   return d;

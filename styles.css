@@ -112,4 +112,17 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .vrow.past{opacity:.65}
 .sidebtns{display:flex;flex-direction:column;gap:6px}
 .sidebtns .btn{width:auto;min-width:96px}
+.admin-summary{--c:var(--green);padding:14px}
+.admin-summary .big{margin:4px 0 10px;font-size:34px;line-height:1.15;font-weight:900;color:var(--green)}
+.admin-summary .big small{font-size:16px}
+.admin-summary .vrow{font-size:15px}
+.admin-summary details{margin-top:8px}
+.admin-summary summary{min-height:44px}
+.care-staff{--c:#789486;padding:14px}
+.care-staff h4{margin:4px 0 8px;color:var(--green)}
+.care-staff .vrow>div{min-width:0;overflow-wrap:anywhere}
+.care-staff .vrow .hint{font-size:14px}
+.care-staff>.btn{margin-top:8px}
+.care-staff .legacy-payments{margin-top:10px;border-top:1px solid var(--line)}
+@media(max-width:360px){.admin-summary .vrow,.care-staff .vrow{align-items:flex-start}.admin-summary .vrow{font-size:14px}.care-staff .btn.small{min-width:80px}}
 @media(max-width:360px){.backup{flex-direction:column}.backup .btn{width:100%}}

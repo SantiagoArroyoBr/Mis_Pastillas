@@ -126,3 +126,13 @@ La prueba manual de PREVIEW-001 sigue registrada como declaración del responsab
 Después de la revisión anterior, el responsable autorizó expresamente publicar `development` aunque no estuviera disponible el complemento Vercel. Se publicaron los tres commits pendientes hasta `db944e5d4139cba185cd46aa330793046667db46`. El fetch posterior confirmó `origin/development` en ese SHA y `origin/main` sin cambio en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. GitHub muestra para el nuevo SHA un check `Vercel` en estado `success`, enlazado a [la página de la deployment](https://vercel.com/dinamita20/pastillas-1/4gTCpGCCB9oxn6X4DDYgDmd5TyfZ).
 
 El check de GitHub no expuso URL/target público del deployment ni confirmó su ambiente. Las herramientas disponibles no pudieron abrir el panel, el alias Preview conocido ni el dominio de producción. Por eso no se afirma que la deployment generada sea Preview, no se atribuye validación funcional al Preview y no se confirma qué commit sirve actualmente producción. No se usó acceso alterno ni se cambió configuración. El dominio de producción conocido sigue siendo `https://pastillas-1.vercel.app/`; su contenido no se comprobó en esta revisión.
+
+### ADMIN-001 — tarifas y saldo de la administradora — 2026-10-31
+
+El flujo vigente en la versión local de `development` centraliza las tarifas por enfermero/a en Pagos. Configure al menos una tarifa por modalidad ofrecida; deje vacía una modalidad que no ofrece. Jornada completa y media jornada son independientes y `$0.00` es un valor explícito. Las personas históricas sin tarifas permanecen guardadas y requieren configurar precio para asignaciones nuevas.
+
+En Calendario seleccione la fecha y persona; elija una jornada disponible (si solo hay una, se selecciona sola) y verifique el costo mostrado antes de guardar. El importe queda fijado en el servicio. Cambiar la tarifa no modifica jornadas previas.
+
+El resumen principal presenta el costo verificable de jornadas nuevas, abonos generales del cliente a la administradora y saldo pendiente. No descuenta el libro individual PAG-001, pagos globales legados ni jornadas antiguas sin costo. No lo trate como conciliación completa de deuda histórica. Para corregir un abono, cancele el movimiento —que permanece en historial— y registre otro. Mientras hay abonos generales activos, quitar servicios queda bloqueado para mantener el saldo trazable.
+
+Validación automatizada local: 42/42 casos en Edge 156.0.4314.50, perfil temporal y datos ficticios, incluida restauración y offline. La validación visual manual en Preview corresponde al responsable; no se realizó en esta intervención. Para checklist y limitaciones, consultar [ADMIN-001](ADMIN-001-tarifas-adeudo-general.md).

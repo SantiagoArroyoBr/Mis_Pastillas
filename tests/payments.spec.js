@@ -82,3 +82,19 @@ test('abonos parciales se asignan FIFO, se acumulan y rechazan excedentes',()=>{
   assert.equal(api.ledgerSummary(services,movements,'nA').balanceCents,45000);
   assert.equal(api.allocatePayment(services,movements,'nA',46000),null);
 });
+
+test('el saldo general incluye solo abonos activos y mantiene el historial cancelado',()=>{
+  const {api}=fixture();
+  const services=[{id:'s1',amountCents:50000},{id:'s2',amountCents:12500}];
+  const movements=[
+    {id:'r1',type:'receipt',date:'2026-01-02',amountCents:10000,concept:'parcial'},
+    {id:'r2',type:'receipt',date:'2026-01-03',amountCents:5000},
+    {id:'c1',type:'cancellation',originalId:'r1',date:'2026-01-04',amountCents:10000}
+  ];
+  const summary=api.generalSummary(services,movements);
+  assert.equal(summary.costCents,62500);
+  assert.equal(summary.receivedCents,5000);
+  assert.equal(summary.balanceCents,57500);
+  assert.equal(summary.cancelledIds.has('r1'),true);
+  assert.deepEqual(plain(summary.receipts.map(r=>({id:r.id,cancelled:r.cancelled}))),[{id:'r1',cancelled:true},{id:'r2',cancelled:false}]);
+});

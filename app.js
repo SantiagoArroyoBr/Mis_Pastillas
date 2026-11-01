@@ -81,14 +81,15 @@ const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A
 const nextColor=i=>{const used=new Set(nurList(i).map(x=>x.c));return NPAL.find(c=>!used.has(c))||NPAL[nurList(i).length%NPAL.length]};
 const newLedgerId=prefix=>{if(!window.crypto||typeof window.crypto.randomUUID!=='function')throw new Error('Este navegador no permite crear identificadores seguros.');return prefix+'_'+window.crypto.randomUUID()};
 
-const {cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,ledgerSummary,allocatePayment,toCents}=window.AcompanaPayments.create({getState:()=>S,config:cfg,entries:ents,calc,ymd});
+const {cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,ledgerSummary,allocatePayment,toCents,generalSummary}=window.AcompanaPayments.create({getState:()=>S,config:cfg,entries:ents,calc,ymd});
 const serviceRows=i=>Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).filter(e=>e&&e.service&&e.service.id).map(e=>({...e.service,date,n:e.n,patientIndex:i})));
+const allServiceRows=()=>S.p.flatMap((_,i)=>serviceRows(i));
 const ledgerRows=()=>Array.isArray(S.pay.ledger)?S.pay.ledger:[];
+const generalRows=()=>Array.isArray(S.pay.generalLedger)?S.pay.generalLedger:[];
 const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
 function payNotice(){
-  const d=payDue();
-  if(!d.length)return'';
-  return `<div class="soon"><h2>💵 Pago de enfermería</h2><ul>${d.map(x=>`<li><b>${esc(x.p.name)}</b>: ${x.cv.msg} (a ${esc(x.c.who)})</li>`).join('')}</ul><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>`;
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents<=0)return'';
+  return '<div class="soon"><h2>💵 Saldo general pendiente</h2><p>Hay un saldo verificable registrado con la administradora.</p><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>';
 }
 
 // ---------- INICIO ----------
@@ -102,8 +103,8 @@ function renderHome(){
   S.p.forEach((p,i)=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')buys.push({p,i,m,c})}));
   buys.sort((a,b)=>a.c.buy-b.c.buy);
   buys.forEach(x=>rows.push({o:x.c.st==='red'?0:1,h:`<div class="vrow todo ${x.c.st}"><div>🛒 Comprar <b>${esc(x.m.name)}</b> (${esc(x.p.name)}): ${x.c.st==='red'?'urgente':'antes del '+fmt(x.c.buy)}</div><button class="btn ghost small tbtn" data-pa="gomed" data-i="${x.i}">Ver</button></div>`}));
-  // pagos por adelantado (uno por paciente)
-  payDue().forEach(x=>rows.push({o:x.cv.st==='red'?0:1,h:`<div class="vrow todo ${x.cv.st}"><div>💵 <b>${esc(x.p.name)}</b> (a ${esc(x.c.who)}): ${x.cv.msg}</div><button class="btn ghost small tbtn" data-pa="payreg" data-i="${x.i}">Registrar pago</button></div>`}));
+  // El saldo administrativo se muestra de forma general, sin atribución a personas.
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)rows.push({o:0,h:'<div class="vrow todo amber"><div>💵 Hay un saldo general verificable con la administradora.</div><button class="btn ghost small tbtn" data-pa="adminPay">Registrar abono</button></div>'});
   // citas médicas de hoy y de los próximos 2 días
   apptDue().forEach(x=>rows.push({o:x.k===0?0:1,h:`<div class="vrow todo ${x.k===0?'red':'amber'}"><div>🩺 Cita de <b>${esc(S.p[x.a.i].name)}</b>: ${x.k===0?'hoy':x.k===1?'mañana':'en 2 días'}${x.a.t?' · '+esc(x.a.t):''}${x.a.w?' — '+esc(x.a.w):''}</div><button class="btn ghost small tbtn" data-pa="aedit" data-id="${esc(x.a.id)}">Detalle</button></div>`}));
   // enfermeros de hoy y mañana (los domingos no se avisa que falta: es normal que no venga nadie)
@@ -142,17 +143,17 @@ function calHTML(i){
   for(let k=0;k<lead;k++)cells+='<div></div>';
   for(let dn=1;dn<=dim;dn++){
     const d=new Date(y,m,dn),ds=ymd(d),es=ents(ds,i),ev=pe[ds];
-    const paid=cv.covered.has(ds),firstUnp=unS.has(ds);
+    const coveredLegacy=cv.covered.has(ds),firstUnp=unS.has(ds);
     const hasA=apS.has(ds);
-    const mk=[paid?'✓':'',firstUnp?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
+    const mk=[coveredLegacy?'✓':'',firstUnp?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
     const chips=es.slice(0,3).map(e=>`<span class="chip" style="background:${nurColor(i,e.n)}">${esc(e.n)}</span>`).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
-    const notes=[paid?'día pagado':'',firstUnp?'día sin pagar':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
+    const notes=[coveredLegacy?'cubierta según conteo anterior':'',firstUnp?'sin cubrir según conteo anterior':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
     const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.map(e=>e.n).join(', '):'');
-    cells+=`<button class="cell${ds===todayS?' today':''}${paid?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
+    cells+=`<button class="cell${ds===todayS?' today':''}${coveredLegacy?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
   }
   return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
-    <p class="hint">✓ día pagado (verde) · 💵 día sin pagar · 🛒 comprar medicinas o insumos · ⚠️ se acaban · 🩺 cita médica · los colores son los enfermeros (${TIMES[c.time].toLowerCase()}). Toca un día para ver el detalle y asignar.</p>`;
+    <p class="hint">✓ fecha cubierta según conteo anterior · 💵 fecha pendiente en el conteo anterior · 🛒 reponer · ⚠️ se acaba · 🩺 cita médica. Los colores identifican enfermeros; las modalidades y tarifas se configuran en Pagos.</p>`;
 }
 
 // ---------- PAGOS (una tarjeta por paciente) ----------
@@ -174,6 +175,8 @@ function payAction(t){
   else if(pa==='cfg')payForm(i);
   else if(pa==='payreg')payRegForm(i);
   else if(pa==='ipay')individualPayForm(i);
+  else if(pa==='adminPay')generalPayForm();
+  else if(pa==='adminCancel')cancelGeneralPayForm(t.dataset.id);
   else if(pa==='creset')resetForm(i);
   else if(pa==='pdel'){
     const k=+t.dataset.k;if(!cfg(i).pays[k])return;
@@ -199,6 +202,7 @@ function payAction(t){
     if(Array.isArray(a)){
       const service=a[+t.dataset.k]&&a[+t.dataset.k].service;
       if(service&&ledgerRows().some(m=>m.allocations&&m.allocations.some(x=>x.serviceId===service.id))){form('Servicio con pagos aplicados',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>No se puede quitar un servicio que ya tiene abonos aplicados. Mantén el registro para conservar la conciliación.</p>');return}
+      if(service&&generalSummary(allServiceRows(),generalRows()).receivedCents>0){form('Servicio con abonos generales activos',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>El abono general no se asigna a una jornada concreta. Para conservar el saldo trazable no se puede quitar un servicio mientras existan abonos generales activos.</p>');return}
       a.splice(+t.dataset.k,1);
       if(!a.length)delete S.pay.v[ds][i];
       if(!Object.keys(S.pay.v[ds]).length)delete S.pay.v[ds];
@@ -223,7 +227,7 @@ function notifyDaily(){
   if(S.last===k)return;
   const parts=[];
   if(S.p.some(p=>p.meds.some(m=>calc(m).st!=='green')))parts.push('Hay pendientes de reposición.');
-  if(payDue().length)parts.push('Hay días de cuidado sin cubrir.');
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)parts.push('Hay un saldo administrativo pendiente.');
   if(apptDue().length)parts.push('Hay citas próximas.');
   if(!parts.length)return;
   S.last=k;save();
@@ -290,7 +294,7 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,ledger:ledgerRows,ledgerSummary,allocatePayment,toCents,newId:newLedgerId});
+const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
