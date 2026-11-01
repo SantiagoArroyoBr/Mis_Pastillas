@@ -135,7 +135,7 @@ function renderHome(){
     : '<div class="soon ok">✓ Todo al día: no hay pendientes.</div>';
   $('#homeView').innerHTML=todo+`<article class="card blue">
       <div class="top"><h3 class="name">🗓️ Calendario</h3></div>
-      <div class="psels">${S.p.map((p,i)=>`<button class="psel" aria-selected="${i===homeP}" data-pa="hp" data-i="${i}">${esc(p.name)}</button>`).join('')}</div>
+      <div class="psels" role="group" aria-label="Elegir ficha">${S.p.map((p,i)=>`<button class="psel" aria-pressed="${i===homeP}" data-pa="hp" data-i="${i}">${esc(p.name)}</button>`).join('')}</div>
       ${calHTML(homeP)}
     </article>${apptsCard()}`;
 }
@@ -251,13 +251,14 @@ function render(){
   const P=S.p[S.sel];
   const md=S.mode;
   notifyDaily();
-  $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Medicinas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-selected="${md===m}" data-m="${m}">${l}</button>`).join('');
+  $('#modes').setAttribute('role','group');$('#modes').setAttribute('aria-label','Sección de la aplicación');
+  $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Medicinas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}">${l}</button>`).join('');
   $('#tabs').hidden=md!=='meds';$('#ren').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
   if(md==='home'){$('#paysoon').innerHTML='';renderHome();return}
   $('#paysoon').innerHTML=payNotice();
-  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" role="tab" aria-selected="${i===S.sel}" data-i="${i}">${esc(p.name)}</button>`).join('');
+  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${esc(p.name)}</button>`).join('');
   const items=[];
   S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
   items.sort((a,b)=>a.c.buy-b.c.buy);

@@ -10,10 +10,10 @@ function fieldHTML(f){
   if(f.t==='date'||f.t==='time')return `<label for="${f.id}">${f.l}</label><input id="${f.id}" type="${f.t}" value="${esc(f.v||'')}">${f.h?`<p class="hint">${f.h}</p>`:''}`;
   if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
   if(f.t==='schedule')return `<label>${f.l}</label>
-    <div class="schtabs" role="tablist" id="${f.id}-tabs">
-      <button type="button" class="stab" data-v="daily">Diario</button>
-      <button type="button" class="stab" data-v="weekdays">Días fijos</button>
-      <button type="button" class="stab" data-v="interval">Cada X días</button>
+    <div class="schtabs" role="group" aria-label="${esc(f.l)}" id="${f.id}-tabs">
+      <button type="button" class="stab" aria-pressed="false" data-v="daily">Diario</button>
+      <button type="button" class="stab" aria-pressed="false" data-v="weekdays">Días fijos</button>
+      <button type="button" class="stab" aria-pressed="false" data-v="interval">Cada X días</button>
     </div>
     <div class="schpane" id="${f.id}-daily"><p class="hint">Se toma todos los días.</p></div>
     <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" id="${f.id}-wdbtns"></div></div>
@@ -40,7 +40,7 @@ function form(title,fields,ok,btn='Guardar'){
     const init=sf.v||{type:'daily'};
     const tabs=$('#'+sf.id+'-tabs');
     const panes={daily:$('#'+sf.id+'-daily'),weekdays:$('#'+sf.id+'-weekdays'),interval:$('#'+sf.id+'-interval')};
-    const setTab=v=>{[...tabs.children].forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===v)));Object.entries(panes).forEach(([k,el])=>el.hidden=k!==v);tabs.dataset.cur=v};
+    const setTab=v=>{[...tabs.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));Object.entries(panes).forEach(([k,el])=>el.hidden=k!==v);tabs.dataset.cur=v};
     tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setTab(b.dataset.v)});
     setTab(init.type||'daily');
     const wdbox=$('#'+sf.id+'-wdbtns');
