@@ -925,5 +925,9 @@ test('una pestaña con estado obsoleto detecta la escritura externa y no sobresc
     assert.equal(await evalSecond('persistenceFailure'), 'conflict');
     assert.equal(await evalSecond('save()'), false);
     assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last, 'versión más reciente ficticia');
+    await evalSecond("document.querySelector('#reloadFreshState').click()");
+    const reloadStarted=Date.now();
+    while(Date.now()-reloadStarted<5000){try{if(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"))break}catch{};await new Promise(resolve=>setTimeout(resolve,50))}
+    assert.equal(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"),true,'el botón permitido recarga la versión guardada más reciente');
   } finally { second.close(); }
 });

@@ -62,7 +62,7 @@ window.addEventListener('storage',e=>{
 document.addEventListener('click',e=>{
   if(persistenceReady)return;
   // Únicamente se permite el flujo explícito de recuperación.
-  if(e.target.closest('#imp')||e.target.closest('#impFile')||e.target.closest('#dlg'))return;
+  if(e.target.closest('#imp')||e.target.closest('#impFile')||e.target.closest('#dlg')||e.target.closest('#reloadFreshState'))return;
   e.preventDefault();
   e.stopImmediatePropagation();
   showPersistenceWarning();
