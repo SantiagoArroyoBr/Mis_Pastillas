@@ -78,6 +78,8 @@ La rama `development` es la rama de trabajo. `main` es producción y no se modif
 
 El contenido de este README es una guía de entrada. El plan, la arquitectura y el historial enlazados arriba son las referencias centrales para sus respectivos temas.
 
+**BACKUP-001 / NOTIF-001 / QA-005 (2026-10-31):** se aclararon los mensajes de exportación/restauración, la cancelación y los avisos de cobertura/saldo. La restauración conserva sus validaciones y confirmaciones; `pastillas-v1` y el esquema no cambiaron. Regresión local: 45/45 en Edge 156.0.4314.50, perfil aislado y datos ficticios. Detalle y límites en [guía de uso](docs/GUIA_INSTALACION_USO.md#backup-001-y-notif-001).
+
 ## Pagos: correcciones compatibles DEV-003C
 
 La cobertura mantiene el conteo por fechas. Los montos calculados se rotulan como estimaciones con tarifa actual; la asistencia por persona no reparte dinero. El importe registrado es informativo y se captura sin precargar una estimación. Pagos parciales monetarios y períodos explícitos permanecen propuestos. Ver [reglas, compatibilidad y límites](docs/DEV-003C-correcciones-compatibles-pagos.md). Ejecutar ambas suites con `node --test tests/payments.spec.js tests/persistence.spec.js`.

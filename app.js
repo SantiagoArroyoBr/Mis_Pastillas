@@ -70,7 +70,7 @@ const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente
 const WD_LONG=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const TIMES={full:'Tiempo completo',half:'Medio tiempo'};
-const PLBL={green:['✓','Al corriente'],amber:['!','Pagar pronto'],red:['✕','Se debe'],gray:['–','Sin configurar']};
+const PLBL={green:['✓','Conteo al corriente'],amber:['!','Revisar cobertura'],red:['✕','Fechas sin cubrir'],gray:['–','Sin configurar']};
 let showT=0,calM=0,homeP=-1;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
@@ -89,7 +89,7 @@ const generalRows=()=>Array.isArray(S.pay.generalLedger)?S.pay.generalLedger:[];
 const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
 function payNotice(){
   if(generalSummary(allServiceRows(),generalRows()).balanceCents<=0)return'';
-  return '<div class="soon"><h2>💵 Saldo general pendiente</h2><p>Hay un saldo verificable registrado con la administradora.</p><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>';
+  return '<div class="soon"><h2>💵 Saldo general pendiente</h2><p>Los costos registrados de jornadas superan los abonos generales recibidos.</p><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>';
 }
 
 // ---------- INICIO ----------
@@ -104,7 +104,7 @@ function renderHome(){
   buys.sort((a,b)=>a.c.buy-b.c.buy);
   buys.forEach(x=>rows.push({o:x.c.st==='red'?0:1,h:`<div class="vrow todo ${x.c.st}"><div>🛒 Comprar <b>${esc(x.m.name)}</b> (${esc(x.p.name)}): ${x.c.st==='red'?'urgente':'antes del '+fmt(x.c.buy)}</div><button class="btn ghost small tbtn" data-pa="gomed" data-i="${x.i}">Ver</button></div>`}));
   // El saldo administrativo se muestra de forma general, sin atribución a personas.
-  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)rows.push({o:0,h:'<div class="vrow todo amber"><div>💵 Hay un saldo general verificable con la administradora.</div><button class="btn ghost small tbtn" data-pa="adminPay">Registrar abono</button></div>'});
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)rows.push({o:0,h:'<div class="vrow todo amber"><div>💵 Los costos registrados de jornadas superan los abonos generales recibidos.</div><button class="btn ghost small tbtn" data-pa="adminPay">Registrar abono</button></div>'});
   // citas médicas de hoy y de los próximos 2 días
   apptDue().forEach(x=>rows.push({o:x.k===0?0:1,h:`<div class="vrow todo ${x.k===0?'red':'amber'}"><div>🩺 Cita de <b>${esc(S.p[x.a.i].name)}</b>: ${x.k===0?'hoy':x.k===1?'mañana':'en 2 días'}${x.a.t?' · '+esc(x.a.t):''}${x.a.w?' — '+esc(x.a.w):''}</div><button class="btn ghost small tbtn" data-pa="aedit" data-id="${esc(x.a.id)}">Detalle</button></div>`}));
   // enfermeros de hoy y mañana (los domingos no se avisa que falta: es normal que no venga nadie)
@@ -153,7 +153,7 @@ function calHTML(i){
   }
   return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
-    <p class="hint">✓ fecha cubierta según conteo anterior · 💵 fecha pendiente en el conteo anterior · 🛒 reponer · ⚠️ se acaba · 🩺 cita médica. Los colores identifican enfermeros; las modalidades y tarifas se configuran en Pagos.</p>`;
+    <p class="hint">✓ fecha cubierta según el conteo anterior · 💵 fecha asignada aún no cubierta en ese conteo (no es un adeudo monetario) · 🛒 reponer · ⚠️ se acaba · 🩺 cita médica. Los colores identifican enfermeros; las modalidades y tarifas se configuran en Pagos.</p>`;
 }
 
 // ---------- PAGOS (una tarjeta por paciente) ----------
@@ -220,14 +220,14 @@ function summaryText(P){
   }).join('\n');
 }
 
-// Aviso emergente una vez al día (si están activados), desde cualquier pestaña. Sin montos.
+// Aviso del navegador diario y genérico, si está autorizado. Sin nombres ni montos.
 function notifyDaily(){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   const k=new Date().toDateString();
   if(S.last===k)return;
   const parts=[];
   if(S.p.some(p=>p.meds.some(m=>calc(m).st!=='green')))parts.push('Hay pendientes de reposición.');
-  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)parts.push('Hay un saldo administrativo pendiente.');
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)parts.push('Hay un importe pendiente en el saldo general con la administradora.');
   if(apptDue().length)parts.push('Hay citas próximas.');
   if(!parts.length)return;
   S.last=k;save();
@@ -308,11 +308,14 @@ document.addEventListener('click',e=>{
     externalPreview('Compartir resumen por WhatsApp','https://wa.me/',{text:txt,kind:'whatsapp'});
   }
   else if(t.id==='exp'){
-    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='cuidados-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    try{
+      const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='cuidados-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      setBackupStatus('Respaldo descargado. Es una copia privada; los datos de esta instalación siguen guardados.');
+    }catch(err){setBackupStatus('El navegador no pudo preparar la descarga. Tus datos guardados no se modificaron.');}
   }
   else if(t.id==='imp'){$('#impFile').click()}
   else if(t.id==='add'){
@@ -362,6 +365,11 @@ function importMessage(title,message){
   if(!dlg.open)dlg.showModal();
 }
 
+function setBackupStatus(message){
+  const status=$('#backupStatus');
+  if(status){status.textContent=message;status.hidden=false;}
+}
+
 function confirmRestore(candidate){
   const meds=candidate.p.reduce((n,p)=>n+p.meds.length,0);
   const appts=candidate.appts.length;
@@ -372,16 +380,16 @@ function confirmRestore(candidate){
   const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
   const backupDate=dateValid&&(rawDate===datePart||timestampValid)
     ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
-  dlg.innerHTML='<h2>Revisa el respaldo</h2><p>Fecha del respaldo: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>La restauración reemplazará todos los datos locales actuales. Si puedes, descarga primero un respaldo de lo que tienes ahora.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
-  $('#cancelRestore').onclick=()=>dlg.close();
+  dlg.innerHTML='<h2>Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   $('#exportBeforeRestore').onclick=()=>document.querySelector('#exp').click();
   $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate);
   if(!dlg.open)dlg.showModal();
 }
 
 function showRestoreConfirmation(candidate){
-  dlg.innerHTML='<h2>¿Reemplazar los datos locales?</h2><p>Se reemplazará toda la información local de Acompaña por los datos del respaldo revisado. Esta acción requiere confirmación explícita.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
-  $('#cancelRestore').onclick=()=>dlg.close();
+  dlg.innerHTML='<h2>¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   $('#restoreConfirm').onclick=()=>{
     let serialized;
     try{
@@ -392,6 +400,7 @@ function showRestoreConfirmation(candidate){
       persistenceReady=false;
       persistenceFailure='write';
       showPersistenceWarning();
+      setBackupStatus('El navegador no pudo guardar el respaldo restaurado. El estado anterior se conserva; revisa el aviso de almacenamiento.');
       return;
     }
     // El estado en memoria solo cambia después de confirmar la escritura.
@@ -400,12 +409,14 @@ function showRestoreConfirmation(candidate){
     persistenceFailure='';
     dlg.close();
     render();
+    setBackupStatus('Restauración completada. Los datos del respaldo ya están guardados en esta instalación.');
   };
   if(!dlg.open)dlg.showModal();
 }
 
 $('#impFile').addEventListener('change',e=>{
   const file=e.target.files[0];if(!file)return;
+  setBackupStatus('Archivo seleccionado. Se comprobará antes de cualquier cambio en los datos actuales.');
   if(file.size>MAX_IMPORT_BYTES){
     e.target.value='';
     importMessage('Respaldo demasiado grande','El archivo supera el límite de 10 MiB. No se leyó ni se modificó la información guardada.');
@@ -420,6 +431,7 @@ $('#impFile').addEventListener('change',e=>{
       importMessage('Archivo no válido','El respaldo no superó la validación de estructura e integridad. No se modificó el almacenamiento actual.');
       return;
     }
+    setBackupStatus('Archivo validado. Revisa su contenido; los datos actuales siguen sin cambios.');
     confirmRestore(candidate);
   };
   reader.onerror=()=>importMessage('No se pudo leer el archivo','El navegador no pudo leer el archivo seleccionado. No se modificó el almacenamiento actual.');

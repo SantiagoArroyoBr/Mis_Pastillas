@@ -93,3 +93,11 @@ La documentación de PREVIEW-002 se actualizó después de publicar y quedó pen
 ## 2026-10-31 — CONS-005, prioridades del siguiente ciclo
 
 El responsable aprobó BACKUP-001 (claridad de respaldo/restauración), NOTIF-001 (claridad de avisos) y QA-005 (regresión ampliada). Se conservan como pendientes las decisiones de DEV-003B y cualquier cambio de cálculo o modelo de pagos. PLAN-003 permanece como referencia con estas prioridades marcadas; no implica que las implementaciones estén completadas. No se cambia esquema ni reglas de negocio en esta consolidación.
+
+## 2026-10-31 — BACKUP-001, NOTIF-001 y QA-005
+
+Se aclaró que exportar descarga una copia privada sin borrar el estado local; el selector de respaldo anuncia validación, el resumen previo explica el reemplazo y que cancelar conserva los datos, y se reportan estados de cancelación, descarga y restauración. Errores de archivo/navegador continúan diferenciados. La secuencia de validación, doble confirmación, respaldo previo disponible, escritura, recuperación y límite de 10 MiB permanecen intactos.
+
+Los mensajes ahora distinguen reposición, citas próximas, fechas asignadas no cubiertas en el conteo legado (sin etiquetarlas como deuda monetaria) y saldo general con la administradora. La notificación de sistema sigue genérica, sin nombres, montos ni datos de citas/medicamentos. No cambiaron disparadores, permisos, frecuencia, cálculos ni persistencia.
+
+Pruebas: `node --test tests/payments.spec.js tests/persistence.spec.js`, **45/45** en Edge 156.0.4314.50 con perfil temporal y fixtures ficticios; incluye pruebas nuevas de exportación informativa, lectura fallida de archivo, mensajes/cancelación y notificación por categorías sin datos privados. También pasaron `node --check` en todos los JS, validación de `manifest.json`, las seis anchuras responsive cubiertas por la suite y `git diff --check`. La primera ejecución de la suite de navegador fue bloqueada por EACCES al loopback; se repitió con autorización local y pasó. No se probó Firefox ni hardware físico.

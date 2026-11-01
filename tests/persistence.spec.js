@@ -388,6 +388,7 @@ test('restauración válida recupera una carga bloqueada y no escribe antes de c
   assert.equal(await evaluate('persistenceReady'), false);
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Paciente ficticio restaurado'", 'restauración completada');
+  assert.match(await evaluate("document.querySelector('#backupStatus').textContent"), /restauración completada/i);
   assert.equal(await evaluate('__persistenceTest.read() !== null'), true);
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Paciente ficticio restaurado');
 });
@@ -396,6 +397,16 @@ test('archivo inválido no escribe ni altera el almacenamiento original', async 
   await waitFor("document.querySelector('#closeImportMessage')", 'aviso de archivo inválido');
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.equal(await evaluate('__persistenceTest.read()'), raw);
+});
+test('fallo de lectura del archivo se comunica y conserva los datos actuales', async () => {
+  const raw = JSON.stringify(validBackup('Estado ficticio conservado ante lectura fallida'));
+  await seed(raw); await navigate();
+  await evaluate("FileReader.prototype.readAsText=function(){throw new DOMException('lectura simulada','NotReadableError')}");
+  await uploadJson(validBackup('No debe restaurarse'));
+  await waitFor("document.querySelector('#closeImportMessage')", 'aviso de fallo de lectura');
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"), /navegador rechazó la lectura/i);
+  assert.equal(await evaluate('__persistenceTest.read()'), raw);
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
 });
 test('cancelar la restauración no realiza escrituras', async () => {
   const raw = '{"p":'; await seed(raw); await navigate(); await uploadJson(validBackup());
@@ -453,6 +464,7 @@ test('el límite de importación rechaza archivos de más de 10 MiB antes de esc
   assert.equal(await evaluate('__persistenceTest.read()'), original);
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.match(await evaluate("document.querySelector('#dlg').textContent"), /10 MiB/);
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"), /No se leyó ni se modificó/);
 });
 
 test('la vista previa presenta conteos validados y requiere confirmación adicional', async () => {
@@ -465,6 +477,8 @@ test('la vista previa presenta conteos validados y requiere confirmación adicio
   assert.match(preview, /1 persona/);
   assert.match(preview, /1 medicinas o insumos/);
   assert.match(preview, /30\/10\/2026/);
+  assert.match(preview, /reemplazarán los datos actuales de esta instalación/i);
+  assert.match(preview, /Cancelar deja los datos actuales sin cambios/i);
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.equal(await evaluate("document.querySelector('#restoreConfirm') === null"), true);
   await evaluate("document.querySelector('#exportBeforeRestore').click()");
@@ -476,6 +490,18 @@ test('la vista previa presenta conteos validados y requiere confirmación adicio
   await evaluate("document.querySelector('#cancelRestore').click()");
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Estado actual ficticio');
+  assert.match(await evaluate("document.querySelector('#backupStatus').textContent"), /cancelada.*no se modificaron/i);
+});
+
+test('exportar informa que descarga una copia privada sin borrar los datos actuales', async () => {
+  const raw = JSON.stringify(validBackup('Respaldo ficticio intacto'));
+  await seed(raw); await navigate();
+  assert.match(await evaluate("document.querySelector('#backupHelp').textContent"), /copia privada.*no borra/i);
+  await evaluate("document.querySelector('#exp').click()");
+  await waitFor('__persistenceTest.exportBlob !== null', 'descarga del respaldo');
+  assert.match(await evaluate("document.querySelector('#backupStatus').textContent"), /copia privada.*siguen guardados/i);
+  assert.equal(await evaluate('__persistenceTest.read()'), raw);
+  assert.equal(await evaluate('__persistenceTest.writes'), 0);
 });
 
 test('las notificaciones no contienen nombres ni detalles personales', async () => {
@@ -485,6 +511,31 @@ test('las notificaciones no contienen nombres ni detalles personales', async () 
   assert.equal(notifications.length, 1);
   assert.equal(notifications[0].body, 'Hay pendientes de reposición.');
   assert.doesNotMatch(JSON.stringify(notifications), /Paciente privado|Medicamento privado/);
+});
+
+test('notificación separa reposición, saldo general y cita próxima sin revelar información privada', async () => {
+  await seed(JSON.stringify(validBackup('Paciente reservado ficticio'))); await navigate();
+  await evaluate(`
+    window.__notificationCapture=[];
+    window.Notification=class { static permission='granted'; constructor(title,options){window.__notificationCapture.push({title,body:options.body})} };
+    const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+    const date=window.AcompanaDomain.ymd(tomorrow);
+    S.last='';
+    S.p[0].meds.push({name:'Medicina confidencial ficticia',base:0,cons:[{dose:1,times:['08:00'],schedule:{type:'daily'}}],t0:Date.now()});
+    S.pay.nurses[0]=[{id:'nurse-private',n:'Enfermero confidencial',c:'#315B50',ratesCents:{full:10000,half:null}}];
+    S.pay.v[date]={0:[{n:'Enfermero confidencial',service:{id:'service-private',nurseId:'nurse-private',type:'full',amountCents:10000}}]};
+    S.appts=[{id:'appointment-private',i:0,d:date,t:'10:00',w:'Clínica confidencial',n:'Nota confidencial'}];
+    notifyDaily();
+  `);
+  const notifications = await evaluate('__notificationCapture');
+  assert.equal(notifications.length, 1);
+  const body = notifications[0].body;
+  assert.match(body, /pendientes de reposición/);
+  assert.match(body, /importe pendiente en el saldo general/);
+  assert.match(body, /citas próximas/);
+  assert.doesNotMatch(JSON.stringify(notifications), /Paciente reservado|Medicina confidencial|Enfermero confidencial|Clínica confidencial|Nota confidencial|10000/);
+  await evaluate('notifyDaily()');
+  assert.equal(await evaluate('__notificationCapture.length'), 1, 'no repite el mismo aviso en el día');
 });
 
 test('WhatsApp muestra y permite editar el mensaje antes de abrir el servicio', async () => {

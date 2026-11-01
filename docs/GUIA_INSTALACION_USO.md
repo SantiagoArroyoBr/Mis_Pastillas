@@ -166,3 +166,13 @@ Reporte errores indicando pasos, tamaño de pantalla/navegador y resultado esper
 ### Cierre de ADMIN-001 y PREVIEW-002 — 2026-10-31
 
 El responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” Se registra como validación manual completada por declaración del responsable. No se proporcionaron resultados por caso, navegador, dispositivo o captura; por ello este registro no atribuye resultados específicos ni constituye verificación independiente. La suite automatizada local de 42/42 casos indicada arriba es un resultado separado y anterior. La protección de acceso impidió a esta revisión observar la Preview; el estado de producción no se alteró ni se aprobó su publicación.
+
+### BACKUP-001 y NOTIF-001 — 2026-10-31
+
+**Exportar:** el botón descarga una copia JSON privada; no elimina los datos de la instalación. Guarda el archivo en un lugar seguro. La aplicación informa si pudo preparar la descarga; si falla, el almacenamiento local no se modifica.
+
+**Restaurar:** al elegir el archivo, la app comprueba su tamaño (máximo 10 MiB), JSON y estructura/compatibilidad antes de escribir. La vista previa muestra fecha disponible y conteos de personas, medicinas/insumos, citas y enfermeros; no despliega nombres ni detalles médicos. Restaurar reemplaza los datos locales de esta instalación, por lo que se recomienda exportar una copia actual. “Cancelar” conserva el estado. Para completar la restauración hay que continuar desde el resumen y confirmar explícitamente. Un error del archivo se informa como problema del archivo; una falla al guardar se informa como problema del almacenamiento/navegador. Si falla la escritura, se conserva el estado anterior.
+
+**Avisos:** reposición se refiere a inventario, no a recordatorios de toma. El calendario aclara que una fecha asignada aún no cubierta en el conteo anterior no significa por sí sola deuda monetaria; el saldo general corresponde a costos de jornadas registrados menos abonos generales, no a adeudos individuales a enfermeros. Las citas próximas se distinguen de las recientes. Las notificaciones del sistema mantienen texto genérico, sin nombres de personas, medicamentos, citas ni importes. No cambiaron umbrales, cálculos, permisos ni frecuencia.
+
+QA-005: `node --test tests/payments.spec.js tests/persistence.spec.js`, 45/45 en Edge 156.0.4314.50, perfil temporal y datos ficticios; se recorrieron seis anchuras responsive desde 320 px y se incluyó el flujo de persistencia/PWA/offline existente. La prueba de lectura fallida usa error simulado. No se probó Firefox ni dispositivo físico.

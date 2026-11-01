@@ -22,6 +22,10 @@
 
 Antes de cualquier corrección de cálculo, ejecutar una sesión de decisión DEV-003B con ejemplos numéricos aprobados por el responsable. Es el problema con mayor impacto familiar, pero también el de mayor riesgo. Si se desea un ciclo de riesgo menor mientras se acuerdan esas reglas, elegir primero la propuesta 2 y limitar el cambio a mensajes, conservando intactas la validación, la secuencia de escritura, `pastillas-v1` y el formato JSON.
 
+## Resultado del ciclo aprobado — 2026-10-31
+
+CONS-005 consolidó BACKUP-001, NOTIF-001 y QA-005 como trabajo autorizado. Los tres se implementaron localmente y la regresión pasó 45/45. La claridad de avisos y respaldo se completó sin cambiar persistencia ni reglas de negocio. DEV-003B y cambios al modelo/cálculos de pagos quedan fuera de este ciclo y requieren decisión/autorización futura.
+
 ## Decisiones pendientes del responsable
 
 1. ¿La cobertura representa días calendario con algún turno, fracciones de día o servicios facturables? ¿Cómo se trata a dos enfermeros en una fecha?

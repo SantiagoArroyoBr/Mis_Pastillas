@@ -222,8 +222,8 @@ function dayForm(i,ds){
   const label=dt.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   const ev=pillEv(i)[ds];
   let info='';
-  if(cv.covered.has(ds))info+='<p class="info">Fecha cubierta según el conteo anterior de pagos.</p>';
-  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">Fecha asignada sin cubrir según el conteo anterior.</p>';
+  if(cv.covered.has(ds))info+='<p class="info">Fecha cubierta según el conteo anterior de días de la ficha; no indica un pago individual a un enfermero.</p>';
+  else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">Fecha asignada aún no cubierta en el conteo anterior de días de la ficha; esto no es por sí solo un adeudo monetario.</p>';
   S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</p>`});
   if(dt.getDay()===0)info+='<p class="hint">Los domingos solo cuentan como día si hay un enfermero registrado.</p>';
   if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
