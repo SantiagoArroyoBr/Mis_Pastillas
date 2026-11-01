@@ -15,7 +15,7 @@ const CHROME = process.env.CHROME_BIN || [
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
 ].find(fs.existsSync);
 
-let server, serverUrl, browser, browserProfile, cdp, fixtureDir, swUpdateVariant = false;
+let server, serverUrl, browser, browserProfile, browserEndpoint, cdp, fixtureDir, swUpdateVariant = false;
 
 class DevTools {
   constructor(wsUrl) {
@@ -146,7 +146,7 @@ before(async () => {
   browserProfile = fs.mkdtempSync(path.join(os.tmpdir(), 'acompanha-chromium-'));
   browser = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', '--user-data-dir=' + browserProfile, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
-  const wsEndpoint = await new Promise((resolve, reject) => {
+  browserEndpoint = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Chromium no publicó DevTools: ' + stderr)), 10000);
     browser.stderr.on('data', chunk => {
       stderr += chunk.toString();
@@ -155,7 +155,7 @@ before(async () => {
     });
     browser.once('exit', code => { clearTimeout(timer); reject(new Error('Chromium terminó (' + code + '): ' + stderr)); });
   });
-  const targetResponse = await fetch(wsEndpoint + '/json/new?' + encodeURIComponent(serverUrl + '/'), { method: 'PUT' });
+  const targetResponse = await fetch(browserEndpoint + '/json/new?' + encodeURIComponent(serverUrl + '/'), { method: 'PUT' });
   if (!targetResponse.ok) throw new Error('No se pudo crear la pestaña Chromium: ' + targetResponse.status);
   const target = await targetResponse.json();
   cdp = new DevTools(target.webSocketDebuggerUrl);
@@ -204,6 +204,13 @@ test('los formularios anuncian errores de validación a tecnologías de asistenc
   assert.equal(await evaluate("document.querySelector('#err').getAttribute('aria-live')"), 'polite');
   await evaluate("document.querySelector('#f').requestSubmit()");
   await waitFor("document.querySelector('#err').textContent.includes('Escribe el nombre')", 'mensaje de validación accesible');
+  await evaluate("S.p=[{name:'Ficha sintética A',meds:[]},{name:'Ficha sintética B',meds:[]}];S.mode='meds';S.sel=0;render()");
+  assert.equal(await evaluate("document.querySelector('#tabs').getAttribute('role')"),'group');
+  assert.equal(await evaluate("document.querySelector('#tabs .tab[aria-pressed=true]')?.textContent"),'Ficha sintética A');
+  assert.equal(await evaluate("document.querySelector('#tabs [role=tab]')"),null);
+  await evaluate("medForm('Agregar medicina',{name:'',q:'',cons:[newCons()]},()=>{},'Agregar')");
+  assert.equal(await evaluate("document.querySelector('.schtabs').getAttribute('role')"),'group');
+  assert.equal(await evaluate("document.querySelector('.schtabs button[aria-pressed=true]')?.dataset.v"),'daily');
 });
 test('la vista se adapta a seis anchuras móviles y conserva los datos locales', async () => {
   const before = await evaluate('__persistenceTest.read()');
@@ -863,4 +870,60 @@ test('restauración rechaza un abono asociado a otro destinatario sin tocar el e
   await waitFor("document.querySelector('#closeImportMessage')",'rechazo de respaldo no íntegro');
   assert.match(await evaluate("document.querySelector('#dlg').textContent"),/no superó la validación/);
   assert.equal(await evaluate('__persistenceTest.read()'),current,'la importación inválida conserva el valor local anterior');
+});
+
+test('fechas imposibles se rechazan como fechas nuevas y los valores históricos se conservan sin normalizar', async () => {
+  assert.equal(await evaluate("AcompanaCompatibility.isValidDateOnly('2032-02-29')"), true);
+  assert.equal(await evaluate("AcompanaCompatibility.isValidDateOnly('0000-02-29')"), true, 'no se agrega un límite inferior de año');
+  assert.equal(await evaluate("AcompanaCompatibility.isValidDateOnly('9999-12-31')"), true, 'no se agrega un límite superior de año');
+  for (const date of ['2030-99-99','2026-02-30','2025-02-29','2031-02-29','2030-04-31','2026-04-31','2030-00-10','2030-1-01',''])
+    assert.equal(await evaluate(`AcompanaCompatibility.isValidDateOnly('${date}')`), false, date);
+  assert.equal(await evaluate("Number.isNaN(AcompanaDomain.pd('2030-99-99').getTime())"), true);
+  assert.equal(await evaluate("AcompanaDomain.fmtD('2030-99-99')"), 'Fecha inválida (dato conservado)');
+  const legacy = validBackup();
+  legacy.appts = [{ id: 'legacy-date', i: 0, d: '2030-99-99', t: '', w: 'Lugar ficticio', n: '' }];
+  legacy.p[0].meds = [{ name: 'Medicamento ficticio', base: 4, cons: [{ dose: 1, times: ['08:00'], schedule: { type: 'daily' } }], t0: Date.now(), buys: [{ d: '2030-99-99', p: 10, n: 4, w: '' }] }];
+  legacy.pay = { cfg: [{ base: '2030-99-99', pays: [] }] };
+  const migrated = await evaluate(`AcompanaCompatibility.prepareMigratedState(${JSON.stringify(legacy)})`);
+  assert.equal(migrated.appts[0].d, '2030-99-99');
+  assert.equal(migrated.p[0].meds[0].buys[0].d, '2030-99-99');
+  assert.equal(migrated.pay.cfg[0].base, '2030-99-99');
+  await seed(JSON.stringify(legacy));await navigate();
+  assert.equal(await evaluate('persistenceReady'), true, 'una fecha histórica malformada no bloquea la lectura del respaldo');
+  await evaluate('save()');
+  const saved=JSON.parse(await evaluate('__persistenceTest.read()'));
+  assert.equal(saved.appts[0].d,'2030-99-99');
+  assert.equal(saved.p[0].meds[0].buys[0].d,'2030-99-99');
+  assert.equal(saved.pay.cfg[0].base,'2030-99-99');
+  assert.equal(await evaluate('monthCost(S.p[0].meds[0])'),null,'una compra con fecha imposible no alimenta una estimación temporal');
+});
+
+test('una pestaña con estado obsoleto detecta la escritura externa y no sobrescribe los datos guardados', async () => {
+  const response = await fetch(browserEndpoint + '/json/new?' + encodeURIComponent(serverUrl + '/'), { method: 'PUT' });
+  assert.ok(response.ok, 'Chromium crea un segundo contexto de pestaña');
+  const target = await response.json();
+  const second = new DevTools(target.webSocketDebuggerUrl);
+  try {
+    await second.ready;
+    await second.send('Page.enable');
+    await second.send('Runtime.enable');
+    await second.send('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
+    const evalSecond = async expression => {
+      const result = await second.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+      if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+      return result.result.value;
+    };
+    await seed(null);
+    await navigate();
+    await second.send('Page.navigate', { url: serverUrl + '/' });
+    const started = Date.now();
+    while (Date.now() - started < 5000 && !(await evalSecond("typeof persistenceReady !== 'undefined'"))) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(await evalSecond('persistenceReady'), true);
+    await evaluate("S.last='versión más reciente ficticia';save()");
+    const eventStarted = Date.now();
+    while (Date.now() - eventStarted < 3000 && await evalSecond('persistenceReady')) await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(await evalSecond('persistenceFailure'), 'conflict');
+    assert.equal(await evalSecond('save()'), false);
+    assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last, 'versión más reciente ficticia');
+  } finally { second.close(); }
 });
