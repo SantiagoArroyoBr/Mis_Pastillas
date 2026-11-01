@@ -890,6 +890,7 @@ test('fechas imposibles se rechazan como fechas nuevas y los valores históricos
   assert.equal(migrated.pay.cfg[0].base, '2030-99-99');
   await seed(JSON.stringify(legacy));await navigate();
   assert.equal(await evaluate('persistenceReady'), true, 'una fecha histórica malformada no bloquea la lectura del respaldo');
+  assert.equal(await evaluate("(()=>{const card=[...document.querySelectorAll('#homeView .card')].find(x=>x.querySelector('h3')?.textContent.includes('Citas médicas'));return card?.textContent.includes('Fechas inválidas conservadas')&&card?.textContent.includes('Fecha inválida (dato conservado)')&&!card?.querySelector('a[href*=calendar]')})()"),true,'la cita histórica inválida se conserva visible pero no se trata como próxima ni se enlaza a Calendar');
   await evaluate('save()');
   const saved=JSON.parse(await evaluate('__persistenceTest.read()'));
   assert.equal(saved.appts[0].d,'2030-99-99');

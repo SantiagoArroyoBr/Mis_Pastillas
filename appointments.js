@@ -25,12 +25,14 @@ function apptCalUrl(a){
 function apptsCard(){
   const today=ymd(new Date());
   const all=apptList();
-  const up=all.filter(a=>a.d>=today),past=all.filter(a=>a.d<today).slice(-3).reverse();
+  const valid=all.filter(a=>window.AcompanaCompatibility.isValidDateOnly(a.d));
+  const up=valid.filter(a=>a.d>=today),past=valid.filter(a=>a.d<today).slice(-3).reverse(),invalid=all.filter(a=>!window.AcompanaCompatibility.isValidDateOnly(a.d));
   const row=(a,cls)=>`<div class="vrow${cls}"><div>🩺 <b>${esc(S.p[a.i].name)}</b> · ${esc(apptWhen(a))}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}">Editar</button>${Number.isFinite(pd(a.d).getTime())?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}">📅</a>`:''}</div></div>`;
   return `<article class="card blue">
     <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>
     ${up.length?up.map(a=>row(a,'')).join(''):'<p class="hint">No hay citas próximas.</p>'}
     ${past.length?'<p class="info" style="margin-top:12px"><b>Recientes</b></p>'+past.map(a=>row(a,' past')).join(''):''}
+    ${invalid.length?'<p class="info" style="margin-top:12px"><b>Fechas inválidas conservadas; revisa estas citas</b></p>'+invalid.map(a=>row(a,' past')).join(''):''}
     <button class="btn" style="margin-top:10px" data-pa="aadd">+ Agregar cita</button>
   </article>`;
 }
