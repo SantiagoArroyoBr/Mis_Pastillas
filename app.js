@@ -9,18 +9,22 @@ const STORAGE_KEY='pastillas-v1';
 const MAX_IMPORT_BYTES=10*1024*1024;
 let persistenceReady=false;
 let persistenceFailure='';
+let lastPersistedRaw=null;
 function showPersistenceWarning(){
   const box=document.getElementById('persistenceWarning');
   if(!box)return;
   box.hidden=false;
   box.innerHTML=persistenceFailure==='write'
     ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Las modificaciones normales permanecen bloqueadas. Puedes reintentar la recuperación con un respaldo JSON válido.</p>'
+    :persistenceFailure==='conflict'
+    ?'<h2>Los datos cambiaron en otra pestaña</h2><p>Para conservar la versión guardada más recientemente, no se guardarán cambios desde esta pestaña. Recarga para continuar con los datos actuales.</p><button type="button" class="btn" id="reloadFreshState">Recargar datos guardados</button>'
     :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>Utiliza “Restaurar respaldo” para recuperar la aplicación con una copia JSON válida.</p>';
+  const reload=box.querySelector('#reloadFreshState');if(reload)reload.onclick=()=>location.reload();
 }
 
 let S=(()=>{
   let raw;
-  try{raw=localStorage.getItem(STORAGE_KEY)}
+  try{raw=localStorage.getItem(STORAGE_KEY);lastPersistedRaw=raw}
   catch(e){persistenceFailure='read';return defaultState()}
   if(raw===null){persistenceReady=true;return defaultState()}
   try{
@@ -37,7 +41,10 @@ let S=(()=>{
 const save=()=>{
   if(!persistenceReady){showPersistenceWarning();return false}
   try{
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(S));
+    if(localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();return false}
+    const serialized=JSON.stringify(S);
+    localStorage.setItem(STORAGE_KEY,serialized);
+    lastPersistedRaw=serialized;
     return true;
   }catch(e){
     persistenceReady=false;
@@ -46,6 +53,11 @@ const save=()=>{
     return false;
   }
 };
+
+window.addEventListener('storage',e=>{
+  if(e.key!==STORAGE_KEY||e.newValue===lastPersistedRaw)return;
+  persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();
+});
 
 document.addEventListener('click',e=>{
   if(persistenceReady)return;
@@ -393,6 +405,7 @@ function showRestoreConfirmation(candidate){
   $('#restoreConfirm').onclick=()=>{
     let serialized;
     try{
+      if(persistenceFailure!=='read'&&persistenceFailure!=='load'&&localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';dlg.close();showPersistenceWarning();setBackupStatus('Los datos cambiaron en otra pestaña. Recarga y revisa el respaldo antes de volver a restaurarlo.');return}
       serialized=JSON.stringify(candidate);
       localStorage.setItem(STORAGE_KEY,serialized);
     }catch(err){
@@ -405,6 +418,7 @@ function showRestoreConfirmation(candidate){
     }
     // El estado en memoria solo cambia después de confirmar la escritura.
     S=candidate;
+    lastPersistedRaw=serialized;
     persistenceReady=true;
     persistenceFailure='';
     dlg.close();
