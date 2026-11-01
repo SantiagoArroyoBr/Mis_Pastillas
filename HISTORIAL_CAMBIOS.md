@@ -105,3 +105,7 @@ Pruebas: `node --test tests/payments.spec.js tests/persistence.spec.js`, **45/45
 ## 2026-10-31 — CIERRE-002 y PREVIEW-003
 
 El propietario declaró: “He probado PREVIEW-003 y autorizo el cierre funcional de BACKUP-001, NOTIF-001, QA-005 y PREVIEW-003.” Se registra como aprobación manual por declaración, sin inventar resultados por caso, navegador o dispositivo. PREVIEW-003 está publicada en `development` en `c4512dbd6eb97ef5aeb660d812a93078c943459a`; GitHub informó `Vercel: success`. No se consultó el panel ni se verificó independientemente el contenido del deployment. No se autoriza la publicación en producción. La auditoría AUD-FUNC-001 y PLAN-004 se preparan localmente, pendientes de aprobación, fuera del commit documental de cierre.
+
+## 2026-10-31 — CONS-006 y ciclo PLAN-004
+
+Se consolidan como referencias de desarrollo [AUD-FUNC-001](docs/AUD-FUNC-001-auditoria-funcional-integral.md) y [PLAN-004](docs/PLAN-004-prioridades-post-auditoria.md), inspeccionados sobre `b55754bd611979ec98126305fe4a3be7ad933d68`. Se autorizan FIX-FECHA-001, investigación DATA-001 con implementación condicionada a seguridad/compatibilidad, COB-001 y UX-004 como propuestas documentales, correcciones puntuales ACC-001 y QA-006. No se autorizan cambios de cálculo de cobertura ni operaciones destructivas sobre fichas. Sin push, merge, despliegue o cambio de `main`.

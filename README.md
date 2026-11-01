@@ -19,6 +19,8 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 - [Propuesta FIX-003](docs/FIX-003-propuesta-pagos-individuales.md): extensión compatible necesaria para identificar destinatarios sin atribuir pagos históricos por inferencia.
 - [PAG-001](docs/PAG-001-sistema-pagos-individuales.md): modelo aditivo y reglas del registro de servicios, pagos individuales, abonos y saldos.
 - [Auditoría de seguridad y privacidad AUD-003](docs/auditorias/AUD-003-seguridad-privacidad.md): hallazgos AUD-003–AUD-012, verificaciones, tipografía local y riesgos residuales aceptados expresamente para el contexto familiar y controlado actual.
+- [Auditoría funcional integral AUD-FUNC-001](docs/AUD-FUNC-001-auditoria-funcional-integral.md): revisión contra `development` `b55754bd611979ec98126305fe4a3be7ad933d68`, 45/45 pruebas y hallazgos diferenciados por nivel de evidencia.
+- [PLAN-004 post-auditoría](docs/PLAN-004-prioridades-post-auditoria.md): prioridades propuestas; el responsable autorizó un ciclo acotado de fechas, detección de conflicto si es segura, decisiones documentales de cobertura/fichas y accesibilidad puntual.
 - [Revisión independiente AUD-011](docs/auditorias/AUD-011-revision-independiente.md): registra los hallazgos y el seguimiento de corrección/verificación AUD-012.
 - [Propuesta DAT-001](docs/arquitectura/DAT-001-modelo-datos-y-acceso.md): modelo de familias, cuentas y registros, aislamiento, compatibilidad y estrategia de migración futura; no implementada.
 - [Evaluación DAT-002](docs/arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md): compara alternativas de backend/Auth, controles, costos y condiciones; recomienda mantener por ahora la PWA local.
