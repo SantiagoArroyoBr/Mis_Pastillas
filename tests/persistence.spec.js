@@ -499,7 +499,7 @@ test('exportar informa que descarga una copia privada sin borrar los datos actua
   assert.match(await evaluate("document.querySelector('#backupHelp').textContent"), /copia privada.*no borra/i);
   await evaluate("document.querySelector('#exp').click()");
   await waitFor('__persistenceTest.exportBlob !== null', 'descarga del respaldo');
-  assert.match(await evaluate("document.querySelector('#backupStatus').textContent"), /copia privada.*siguen guardados/i);
+  assert.match(await evaluate("document.querySelector('#backupStatus').textContent"), /descarga iniciada.*copia privada.*siguen guardados/i);
   assert.equal(await evaluate('__persistenceTest.read()'), raw);
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
 });

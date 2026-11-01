@@ -314,7 +314,7 @@ document.addEventListener('click',e=>{
       const a=document.createElement('a');a.href=url;a.download='cuidados-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
       document.body.appendChild(a);a.click();a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),2000);
-      setBackupStatus('Respaldo descargado. Es una copia privada; los datos de esta instalación siguen guardados.');
+      setBackupStatus('Descarga iniciada. Es una copia privada; los datos de esta instalación siguen guardados.');
     }catch(err){setBackupStatus('El navegador no pudo preparar la descarga. Tus datos guardados no se modificaron.');}
   }
   else if(t.id==='imp'){$('#impFile').click()}

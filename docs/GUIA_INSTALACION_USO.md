@@ -169,7 +169,7 @@ El responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualment
 
 ### BACKUP-001 y NOTIF-001 — 2026-10-31
 
-**Exportar:** el botón descarga una copia JSON privada; no elimina los datos de la instalación. Guarda el archivo en un lugar seguro. La aplicación informa si pudo preparar la descarga; si falla, el almacenamiento local no se modifica.
+**Exportar:** el botón inicia la descarga de una copia JSON privada; no elimina los datos de la instalación. Guarda el archivo en un lugar seguro. Si el navegador no puede prepararla, la aplicación lo informa y el almacenamiento local no se modifica.
 
 **Restaurar:** al elegir el archivo, la app comprueba su tamaño (máximo 10 MiB), JSON y estructura/compatibilidad antes de escribir. La vista previa muestra fecha disponible y conteos de personas, medicinas/insumos, citas y enfermeros; no despliega nombres ni detalles médicos. Restaurar reemplaza los datos locales de esta instalación, por lo que se recomienda exportar una copia actual. “Cancelar” conserva el estado. Para completar la restauración hay que continuar desde el resumen y confirmar explícitamente. Un error del archivo se informa como problema del archivo; una falla al guardar se informa como problema del almacenamiento/navegador. Si falla la escritura, se conserva el estado anterior.
 
