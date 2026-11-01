@@ -80,9 +80,9 @@
       const total = cfg.pays.filter(x => !x.old).reduce((sum, x) => sum + x.n, 0);
       const out = { has: false, total, dates: [], covered: new Set(), unpaid: [], unused: 0,
         remaining: 0, unpaidDue: [], owed: 0, future: 0, st: 'gray', msg: '', lastCovered: '' };
-      if (!cfg.base) return out;
+      if (!window.AcompanaCompatibility.isValidDateOnly(cfg.base)) return out;
       const today = ymd(new Date());
-      const dates = Object.keys(state.pay.v).filter(k => k >= cfg.base && entries(k, i).length).sort();
+      const dates = Object.keys(state.pay.v).filter(k => window.AcompanaCompatibility.isValidDateOnly(k) && k >= cfg.base && entries(k, i).length).sort();
       const covered = dates.slice(0, total), unpaid = dates.slice(total);
       const unused = Math.max(0, total - dates.length);
       const unpaidDue = unpaid.filter(k => k <= today), owed = unpaidDue.length;

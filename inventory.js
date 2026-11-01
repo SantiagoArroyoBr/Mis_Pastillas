@@ -33,12 +33,13 @@ function addBuy(m,p,n,shop,d){
   if(m.buys.length>40)m.buys=m.buys.slice(-40);
 }
 const buyList=m=>(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&b.n>0&&isFinite(b.p));
+const validBuyList=m=>buyList(m).filter(b=>window.AcompanaCompatibility.isValidDateOnly(b.d));
 const unitPrice=b=>b.p/b.n;
 const usage30=m=>evs(m,Date.now(),Date.now()+30*864e5).reduce((s2,e)=>s2+e.d,0);
-function monthCost(m){const L=buyList(m);return L.length?unitPrice(L[L.length-1])*usage30(m):null}
+function monthCost(m){const L=validBuyList(m);return L.length?unitPrice(L[L.length-1])*usage30(m):null}
 function bestShop(m){ // la tienda con el precio más bajo, según su última anotación
   const by=new Map();
-  buyList(m).forEach(b=>{if(b.w)by.set(b.w.toLowerCase(),b)});
+  validBuyList(m).forEach(b=>{if(b.w)by.set(b.w.toLowerCase(),b)});
   if(by.size<2)return null;
   let best=null;by.forEach(b=>{if(!best||unitPrice(b)<unitPrice(best))best=b});
   return best;
@@ -49,7 +50,8 @@ function shopPresets(){
   return seen.slice(0,6).map(x=>({l:esc(x),v:esc(x)}));
 }
 function priceLine(m){
-  const L=buyList(m);if(!L.length)return'';
+  const all=buyList(m),L=validBuyList(m);if(!all.length)return'';
+  if(!L.length)return `<p class="info">Hay anotaciones de precio con fecha inválida, conservadas en el historial y excluidas de estimaciones. Corrige una anotación mediante una nueva entrada con fecha válida.</p>`;
   const b=L[L.length-1],u=unitPrice(b),mo=monthCost(m);
   let chg='';
   if(L.length>1){const up=unitPrice(L[L.length-2]);if(up>0){const pc=Math.round((u-up)/up*100);if(pc!==0)chg=' · '+(pc>0?'↑ ':'↓ ')+Math.abs(pc)+'% frente a la anotación anterior'}}
@@ -57,7 +59,7 @@ function priceLine(m){
   const when=days<=0?'hoy':days===1?'ayer':'hace '+days+' días';
   const bs=bestShop(m);
   const cheaper=(bs&&bs.w.toLowerCase()!==(b.w||'').toLowerCase())?' Más barata: '+esc(bs.w)+' ('+A(unitPrice(bs))+' por '+unit1(m)+').':'';
-  return `<p class="info">💲 <b>${A(u)}</b> por ${unit1(m)} · unos <b>${A(mo)}</b> al mes <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver'}</button><br><span class="hint">${b.w?esc(b.w)+' · ':''}${when}${chg}.${cheaper}</span></p>`;
+  return `<p class="info">💲 <b>${A(u)}</b> por ${unit1(m)} · unos <b>${A(mo)}</b> al mes <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver'}</button><br><span class="hint">${b.w?esc(b.w)+' · ':''}${when}${chg}.${cheaper}${all.length>L.length?' Hay anotaciones históricas con fechas inválidas conservadas en el historial; no se usan para estimar.':''}</span></p>`;
 }
 function spendHTML(){
   let any=false,missing=0;

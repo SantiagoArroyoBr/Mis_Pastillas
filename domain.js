@@ -104,8 +104,11 @@
   }
 
   const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const pd = ds => { const [y, m, d] = ds.split('-').map(Number); return new Date(y, m - 1, d); };
-  const fmtD = ds => pd(ds).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const pd = ds => {
+    if(!window.AcompanaCompatibility.isValidDateOnly(ds))return new Date(NaN);
+    const [y,m,d]=ds.split('-').map(Number);const result=new Date(0);result.setFullYear(y,m-1,d);result.setHours(0,0,0,0);return result;
+  };
+  const fmtD = ds => window.AcompanaCompatibility.isValidDateOnly(ds)?pd(ds).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }):'Fecha inválida (dato conservado)';
   const money = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
   window.AcompanaDomain = Object.freeze({ parseTimes, at, dayMatches, schedText, evs, calc, fmt, num, consText, calUrl, ymd, pd, fmtD, money, WD_SHORT });

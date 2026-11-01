@@ -95,7 +95,10 @@ function form(title,fields,ok,btn='Guardar'){
 
   $('#f').onsubmit=e=>{
     e.preventDefault();
-    const r=ok(collect());
+    const values=collect();
+    const invalidDate=fields.find(f=>f.t==='date'&&values[f.id]&&!window.AcompanaCompatibility.isValidDateOnly(values[f.id]));
+    if(invalidDate){$('#err').textContent='La fecha no existe en el calendario. Revísala antes de guardar.';return}
+    const r=ok(values);
     if(r){$('#err').textContent=r}else dlg.close();
   };
   if(!dlg.open)dlg.showModal();

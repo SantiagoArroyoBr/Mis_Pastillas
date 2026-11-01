@@ -1,5 +1,13 @@
 // Normalización de versiones y validación de datos persistidos/importados. No accede a localStorage.
 (() => {
+function isValidDateOnly(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [y,m,d]=value.split('-').map(Number);
+  if(m<1||m>12)return false;
+  const leap=y%4===0&&(y%100!==0||y%400===0);
+  const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31][m-1];
+  return d>=1&&d<=days;
+}
 // Convierte medicinas del formato viejo (dose/times/schedule) al nuevo (cons = lista de consumos)
 const NPAL=['#C92A2A','#1864AB','#2B8A3E','#862E9C','#A61E4D','#0B7285','#B45309','#5F3DC4'];
 const NPALN=['Rojo','Azul','Verde','Morado','Rosa','Turquesa','Naranja','Índigo'];
@@ -331,5 +339,5 @@ function validateMigratedState(d){
 }
 
 
-window.AcompanaCompatibility=Object.freeze({NPAL,NPALN,migrate,defaultState,validateStoredState,validateMigrationInput,assertMigrationIntegrity,prepareMigratedState,validateMigratedState});
+window.AcompanaCompatibility=Object.freeze({NPAL,NPALN,isValidDateOnly,migrate,defaultState,validateStoredState,validateMigrationInput,assertMigrationIntegrity,prepareMigratedState,validateMigratedState});
 })();
