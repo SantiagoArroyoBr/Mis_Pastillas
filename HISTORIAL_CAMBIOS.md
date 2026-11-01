@@ -79,3 +79,13 @@ Archivos de aplicación: `app.js`, `care-ui.js`, `compatibility.js`, `payments.j
 Suite completa `node --test tests/payments.spec.js tests/persistence.spec.js`: **42/42**; Edge 156.0.4314.50, perfil aislado y fixtures ficticios. `node --check` en los scripts afectados, JSON de `manifest.json` y `git diff --check` revisados. Incluye tarifas cero/independientes, dos enfermeros por fecha, snapshot histórico, coexistencia sin doble descuento, abonos, rechazo de excedente, cancelación duplicada, respaldo/restauración, PWA offline y responsive a 320 px.
 
 Limitaciones: el saldo no es conciliación histórica completa; falta la validación visual/manual final del responsable. No se usaron datos reales ni se probó Firefox, dispositivo físico, Preview o producción. Un primer intento restringido fue bloqueado por loopback EACCES; la ejecución local permitida pasó. Cambios locales, sin commit ni push; `development`; `main` intacta.
+
+## 2026-10-31 — PREVIEW-002, publicación de ADMIN-001
+
+Se publicó a `origin/development` la serie de seis commits pendientes hasta `e5e00f1f51dcaf00d582a8094a567f809563e362`. `git fetch origin` posterior confirmó el SHA esperado y ausencia de divergencia; `origin/main` se mantuvo en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. El árbol estuvo limpio. No se creó commit nuevo, no se hizo merge ni se desplegó manualmente.
+
+Antes del push, 12 scripts JS pasaron `node --check`, `manifest.json` validó con tema/fondo `#315B50`, la suite `node --test tests/payments.spec.js tests/persistence.spec.js` pasó 42/42 en Edge 156.0.4314.50, con perfil aislado/fixtures ficticios, y `git diff origin/development...development --check` pasó.
+
+GitHub devolvió `Vercel: success` para el SHA publicado. La URL Preview conocida redirige a login; no se inició sesión ni se eludió la protección, así que no se hicieron pruebas funcionales contra Preview. La URL de producción respondió por HTTPS y mostró `Cuidados v9` y la UI anterior; no se tuvo acceso al panel para confirmar el mapeo de rama o SHA productivo. La revisión manual del responsable queda pendiente. El registro y la lista de pruebas están en [la guía PREVIEW-002](docs/GUIA_INSTALACION_USO.md#preview-002-publicacion-de-admin-001).
+
+La documentación de PREVIEW-002 se actualizó después de publicar y quedó pendiente de consolidación. En el cierre del 2026-10-31, el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se entregaron resultados por caso. CONS-004 consolida el registro en los cinco documentos listados en este commit. No se afirma validación independiente del Preview ni autorización de publicación a producción; `main` y producción no se modificaron.

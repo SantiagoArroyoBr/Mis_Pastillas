@@ -136,3 +136,33 @@ En Calendario seleccione la fecha y persona; elija una jornada disponible (si so
 El resumen principal presenta el costo verificable de jornadas nuevas, abonos generales del cliente a la administradora y saldo pendiente. No descuenta el libro individual PAG-001, pagos globales legados ni jornadas antiguas sin costo. No lo trate como conciliación completa de deuda histórica. Para corregir un abono, cancele el movimiento —que permanece en historial— y registre otro. Mientras hay abonos generales activos, quitar servicios queda bloqueado para mantener el saldo trazable.
 
 Validación automatizada local: 42/42 casos en Edge 156.0.4314.50, perfil temporal y datos ficticios, incluida restauración y offline. La validación visual manual en Preview corresponde al responsable; no se realizó en esta intervención. Para checklist y limitaciones, consultar [ADMIN-001](ADMIN-001-tarifas-adeudo-general.md).
+
+### PREVIEW-002 — publicación de ADMIN-001 — 2026-10-31
+
+El propietario autorizó publicar los seis commits pendientes solo en `development`. El push completó `db944e5..e5e00f1`; el `fetch` posterior confirmó `origin/development` y el checkout local en `e5e00f1f51dcaf00d582a8094a567f809563e362`, sin divergencia. `origin/main` y `main` permanecen en `92c4034085e13bb38fd0a7ff2622c46ef797873d`; el árbol quedó limpio tras la publicación. Repositorio remoto verificado: `SantiagoArroyoBr/Mis_Pastillas`.
+
+GitHub muestra el check combinado **Vercel: success** para el SHA publicado, enlazado a [la página del deployment](https://vercel.com/dinamita20/pastillas-1/9ZnXdhui4fDe7VQduBMXHyMbVwgn). La URL Preview `https://pastillas-1-git-development-dinamita20.vercel.app/` redirigió a inicio de sesión de Vercel. No se inició sesión, no se eludió Deployment Protection y no se pudo determinar desde el panel la etiqueta Preview/Production, URL final asociada al nuevo SHA, ni configuración de rama de producción.
+
+La URL pública `https://pastillas-1.vercel.app/` cargó por HTTPS y mostró `Cuidados v9`, con texto de calendario/interfaz anterior al modelo ADMIN-001. Es una observación de la página servida, no evidencia del ajuste interno de Vercel ni del SHA asignado al dominio. No se desplegó manualmente a producción ni se cambió su configuración.
+
+Verificación local previa al push: `node --check` en 12 scripts JavaScript, `manifest.json` válido (tema/fondo `#315B50`), `node --test tests/payments.spec.js tests/persistence.spec.js` con **42/42** aprobadas en Edge 156.0.4314.50, perfil temporal aislado y datos ficticios; `git diff origin/development...development --check` limpio. Incluye persistencia, compatibilidad JSON, tarifas, calendario, abonos/cancelaciones, historia y PWA/offline.
+
+**Estado funcional de Preview:** no probado porque la protección requiere autenticación. No se introdujeron credenciales, no se eludió acceso y no se usaron datos reales. La comprobación de `main`/producción se limita al SHA de la referencia GitHub sin cambios y la lectura HTTPS del dominio; la configuración de Vercel no estuvo disponible.
+
+#### Lista manual pendiente para el responsable
+
+Use la Preview desde una sesión autorizada, un perfil aislado y solo registros ficticios:
+
+1. Cree A con jornada completa `$100.00` y media `$60.00`; cree B con solo jornada completa `$200.00`. Compruebe que no se ofrece modalidad vacía y que `$0.00` puede guardarse como tarifa explícita.
+2. En una fecha asigne A media jornada y B jornada completa. Debe mostrar `$60.00` y `$200.00`, sin campo para cambiar tarifas en Calendario; recargue y confirme que ambas asignaciones siguen.
+3. Cambie la tarifa completa de A de `$100.00` a `$120.00`. Una asignación completa anterior debe conservar `$100.00`, una nueva completa debe mostrar `$120.00` y la tarifa de media jornada de `$60.00` debe permanecer independiente.
+4. Con `$260.00` de costos, registre abonos generales de `$100.00` y `$50.00`; el saldo debe bajar a `$110.00`. El formulario no debe pedir enfermero. Pruebe un abono de `$110.01`: debe rechazarse sin movimiento.
+5. Cancele el abono de `$100.00`. El historial debe conservar recibo/cancelación y el saldo subir a `$210.00`; no debe ofrecerse cancelarlo otra vez.
+6. Exporte y restaure el JSON ficticio. Verifique tarifas, costos snapshot, abonos/cancelación, registros legados y PAG-001. Compruebe que los pagos individuales anteriores no se descuentan del saldo general.
+7. Revise Pagos en viewports 320, 360, 375, 390, 430 y 768 px, sin overflow; compruebe consola, recarga offline y recursos estáticos. La emulación no equivale a dispositivo físico.
+
+Reporte errores indicando pasos, tamaño de pantalla/navegador y resultado esperado frente al obtenido; no adjunte respaldos familiares. Ninguna de estas pruebas manuales se declara realizada en esta ejecución.
+
+### Cierre de ADMIN-001 y PREVIEW-002 — 2026-10-31
+
+El responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” Se registra como validación manual completada por declaración del responsable. No se proporcionaron resultados por caso, navegador, dispositivo o captura; por ello este registro no atribuye resultados específicos ni constituye verificación independiente. La suite automatizada local de 42/42 casos indicada arriba es un resultado separado y anterior. La protección de acceso impidió a esta revisión observar la Preview; el estado de producción no se alteró ni se aprobó su publicación.

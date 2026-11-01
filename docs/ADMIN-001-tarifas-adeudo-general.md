@@ -1,6 +1,6 @@
 # ADMIN-001 — Tarifas, jornadas y adeudo general
 
-Estado: implementación local en `development`, sin publicación remota. La validación automatizada descrita abajo se ejecutó el 2026-10-31 en Microsoft Edge 156.0.4314.50 mediante Chromium DevTools, servidor loopback local y perfil temporal aislado. Todos los nombres y registros de prueba fueron ficticios.
+Estado: publicada en `development` en `e5e00f1f51dcaf00d582a8094a567f809563e362`. GitHub mostró `Vercel: success`, pero la URL Preview requirió autenticación; esta revisión no hizo prueba funcional remota ni intentó eludir protección. Producción respondió por HTTPS con la interfaz anterior “Cuidados v9”; no se verificó la rama/SHA configurados en el panel Vercel. La validación automatizada local descrita abajo se ejecutó el 2026-10-31 en Microsoft Edge 156.0.4314.50 mediante Chromium DevTools, servidor loopback local y perfil temporal aislado. Todos los nombres y registros de prueba fueron ficticios. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales específicos y no se verificó independientemente esa ejecución. La aprobación no autoriza un despliegue de producción.
 
 ## Modelo funcional
 
