@@ -1,5 +1,9 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-007 — Gestión segura de registros
+
+PREVIEW-006 publicó los seis commits de PLAN-006 hasta 972a856. DATA-002 documenta las referencias por índice, nombre e ID. FICHAS-003 implementa retiro lógico mediante archivo y mantiene pendiente el borrado físico. ENF-002 añade inactividad reversible y borrado de enfermeros sin dependencias. UX-006 separa las acciones de retiro y confirma su alcance. Validación manual y publicación de PLAN-007 pendientes.
+
 ## PLAN-006 — Ciclo local implementado
 
 PREVIEW-005 publicó PLAN-005A hasta `e27bea8` con Vercel success. CONS-008, UX-005, HOME-001, FICHAS-002, HIST-001 y GLASS-001 se implementan localmente. QA-010 pasó 55/55. La revisión del propietario precede a la publicación de este ciclo. Véase [alcance, compatibilidad y checklist](docs/PLAN-006-evolucion-integral-ux.md).

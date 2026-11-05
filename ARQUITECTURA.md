@@ -1,5 +1,9 @@
 # Arquitectura de Acompaña
 
+## PLAN-007 — Retiro de registros
+
+app.js concentra la consulta de dependencias y las confirmaciones de retiro. Guarda estados candidatos mediante save antes de sustituir S. Las fichas reutilizan archived y conservan su índice. Los enfermeros admiten inactive booleano opcional, validado en compatibility.js y preservado en respaldos. care-ui.js excluye los inactivos de nuevas asignaciones y mantiene sus filas históricas. Las asignaciones se relacionan por nombre legado o nurseId y los pagos individuales por nurseId. La eliminación de un enfermero exige ausencia de estas relaciones. El saldo general sigue siendo global.
+
 Este documento describe hechos comprobados en el repositorio y los distingue de propuestas por evaluar. El inventario funcional se hizo sobre `development` en `f381219e31e515ba34096446d5c7109d8ae73937`; DEV-001 actualiza después el formulario de citas para seleccionar por índice de ficha y conserva la estructura persistida. `main` no se modificó.
 
 ## Arquitectura vigente — hechos comprobados

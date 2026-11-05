@@ -22,3 +22,27 @@ Una marca booleana opcional inactive conserva la identidad y el historial. El se
 ## Publicación y límites
 
 PREVIEW-006 publica los seis commits de PLAN-006 hasta 972a856. La validación funcional del propietario en Preview sigue pendiente. PLAN-007 queda en commits locales. Los cuatro documentos anteriores se conservan fuera de estos commits.
+
+GitHub confirmó el SHA 972a856909bbc6c73271009a9d7c50dcaa3e382f y Vercel success. main permanece en 92c4034085e13bb38fd0a7ff2622c46ef797873d.
+
+## Compatibilidad y limitaciones
+
+inactive es opcional, su ausencia significa activo. La normalización vigente conserva esta propiedad y el importador valida su tipo. Respaldos anteriores conservan su comportamiento. Una versión anterior de la aplicación puede ignorar la inactividad. La protección de pestañas detecta cambios observados, con el límite de concurrencia propio de localStorage.
+
+El retiro de fichas siempre reserva su posición mediante archivo, incluso cuando está vacía o ya archivada. El borrado físico de fichas queda pendiente. Las fichas archivadas conservan la consulta, edición y reactivación existentes. Se contabilizan medicamentos/insumos, citas, asignaciones, enfermeros y pagos históricos para explicar el retiro. La conservación íntegra también protege propiedades adicionales desconocidas.
+
+La eliminación definitiva de enfermeros comprueba las asignaciones por nombre en su ficha y por ID en todo el estado, el libro individual y los campos adicionales del enfermero. La presencia de propiedades adicionales impide borrarlo, por precaución ante historia desconocida. Al confirmar se comprueban nuevamente las dependencias y se guarda antes de actualizar la vista.
+
+## Validación manual pendiente
+
+QA-011 pasó **59/59** (8 unitarias y 51 de navegador) en Edge 156.0.4314.58 con perfil aislado. Cuatro casos nuevos ejercitan retiro lógico de fichas, eliminación y desactivación de enfermeros, fallos y conflicto, y confirmaciones accesibles. La regresión conserva los casos de JSON antiguo, pagos, medicamentos, PWA y offline. Pasaron sintaxis de 12 scripts, manifest JSON y revisión del diff.
+
+1. Revisar retiro de una ficha vacía y de otra con datos ficticios. Cancelar y confirmar archivo.
+2. Consultar archivadas, reactivar y crear una nueva ficha. Verificar selección y asociaciones.
+3. Añadir un enfermero sin turnos, revisar la eliminación definitiva y cancelar. Repetir y confirmar.
+4. Retirar un enfermero con servicios anteriores y turnos futuros. Comprobar las fechas mostradas, el estado Inactivo y la conservación de costos.
+5. Abrir una nueva asignación, verificar la exclusión del inactivo, reactivarlo y verificar su disponibilidad.
+6. Exportar, recargar y restaurar un JSON con fichas archivadas y enfermeros inactivos.
+7. Revisar confirmaciones en móvil y con teclado. Verificar foco, cancelación y mensajes.
+
+La revisión automatizada de accesibilidad es acotada. Lectores de pantalla y contraste perceptual de todas las combinaciones quedan pendientes de revisión manual.

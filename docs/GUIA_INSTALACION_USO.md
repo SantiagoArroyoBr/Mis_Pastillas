@@ -10,6 +10,10 @@
 
 ## Organización básica
 
+En PLAN-007 local, abre **Retirar ficha** en Medicinas y pulsa **Revisar retiro de ficha**. La confirmación muestra los registros relacionados y ofrece archivo reversible conservando la posición de la ficha. Puedes cancelar o consultar sus datos antes de decidir.
+
+En Pagos, edita al enfermero y usa **Retirar enfermero/a** en el grupo separado al final del formulario. Si tiene historial se ofrece **Desactivar**, conservando los turnos futuros mostrados. Si está libre de dependencias se ofrece **Eliminar definitivamente** con confirmación. Los inactivos se identifican en Pagos y se pueden reactivar desde su edición. Para gestionar un turno futuro existente, abre su fecha en el calendario.
+
 En PLAN-006 local, **Archivar ficha activa** solicita confirmación y conserva todos los registros. **Consultar archivadas** permite elegir una ficha y **Reactivar ficha activa** la devuelve a la lista habitual. Las fichas archivadas siguen disponibles para consultar y editar, y sus avisos y saldos siguen formando parte del resumen familiar. Si todas están archivadas, se conserva una selección válida y puedes reactivar o añadir una ficha. Los respaldos incluyen el estado de archivo.
 
 Inicio ofrece accesos rápidos al calendario, Medicinas/fichas, Pagos/historial y respaldos. El historial expandible de precios muestra todas las anotaciones, comenzando por las últimas capturadas.

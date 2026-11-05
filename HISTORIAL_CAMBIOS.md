@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2026-11-05 — PREVIEW-006 y PLAN-007
+
+PREVIEW-006 publicó los seis commits hasta 972a856 en development, con confirmación de GitHub y Vercel success. Validación funcional del propietario en Preview pendiente.
+
+PLAN-007 agrega revisión de dependencias y retiro de fichas mediante archivo explícito, además de inactividad reversible y eliminación de enfermeros libres de dependencias. Los turnos futuros se enumeran y conservan. Las confirmaciones separan las acciones de retiro y guardan un estado candidato antes de actualizar la interfaz.
+
+QA-011 pasó **59/59** en Edge 156.0.4314.58 con perfil aislado y datos ficticios, incluidas cuatro pruebas nuevas. Se verificaron retiros, conservación de índices, costos, relaciones, turnos futuros, restauración, cancelación, errores de escritura y conflicto, teclado y reflujo de confirmaciones a 320, 390, 768 y 1280 px. Un error de sintaxis en la etiqueta Inactivo se corrigió antes de la corrida final. Borrado físico de fichas pendiente, con alternativa reversible disponible. [Diagnóstico y checklist](docs/PLAN-007-gestion-eliminacion-segura.md).
+
 ## 2026-11-05 — PREVIEW-005 y PLAN-006
 
 Publicados los cinco commits de PLAN-005A hasta `e27bea8`. GitHub confirmó el SHA remoto y Vercel success. La validación funcional de Preview queda pendiente.
