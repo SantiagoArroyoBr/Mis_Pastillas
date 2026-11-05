@@ -95,6 +95,7 @@ function validateStoredState(d){
   if(!d||typeof d!=='object'||Array.isArray(d)||!Array.isArray(d.p))fail('Estructura principal no válida.');
   d.p.forEach((p,i)=>{
     if(!p||typeof p!=='object'||Array.isArray(p)||!Array.isArray(p.meds))fail('Lista de medicinas no válida en el paciente '+(i+1)+'.');
+    if(own(p,'archived')&&typeof p.archived!=='boolean')fail('El estado de archivo de la ficha debe ser verdadero o falso.');
     p.meds.forEach((m,j)=>{
       if(!m||typeof m!=='object'||Array.isArray(m))fail('Registro de medicina no válido.');
       if(own(m,'cons')){

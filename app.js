@@ -83,7 +83,7 @@ const WD_LONG=['domingo','lunes','martes','miércoles','jueves','viernes','sába
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const TIMES={full:'Tiempo completo',half:'Medio tiempo'};
 const PLBL={green:['✓','Conteo al corriente'],amber:['!','Revisar cobertura'],red:['✕','Fechas sin cubrir'],gray:['–','Sin configurar']};
-let showT=0,calM=0,homeP=-1;
+let showT=0,calM=0,homeP=-1,showArchived=S.p[S.sel]?.archived===true;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
 const emptyPayConfig=()=>({who:'',note:'',lead:2,base:'',pays:[],time:'full',rate:null});
@@ -101,7 +101,7 @@ const ledgerRows=()=>Array.isArray(S.pay.ledger)?S.pay.ledger:[];
 const generalRows=()=>Array.isArray(S.pay.generalLedger)?S.pay.generalLedger:[];
 const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
 function patientLabel(p,i){
-  return esc(p.name)+(S.p.some((other,j)=>j!==i&&other.name===p.name)?' · Ficha '+(i+1):'');
+  return esc(p.name)+(S.p.some((other,j)=>j!==i&&other.name===p.name)?' · Ficha '+(i+1):'')+(p.archived===true?' · Archivada':'');
 }
 function payNotice(){
   if(generalSummary(allServiceRows(),generalRows()).balanceCents<=0)return'';
@@ -128,7 +128,7 @@ function renderHome(){
     if(!nurList(i).length)return;
     [[t0,'hoy'],[t1,'mañana']].forEach(([d,lab])=>{
       const ds=ymd(d),es=ents(ds,i);
-      if(es.length){if(lab==='hoy')rows.push({o:3,h:`<div class="vrow todo ok"><div>🧑‍⚕️ Hoy atiende a <b>${esc(p.name)}</b>: ${es.map(e=>`<span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>`).join(', ')}</div></div>`})}
+      if(es.length){if(lab==='hoy')rows.push({o:3,h:`<div class="vrow todo ok"><div>🧑‍⚕️ Asignación registrada hoy para <b>${esc(p.name)}</b>: ${es.map(e=>`<span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>`).join(', ')}</div></div>`})}
       else if(d.getDay()!==0)rows.push({o:lab==='hoy'?1:2,h:`<div class="vrow todo amber"><div>🧑‍⚕️ Falta asignar enfermero/a a <b>${esc(p.name)}</b> ${lab}</div><button class="btn ghost small tbtn" data-pa="day" data-i="${i}" data-d="${ds}">Asignar</button></div>`});
     });
   });
@@ -137,7 +137,12 @@ function renderHome(){
   const todo=rows.length
     ? `<div class="soon${pend?'':' ok'}"><h2>${pend?'✅ Por hacer':'✓ Todo al día'}</h2>${rows.map(r=>r.h).join('')}${pend&&('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`
     : '<div class="soon ok">✓ Todo al día: no hay pendientes.</div>';
-  $('#homeView').innerHTML=todo+`<article class="card blue">
+  $('#homeView').innerHTML=`<h2>Atención prioritaria</h2>`+todo+`<nav class="quick-links glass" aria-label="Accesos rápidos">
+      <button class="btn ghost small" data-pa="gomed" data-i="${homeP}">Medicinas y fichas</button>
+      <button class="btn ghost small" data-pa="gopay">Pagos e historial</button>
+      <a class="btn ghost small" href="#careCalendar">Calendario</a>
+      <a class="btn ghost small" href="#exp">Respaldos</a>
+    </nav><h2>Resumen del cuidado</h2><article class="card blue" id="careCalendar">
       <div class="top"><h3 class="name">🗓️ Calendario</h3></div>
       <div class="psels" role="group" aria-label="Elegir ficha">${S.p.map((p,i)=>`<button class="psel" aria-pressed="${i===homeP}" data-pa="hp" data-i="${i}">${patientLabel(p,i)}</button>`).join('')}</div>
       ${calHTML(homeP)}
@@ -187,7 +192,7 @@ function payAction(t){
     form('¿Quitar esta cita?',[],()=>{S.appts=S.appts.filter(x=>x.id!==a.id);save();render()},'Sí, quitar');
   }
   else if(pa==='gopay'){S.mode='pay';save();render();window.scrollTo(0,0)}
-  else if(pa==='gomed'){S.mode='meds';S.sel=Math.min(i,S.p.length-1);save();render();window.scrollTo(0,0)}
+  else if(pa==='gomed'){S.mode='meds';S.sel=Math.min(i,S.p.length-1);showArchived=S.p[S.sel].archived===true;save();render();window.scrollTo(0,0)}
   else if(pa==='hp'){homeP=i;render()}
   else if(pa==='cfg')payForm(i);
   else if(pa==='payreg')payRegForm(i);
@@ -257,13 +262,16 @@ function render(){
   const md=S.mode;
   notifyDaily();
   $('#modes').setAttribute('role','group');$('#modes').setAttribute('aria-label','Sección de la aplicación');
-  $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Medicinas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}">${l}</button>`).join('');
+  $('#modes').innerHTML=[['home','Inicio','house'],['meds','Medicinas','pill'],['pay','Pagos','wallet']].map(([m,l,icon])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}"><img class="nav-icon" src="icons/${icon}.svg" alt="">${l}</button>`).join('');
   $('#tabs').hidden=md!=='meds';$('#patientActions').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
   if(md==='home'){$('#paysoon').innerHTML='';renderHome();return}
   $('#paysoon').innerHTML=payNotice();
-  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`).join('');
+  $('#showArchived').setAttribute('aria-pressed',String(showArchived));
+  $('#showArchived').textContent=showArchived?'Ver fichas activas':'Consultar archivadas';
+  $('#archivePatient').textContent=P.archived===true?'Reactivar ficha activa':'Archivar ficha activa';
+  $('#tabs').innerHTML=S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||'<p>Sin fichas archivadas.</p>';
   const items=[];
   S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
   items.sort((a,b)=>a.c.buy-b.c.buy);
@@ -295,6 +303,19 @@ function render(){
 }
 
 const dlg=$('#dlg');
+function archivePatient(){
+  const i=S.sel,archived=S.p[i].archived!==true;
+  form(archived?'¿Archivar esta ficha?':'¿Reactivar esta ficha?',[],()=>{
+    const patients=S.p.map((p,j)=>j===i?{...p,archived}:p);
+    const active=patients.findIndex(p=>p.archived!==true);
+    const next={...S,p:patients,sel:archived&&active>=0?active:i};
+    if(!save(next))return 'No se pudo guardar. Revisa el aviso de almacenamiento.';
+    S=next;homeP=S.sel;showArchived=S.p[S.sel].archived===true;
+    render();
+    dlg.addEventListener('close',()=>$('#archivePatient').focus(),{once:true});
+  },archived?'Archivar':'Reactivar');
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>${esc(S.p[i].name)}</p><p>Conserva todos sus registros. Puedes consultar y reactivar la ficha desde Archivadas. Sus avisos y saldos siguen visibles.</p>`);
+}
 function patientForm(index){
   const adding=index===undefined;
   const i=adding?S.p.length:index;
@@ -317,7 +338,7 @@ function patientForm(index){
     }
     if(!save(next))return 'No se pudo guardar la ficha. Revisa el aviso de almacenamiento.';
     S=next;
-    if(adding)homeP=i;
+    if(adding){homeP=i;showArchived=false}
     dlg.addEventListener('close',()=>{
       const target=S.mode==='pay'?`[data-pa="ren"][data-i="${i}"]`:adding?`#tabs [data-i="${i}"]`:'#ren';
       $(target)?.focus();
@@ -358,6 +379,18 @@ document.addEventListener('click',e=>{
   else if(t.id==='notif'){Notification.requestPermission().then(render)}
   else if(t.id==='ren')patientForm(S.sel);
   else if(t.id==='addPatient')patientForm();
+  else if(t.id==='archivePatient')archivePatient();
+  else if(t.id==='showArchived'){
+    showArchived=!showArchived;
+    const index=S.p.findIndex(p=>(p.archived===true)===showArchived);
+    if(index>=0){
+      const next={...S,sel:index};
+      if(!save(next)){showArchived=!showArchived;return}
+      S=next;
+    }
+    render();
+    $('#showArchived').focus();
+  }
   else if(t.id==='share'){
     const txt='Resumen de medicinas de '+P.name+':\n\n'+summaryText(P);
     externalPreview('Compartir resumen por WhatsApp','https://wa.me/',{text:txt,kind:'whatsapp'});
@@ -461,6 +494,8 @@ function showRestoreConfirmation(candidate){
     }
     // El estado en memoria solo cambia después de confirmar la escritura.
     S=candidate;
+    showArchived=S.p[S.sel].archived===true;
+    homeP=S.sel;
     lastPersistedRaw=serialized;
     persistenceReady=true;
     persistenceFailure='';
