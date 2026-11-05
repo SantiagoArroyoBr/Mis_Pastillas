@@ -49,28 +49,23 @@ function migrate(d){
   z.nurses=z.nurses.map(a=>Array.isArray(a)?a.map((x,k)=>{
     if(typeof x==='string'&&x)return{n:x,c:NPAL[k%NPAL.length]};
     if(x&&typeof x.n==='string'&&x.n)return{
-      ...(typeof x.id==='string'&&x.id?{id:x.id}:{}),n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length],
-      ...(x.ratesCents&&typeof x.ratesCents==='object'?{ratesCents:{full:x.ratesCents.full,half:x.ratesCents.half}}:{})
+      ...x,n:x.n,c:NPAL.includes(x.c)?x.c:NPAL[k%NPAL.length]
     };
     return null;
   }).filter(Boolean):[]);
   if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
   if(!Array.isArray(z.ledger))z.ledger=[];
   if(!Array.isArray(z.generalLedger))z.generalLedger=[];
-  const defShifts=()=>[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
-  const normShifts=a=>{
-    const o=(Array.isArray(a)?a:[]).filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
-    return o.length?o:defShifts();
-  };
   if(!Array.isArray(z.cfg)){ // formato anterior: un solo pago para todos; se copia a cada paciente
-    z.cfg=(d.p||[]).map(()=>({who:z.who,day:z.day,note:z.note,paid:z.paid,shifts:normShifts(z.shifts)}));
+    z.cfg=(d.p||[]).map(()=>({who:z.who,note:z.note}));
   }
   z.cfg=(d.p||[]).map((_,i)=>{
     const c=(z.cfg[i]&&typeof z.cfg[i]==='object')?z.cfg[i]:{};
-    const pays=(Array.isArray(c.pays)?c.pays:[]).filter(x=>x&&Number.isInteger(+x.n)&&+x.n>=1).map(x=>({d:typeof x.d==='string'?x.d:'',n:+x.n,a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a,old:!!x.old}));
+    const pays=(Array.isArray(c.pays)?c.pays:[]).filter(x=>x&&Number.isInteger(+x.n)&&+x.n>=1).map(x=>({...x,d:typeof x.d==='string'?x.d:'',n:+x.n,a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a,old:!!x.old}));
     const ld=Math.floor(+c.lead);
     const rt=(c.rate===null||c.rate===undefined||c.rate===''||!isFinite(+c.rate))?null:+c.rate;
     return{
+      ...c,
       who:typeof c.who==='string'?c.who:'',
       note:typeof c.note==='string'?c.note:'',
       lead:(ld>=1&&ld<=14)?ld:2,
@@ -81,10 +76,10 @@ function migrate(d){
     };
   });
   delete z.who;delete z.day;delete z.note;delete z.paid;delete z.shifts;
-  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
+  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({...a,id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
   (d.p||[]).forEach(p=>p.meds.forEach(m=>{
     if(m.kind!=='sup')delete m.kind;
-    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w.slice(0,40):''}));
+    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({...b,d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w.slice(0,40):''}));
     if(!m.buys.length)delete m.buys;
   }));
   if(!['home','meds','pay'].includes(d.mode))d.mode='home';

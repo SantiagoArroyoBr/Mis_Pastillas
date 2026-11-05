@@ -38,11 +38,11 @@ let S=(()=>{
   }
 })();
 
-const save=()=>{
+const save=(state=S)=>{
   if(!persistenceReady){showPersistenceWarning();return false}
   try{
     if(localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();return false}
-    const serialized=JSON.stringify(S);
+    const serialized=JSON.stringify(state);
     localStorage.setItem(STORAGE_KEY,serialized);
     lastPersistedRaw=serialized;
     return true;
@@ -86,7 +86,8 @@ const PLBL={green:['✓','Conteo al corriente'],amber:['!','Revisar cobertura'],
 let showT=0,calM=0,homeP=-1;
 const amtOn=()=>Date.now()<showT;
 const A=n=>amtOn()?money(n):'••••';
-const cfg=i=>S.pay.cfg[i]||(S.pay.cfg[i]={who:'',note:'',lead:2,base:'',pays:[],time:'full',rate:null});
+const emptyPayConfig=()=>({who:'',note:'',lead:2,base:'',pays:[],time:'full',rate:null});
+const cfg=i=>S.pay.cfg[i]||(S.pay.cfg[i]=emptyPayConfig());
 const ents=(ds,i)=>{const a=(S.pay.v[ds]||{})[i];return Array.isArray(a)?a.filter(e=>e&&typeof e.n==='string'):[]};
 const nurList=i=>S.pay.nurses[i]||[];
 const nurColor=(i,n)=>{const x=nurList(i).find(y=>y.n===n);return x?x.c:'#8A8A8A'};
@@ -99,6 +100,9 @@ const allServiceRows=()=>S.p.flatMap((_,i)=>serviceRows(i));
 const ledgerRows=()=>Array.isArray(S.pay.ledger)?S.pay.ledger:[];
 const generalRows=()=>Array.isArray(S.pay.generalLedger)?S.pay.generalLedger:[];
 const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
+function patientLabel(p,i){
+  return esc(p.name)+(S.p.some((other,j)=>j!==i&&other.name===p.name)?' · Ficha '+(i+1):'');
+}
 function payNotice(){
   if(generalSummary(allServiceRows(),generalRows()).balanceCents<=0)return'';
   return '<div class="soon"><h2>💵 Saldo general pendiente</h2><p>Los costos registrados de jornadas superan los abonos generales recibidos.</p><button class="btn ghost small" data-pa="gopay">Ver pagos</button></div>';
@@ -135,7 +139,7 @@ function renderHome(){
     : '<div class="soon ok">✓ Todo al día: no hay pendientes.</div>';
   $('#homeView').innerHTML=todo+`<article class="card blue">
       <div class="top"><h3 class="name">🗓️ Calendario</h3></div>
-      <div class="psels" role="group" aria-label="Elegir ficha">${S.p.map((p,i)=>`<button class="psel" aria-pressed="${i===homeP}" data-pa="hp" data-i="${i}">${esc(p.name)}</button>`).join('')}</div>
+      <div class="psels" role="group" aria-label="Elegir ficha">${S.p.map((p,i)=>`<button class="psel" aria-pressed="${i===homeP}" data-pa="hp" data-i="${i}">${patientLabel(p,i)}</button>`).join('')}</div>
       ${calHTML(homeP)}
     </article>${apptsCard()}`;
 }
@@ -209,7 +213,7 @@ function payAction(t){
     if(nm.id&&serviceRows(i).some(s=>s.nurseId===nm.id)){form('No se puede quitar este enfermero/a',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>La persona tiene servicios nuevos asociados. Conserva su identificador para mantener costos y pagos históricos íntegros.</p>');return}
     form('¿Quitar a '+esc(nm.n)+' de la lista?',[],()=>{nurList(i).splice(+t.dataset.k,1);save();render()},'Sí, quitar');
   }
-  else if(pa==='ren')renForm(i);
+  else if(pa==='ren')patientForm(i);
   else if(pa==='rm'){
     const a=S.pay.v[ds]&&S.pay.v[ds][i];
     if(Array.isArray(a)){
@@ -254,12 +258,12 @@ function render(){
   notifyDaily();
   $('#modes').setAttribute('role','group');$('#modes').setAttribute('aria-label','Sección de la aplicación');
   $('#modes').innerHTML=[['home','🏠 Inicio'],['meds','💊 Medicinas'],['pay','💵 Pagos']].map(([m,l])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}">${l}</button>`).join('');
-  $('#tabs').hidden=md!=='meds';$('#ren').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
+  $('#tabs').hidden=md!=='meds';$('#patientActions').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
   if(md==='home'){$('#paysoon').innerHTML='';renderHome();return}
   $('#paysoon').innerHTML=payNotice();
-  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${esc(p.name)}</button>`).join('');
+  $('#tabs').innerHTML=S.p.map((p,i)=>`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`).join('');
   const items=[];
   S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
   items.sort((a,b)=>a.c.buy-b.c.buy);
@@ -291,6 +295,36 @@ function render(){
 }
 
 const dlg=$('#dlg');
+function patientForm(index){
+  const adding=index===undefined;
+  const i=adding?S.p.length:index;
+  form(adding?'Añadir ficha':'Editar ficha',[{
+    id:'patientName',l:'Nombre de la ficha',t:'text',v:adding?'':S.p[i].name,h:'Hasta 80 caracteres.'
+  }],values=>{
+    const name=values.patientName.trim();
+    if(!name)return 'Escribe un nombre.';
+    if([...name].length>80)return 'El nombre debe tener como máximo 80 caracteres.';
+    let next;
+    if(adding){
+      // Un índice sin ficha puede tener asignaciones legadas. No se pueden atribuir a un alta.
+      if(S.pay.nurses[i]?.length||Object.values(S.pay.v).some(day=>day[i]?.length)){
+        return 'Hay registros anteriores asociados al siguiente índice. Conserva un respaldo y revisa esos registros antes de añadir la ficha.';
+      }
+      const nurses=Array.from({length:Math.max(i+1,S.pay.nurses.length)},(_,j)=>S.pay.nurses[j]||[]);
+      next={...S,sel:i,p:[...S.p,{name,meds:[]}],pay:{...S.pay,cfg:[...S.pay.cfg,emptyPayConfig()],nurses}};
+    }else{
+      next={...S,p:S.p.map((patient,j)=>j===i?{...patient,name}:patient)};
+    }
+    if(!save(next))return 'No se pudo guardar la ficha. Revisa el aviso de almacenamiento.';
+    S=next;
+    if(adding)homeP=i;
+    dlg.addEventListener('close',()=>{
+      const target=S.mode==='pay'?`[data-pa="ren"][data-i="${i}"]`:adding?`#tabs [data-i="${i}"]`:'#ren';
+      $(target)?.focus();
+    },{once:true});
+    render();
+  });
+}
 const externalPreview=window.AcompanaSharing.create({
   dialog:dlg,
   query:$,
@@ -308,15 +342,22 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,renForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
+const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
   const P=S.p[S.sel];
-  if(t.classList.contains('tab')){S.sel=+t.dataset.i;save();render()}
+  if(t.classList.contains('tab')){
+    const next={...S,sel:+t.dataset.i};
+    if(!save(next))return;
+    S=next;
+    render();
+    $('#tabs [aria-pressed="true"]').focus();
+  }
   else if(t.classList.contains('mbtn')){S.mode=['home','meds','pay'].includes(t.dataset.m)?t.dataset.m:'home';save();render();window.scrollTo(0,0)}
   else if(t.id==='notif'){Notification.requestPermission().then(render)}
-  else if(t.id==='ren'){form('Nombre de la persona',[{id:'n',l:'Nombre',t:'text',v:P.name}],v=>{if(!v.n.trim())return'Escribe un nombre.';P.name=v.n.trim();save();render()})}
+  else if(t.id==='ren')patientForm(S.sel);
+  else if(t.id==='addPatient')patientForm();
   else if(t.id==='share'){
     const txt='Resumen de medicinas de '+P.name+':\n\n'+summaryText(P);
     externalPreview('Compartir resumen por WhatsApp','https://wa.me/',{text:txt,kind:'whatsapp'});

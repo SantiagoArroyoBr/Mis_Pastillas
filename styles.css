@@ -45,7 +45,8 @@ textarea{width:100%;font:600 17px/1.4 Nunito,system-ui,sans-serif;border:2px sol
 .hint{font-size:15px;color:#555;margin:4px 0 0}
 .err{color:var(--red);font-weight:800;margin:8px 0 0}
 .stack{display:grid;gap:8px;margin-top:16px}
-.ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:10px 0 0}
+.patient-actions{display:flex;flex-wrap:wrap;gap:0 16px}
+.ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:0;min-height:44px}
 .trow{display:flex;gap:8px;margin:6px 0}.trow input{flex:1}.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
 .presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .pbtn{min-height:44px;padding:4px 14px;border:2px solid var(--navy);border-radius:12px;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif}
@@ -104,6 +105,8 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .psels{display:flex;gap:6px;margin:8px 0}
 .psel{flex:1;min-height:48px;border:2px solid var(--navy);border-radius:12px;background:#fff;color:var(--navy);font:800 16px Nunito,sans-serif;padding:4px}
 .psel[aria-pressed=true]{background:var(--navy);color:#fff}
+.tabs,.psels{flex-wrap:wrap}
+.tab,.psel{flex:1 1 8rem;min-width:0;overflow-wrap:anywhere}
 .mk{font-size:12px;line-height:1.1}
 .cell.today{background:#EAF0FF}
 .cell.buy{border-color:var(--amber);border-width:3px}

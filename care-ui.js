@@ -206,13 +206,6 @@ function nurseForm(i,k){
   }
 }
 
-function renForm(i){
-  form('Nombre del paciente',[{id:'n',l:'Nombre',t:'text',v:S.p[i].name}],v=>{
-    if(!v.n.trim())return'Escribe un nombre.';
-    S.p[i].name=v.n.trim();save();render();
-  });
-}
-
 // Detalle de un día: pastillas, pago y enfermeros (los enfermeros se crean en Pagos)
 function dayForm(i,ds){
   const p=S.p[i];if(!p)return;
@@ -276,7 +269,7 @@ function dayForm(i,ds){
 }
 
 // ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
-  return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,renForm,dayForm});
+  return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm});
   }
   window.AcompanaCareUI=Object.freeze({create});
 })();
