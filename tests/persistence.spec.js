@@ -932,3 +932,158 @@ test('una pestaña con estado obsoleto detecta la escritura externa y no sobresc
     assert.equal(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"),true,'el botón permitido recarga la versión guardada más reciente');
   } finally { second.close(); }
 });
+
+function patientBackup(){
+  const backup=validBackup('Ficha ficticia A');
+  backup.mode='meds';
+  backup.p[0].meds=[{name:'Medicamento ficticio',base:20,t0:Date.now(),cons:[{dose:1,times:['08:00'],schedule:{type:'daily'}}]}];
+  backup.p.push({name:'Ficha ficticia B',meds:[],extra:{nota:'Metadato ficticio'}});
+  backup.appts=[{id:'cita_a',i:0,d:'2030-99-99',t:'',w:'Consultorio A',n:'',extra:true},{id:'cita_b',i:1,d:'2030-04-01',t:'',w:'Consultorio B',n:''}];
+  backup.pay={
+    cfg:[{base:'2020-01-01',pays:[{d:'2020-01-01',n:1,a:45,old:false,extra:true}]}],
+    nurses:[[{id:'staff_a',n:'Enfermera ficticia A',c:'#C92A2A',ratesCents:{full:10000,half:6000},extra:true}]],
+    v:{'2020-01-31':{0:[{n:'Enfermera ficticia A',service:{id:'service_a',nurseId:'staff_a',type:'half',amountCents:5000}}]}},
+    ledger:[{id:'move_a',patientIndex:0,nurseId:'staff_a',date:'2020-02-01',amountCents:1000,allocations:[{serviceId:'service_a',amountCents:1000}]}],
+    generalLedger:[{type:'receipt',id:'receipt_a',date:'2020-02-02',amountCents:2000,concept:'Abono ficticio'}]
+  };
+  return backup;
+}
+
+function submitPatientName(name){
+  return evaluate(`document.querySelector('#patientName').value=${JSON.stringify(name)};document.querySelector('#f').requestSubmit()`);
+}
+
+test('fechas con atención registrada separa el prepago, las jornadas y los importes',async()=>{
+  const backup=patientBackup();
+  backup.mode='home';
+  backup.pay.v['2020-02-01']={0:[{n:'Enfermera ficticia A'},{n:'Enfermero ficticio B'}]};
+  backup.pay.v['2020-02-02']={0:[{n:'Enfermero ficticio B',s:'full'}]};
+  backup.pay.v['2020-02-30']={0:[{n:'Asignación histórica ficticia'}]};
+  const raw=JSON.stringify(backup);
+  await seed(raw);
+  await navigate();
+  const result=await evaluate("(()=>{const c=cover(0);return {dates:c.dates,covered:[...c.covered],owed:c.owed,cost:generalSummary(allServiceRows(),generalRows()).costCents}})()");
+  assert.deepEqual(result,{dates:['2020-01-31','2020-02-01','2020-02-02'],covered:['2020-01-31'],owed:2,cost:5000});
+  assert.match(await evaluate("document.querySelector('#homeView').textContent"),/Fechas con atención registrada: 3/);
+  assert.match(await evaluate("document.querySelector('#homeView').textContent"),/fecha imputada al prepago.*fecha pendiente en el conteo administrativo/);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
+
+test('alta de tercera y cuarta ficha conserva índices y datos en recarga, exportación y restauración',async()=>{
+  await cdp.send('Page.bringToFront');
+  const backup=patientBackup();
+  await seed(JSON.stringify(backup));
+  await navigate();
+  const before=await evaluate('S');
+  for(const [name,index] of [['Ficha ficticia C',2],['Ficha ficticia D',3]]){
+    await evaluate("document.querySelector('#addPatient').click()");
+    await submitPatientName(name);
+    await waitFor(`document.activeElement.matches('#tabs [data-i="${index}"][aria-pressed="true"]')`,'foco en la nueva ficha activa');
+  }
+  const after=await evaluate('JSON.parse(__persistenceTest.read())');
+  assert.equal(after.sel,3);
+  assert.deepEqual(after.p.slice(0,2),before.p);
+  assert.deepEqual(after.p.slice(2),[{name:'Ficha ficticia C',meds:[]},{name:'Ficha ficticia D',meds:[]}]);
+  assert.deepEqual(after.appts,backup.appts);
+  for(const key of ['v','ledger','generalLedger'])assert.deepEqual(after.pay[key],backup.pay[key]);
+  assert.deepEqual(after.pay.cfg.slice(0,2),before.pay.cfg);
+  assert.deepEqual(after.pay.nurses,[backup.pay.nurses[0],[],[],[]]);
+  assert.equal(after.pay.cfg.length,4);
+  assert.equal(after.pay.cfg[3].pays.length,0);
+  await navigate();
+  assert.equal(await evaluate("document.querySelector('#tabs [aria-pressed=true]').textContent"),'Ficha ficticia D');
+  await evaluate("document.querySelector('#tabs [data-i=\"0\"]').click()");
+  assert.match(await evaluate("document.querySelector('#list').textContent"),/Medicamento ficticio/);
+  await evaluate("document.querySelector('#exp').click()");
+  await waitFor('__persistenceTest.exportBlob!==null');
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(text=>JSON.parse(text))');
+  assert.deepEqual(exported.p,after.p);
+  await uploadJson(exported);
+  await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.deepEqual(await evaluate('JSON.parse(__persistenceTest.read())'),exported);
+  await uploadJson(backup);
+  await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("JSON.parse(__persistenceTest.read()).p.length===2");
+  assert.deepEqual(await evaluate('S.appts'),backup.appts);
+});
+
+test('alta y edición validan nombres, cancelan sin escribir y muestran HTML como texto a 320 px',async()=>{
+  await cdp.send('Page.bringToFront');
+  await seed(JSON.stringify(patientBackup()));
+  await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:true});
+  try{
+    await evaluate("document.querySelector('#tabs .tab:last-child').focus()");
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    assert.equal(await evaluate("document.activeElement.matches('#addPatient:focus-visible')"),true);
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    assert.deepEqual(await evaluate("({focus:document.activeElement.id,open:document.querySelector('#dlg').open})"),{focus:'patientName',open:true});
+    assert.equal(await evaluate("document.querySelector('#patientName').labels[0].textContent"),'Nombre de la ficha');
+    for(const [value,error] of [['   ',/Escribe un nombre/],['X'.repeat(81),/80 caracteres/]]){
+      await submitPatientName(value);
+      assert.match(await evaluate("document.querySelector('[role=alert]#err').textContent"),error);
+    }
+    await evaluate("document.querySelector('#no').click();document.querySelector('#ren').click();document.querySelector('#patientName').value='Nombre descartado';document.querySelector('#no').click()");
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+    assert.equal(await evaluate('__persistenceTest.writes'),0);
+    const name='<img src=x onerror=alert(1)>'+ 'X'.repeat(45);
+    await evaluate("document.querySelector('#ren').click()");
+    await submitPatientName(name);
+    await waitFor("document.activeElement.id==='ren'");
+    assert.equal(await evaluate("document.querySelector('#tabs [aria-pressed=true]').textContent"),name);
+    assert.equal(await evaluate("document.querySelector('#tabs img')===null && document.documentElement.scrollWidth<=document.documentElement.clientWidth"),true);
+    await navigate();
+    assert.equal(await evaluate('S.p[0].name'),name);
+    assert.deepEqual(await evaluate('S.appts'),patientBackup().appts);
+    assert.equal(await evaluate('S.pay.ledger[0].patientIndex'),0);
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+    await evaluate("document.querySelector('[data-m=pay]').click();document.querySelector('[data-pa=ren][data-i=\"1\"]').click()");
+    await submitPatientName('Ficha ficticia B editada en Pagos');
+    await waitFor("document.activeElement.matches('[data-pa=ren][data-i=\"1\"]')");
+    assert.equal(await evaluate('S.p[1].name'),'Ficha ficticia B editada en Pagos');
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+});
+
+test('fallos de escritura en alta y edición dejan intactas la ficha activa y sus relaciones',async()=>{
+  const raw=JSON.stringify(patientBackup());
+  for(const control of ['addPatient','ren']){
+    await seed(raw);
+    await navigate('?failSet=1');
+    const before=await evaluate('S');
+    await evaluate(`document.getElementById('${control}').click()`);
+    await submitPatientName('Nombre ficticio no guardado');
+    assert.match(await evaluate("document.querySelector('#err').textContent"),/No se pudo guardar/);
+    assert.equal(await evaluate("document.querySelector('#dlg').open && !document.querySelector('#persistenceWarning').hidden"),true);
+    assert.equal(await evaluate("document.querySelectorAll('#tabs .tab').length"),2);
+    assert.deepEqual(await evaluate('S'),before);
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  }
+});
+
+test('un alta abierta protege una escritura concurrente y evita atribuir asignaciones huérfanas',async()=>{
+  const backup=patientBackup();
+  await seed(JSON.stringify(backup));
+  await navigate();
+  await evaluate("document.querySelector('#addPatient').click()");
+  const newer=JSON.stringify({...backup,last:'Cambio concurrente ficticio'});
+  await seed(newer);
+  await submitPatientName('Alta obsoleta ficticia');
+  assert.equal(await evaluate('persistenceFailure'),'conflict');
+  assert.equal(await evaluate('S.p.length'),2);
+  assert.equal(await evaluate('__persistenceTest.read()'),newer);
+  backup.pay.v['2020-02-01']={2:[{n:'Asignación histórica sin ficha'}]};
+  const raw=JSON.stringify(backup);
+  await seed(raw);
+  await navigate();
+  await evaluate("document.querySelector('#addPatient').click()");
+  await submitPatientName('Alta ficticia incompatible');
+  assert.match(await evaluate("document.querySelector('#err').textContent"),/registros anteriores asociados/);
+  assert.equal(await evaluate('S.p.length'),2);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
