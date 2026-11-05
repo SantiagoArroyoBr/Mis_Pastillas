@@ -46,6 +46,9 @@ textarea{width:100%;font:600 17px/1.4 Nunito,system-ui,sans-serif;border:2px sol
 .err{color:var(--red);font-weight:800;margin:8px 0 0}
 .stack{display:grid;gap:8px;margin-top:16px}
 .patient-actions{display:flex;flex-wrap:wrap;gap:0 16px}
+.record-actions{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.patient-actions .record-actions{flex-basis:100%;font-size:16px}
+.btn.danger{color:var(--red);border-color:var(--red);background:#fff}
 .ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:0;min-height:44px}
 .trow{display:flex;gap:8px;margin:6px 0}.trow input{flex:1}.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
 .presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
