@@ -950,6 +950,99 @@ function patientBackup(){
   return backup;
 }
 
+test('retiro de fichas usa archivo explícito y conserva posiciones, dependencias y alta posterior',async()=>{
+  await seed(JSON.stringify(patientBackup()));await navigate();
+  const before=await evaluate('S');
+  await evaluate("document.querySelector('#retirePatient').click()");
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/1 medicamentos o insumos.*1 citas.*1 asignaciones/s);
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/borrado físico/);
+  await evaluate("document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('S.p[0].archived'),true);
+  assert.deepEqual(await evaluate('S.pay'),before.pay);
+  assert.deepEqual(await evaluate('S.appts'),before.appts);
+  await evaluate("document.querySelector('#addPatient').click()");
+  await submitPatientName('Ficha ficticia vacía');
+  await evaluate("document.querySelector('#retirePatient').click()");
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/0 medicamentos o insumos.*0 citas.*0 asignaciones/s);
+  await evaluate("document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('S.p.length'),3);
+  assert.equal(await evaluate('S.p[2].archived'),true);
+  await navigate();
+  assert.equal(await evaluate('S.p[2].archived'),true);
+});
+
+test('retiro de enfermeros protege legado, turnos futuros y costos, permite reactivar y borrar solo vacíos',async()=>{
+  const backup=patientBackup();backup.mode='pay';
+  backup.pay.nurses[0].push({id:'empty_nurse',n:'Enfermero ficticio vacío',c:'#1864AB',ratesCents:{full:100,half:null}});
+  backup.pay.v['2099-01-01']={0:[{n:'Enfermera ficticia A'}]};
+  await seed(JSON.stringify(backup));await navigate();
+  const before=await evaluate('S.pay');
+  await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('[data-pa=nrm]').click()");
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/Desactivar.*Asignaciones futuras conservadas/s);
+  await evaluate("document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('S.pay.nurses[0][0].inactive'),true);
+  for(const key of ['v','ledger','generalLedger'])assert.deepEqual(await evaluate('S.pay.'+key),before[key]);
+  await evaluate("dayForm(0,'2030-01-01')");
+  assert.deepEqual(await evaluate("[...document.querySelector('#nm').options].map(o=>o.textContent)"),['Enfermero ficticio vacío']);
+  await evaluate("document.querySelector('#no').click();document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('[data-pa=nrm]').click();document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('S.pay.nurses[0][0].inactive'),false);
+  await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"1\"]').click();document.querySelector('[data-pa=nrm]').click()");
+  assert.match(await evaluate("document.querySelector('#dlg h2').textContent"),/Eliminar definitivamente/);
+  await evaluate("document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('S.pay.nurses[0].length'),1);
+  await navigate();
+  assert.equal(await evaluate('S.pay.nurses[0][0].id'),'staff_a');
+  await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('[data-pa=nrm]').click();document.querySelector('#f').requestSubmit();document.querySelector('#exp').click()");
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+  await uploadJson(exported);await continueRestore();await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.deepEqual(await evaluate('S.pay'),exported.pay);
+  assert.equal(await evaluate('S.pay.nurses[0][0].inactive'),true);
+});
+
+test('cancelar, fallo de escritura y conflicto en retiro conservan enfermeros y fichas',async()=>{
+  for(const target of ['patient','nurse'])for(const failure of ['cancel','write','conflict']){
+    const backup=patientBackup();backup.mode=target==='nurse'?'pay':'meds';
+    await seed(JSON.stringify(backup));await navigate();
+    const before=await evaluate('S');
+    if(target==='nurse')await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('[data-pa=nrm]').click()");
+    else await evaluate("document.querySelector('#retirePatient').click()");
+    if(failure==='cancel')await evaluate("document.querySelector('#no').click()");
+    else{
+      if(failure==='write')await evaluate('__persistenceTest.failSet=true');
+      else await seed(JSON.stringify({...before,last:'Escritura externa ficticia'}));
+      const raw=await evaluate('__persistenceTest.read()');
+      await evaluate("document.querySelector('#f').requestSubmit()");
+      assert.match(await evaluate("document.querySelector('#err').textContent"),/No se pudo guardar/);
+      assert.equal(await evaluate('__persistenceTest.read()'),raw);
+    }
+    assert.deepEqual(await evaluate('S'),before);
+  }
+});
+
+test('confirmaciones de retiro tienen reflujo, foco y cancelación por teclado',async()=>{
+  await cdp.send('Page.bringToFront');
+  const backup=patientBackup();backup.mode='pay';
+  await seed(JSON.stringify(backup));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('[data-pa=nrm]').click()");
+  try{
+    for(const width of [320,390,768,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:width<800});
+      assert.equal(await evaluate("document.querySelector('#dlg').scrollWidth<=document.querySelector('#dlg').clientWidth"),true);
+    }
+    await evaluate("document.querySelector('#f button[type=submit]').focus()");
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    assert.equal(await evaluate("document.activeElement.matches('#no:focus-visible')"),true);
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await waitFor("!document.querySelector('#dlg').open");
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+});
+
 test('archivo reversible conserva relaciones, todas archivadas, reactivación y respaldo',async()=>{
   await cdp.send('Page.bringToFront');
   await seed(JSON.stringify(patientBackup()));await navigate();
