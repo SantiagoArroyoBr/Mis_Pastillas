@@ -157,15 +157,16 @@ function calHTML(i){
     const d=new Date(y,m,dn),ds=ymd(d),es=ents(ds,i),ev=pe[ds];
     const coveredLegacy=cv.covered.has(ds),firstUnp=unS.has(ds);
     const hasA=apS.has(ds);
-    const mk=[coveredLegacy?'✓':'',firstUnp?'💵':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
+    const mk=[coveredLegacy?'✓':'',firstUnp?'!':'',ev&&ev.buy.length?'🛒':'',ev&&ev.end.length?'⚠️':'',hasA?'🩺':''].join('');
     const chips=es.slice(0,3).map(e=>`<span class="chip" style="background:${nurColor(i,e.n)}">${esc(e.n)}</span>`).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
-    const notes=[coveredLegacy?'cubierta según conteo anterior':'',firstUnp?'sin cubrir según conteo anterior':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
+    const notes=[coveredLegacy?'atención registrada, fecha imputada al prepago':es.length?'atención registrada':'',firstUnp?'fecha pendiente en el conteo administrativo':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
     const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.map(e=>e.n).join(', '):'');
     cells+=`<button class="cell${ds===todayS?' today':''}${coveredLegacy?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
   }
   return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
-    <p class="hint">✓ fecha cubierta según el conteo anterior · 💵 fecha asignada aún no cubierta en ese conteo (no es un adeudo monetario) · 🛒 reponer · ⚠️ se acaba · 🩺 cita médica. Los colores identifican enfermeros; las modalidades y tarifas se configuran en Pagos.</p>`;
+    ${cv.has?`<p class="hint"><b>Fechas con atención registrada: ${cv.dates.length}</b> · Desde ${esc(fmtD(c.base))}, incluidas las asignaciones futuras.</p>`:''}
+    <p class="hint">✓ fecha imputada al prepago · ! fecha pendiente en el conteo administrativo · 🛒 reponer · ⚠️ se acaba · 🩺 cita médica. Se cuenta una fecha por día con asignación. Las jornadas y los importes se consultan en Pagos.</p>`;
 }
 
 // ---------- PAGOS (una tarjeta por paciente) ----------
