@@ -1,5 +1,9 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-006 — Ciclo local implementado
+
+PREVIEW-005 publicó PLAN-005A hasta `e27bea8` con Vercel success. CONS-008, UX-005, HOME-001, FICHAS-002, HIST-001 y GLASS-001 se implementan localmente. QA-010 pasó 55/55. La revisión del propietario precede a la publicación de este ciclo. Véase [alcance, compatibilidad y checklist](docs/PLAN-006-evolucion-integral-ux.md).
+
 Este documento es la fuente única de verdad para tareas, objetivos, prioridades, dependencias y estados. Las prioridades pendientes de esta tabla son una **propuesta técnica ordenada**, basada en dependencias, protección de datos y secuencia de trabajo; no representan prioridades elegidas por el usuario. Se pueden revisar y ajustar. Las tareas ordinarias se desglosan y ejecutan dentro del plan, con cambios pequeños y verificables.
 
 ### Escala de prioridad propuesta

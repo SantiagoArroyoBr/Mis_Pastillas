@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2026-11-05 — PREVIEW-005 y PLAN-006
+
+Publicados los cinco commits de PLAN-005A hasta `e27bea8`. GitHub confirmó el SHA remoto y Vercel success. La validación funcional de Preview queda pendiente.
+
+PLAN-006 incorpora archivo y reactivación mediante marca opcional booleana, navegación móvil, accesos rápidos en Inicio, historial completo de precios y aclaración del historial de movimientos. Nunito Sans y Lucide se sirven localmente. Glass se limita a una superficie de accesos rápidos con fallback sólido.
+
+QA-010 pasó 55/55 en Edge 156.0.4314.58, perfil aislado y datos ficticios. Se corrigió el desbordamiento de controles de citas y se verificaron los iconos con MIME SVG. La revisión visual móvil llevó a colocar los iconos sobre las etiquetas en pantallas pequeñas. Se conservan las fórmulas de dominio y pagos. Detalle y límites en [PLAN-006](docs/PLAN-006-evolucion-integral-ux.md).
+
 Registro cronológico de cambios relevantes. Las pruebas se atribuyen únicamente a las ejecuciones indicadas; una prueba hecha en una rama de tarea no se presenta como repetida después de integrar.
 
 | Fecha | Tarea | Descripción y motivo | Archivos afectados | Pruebas ejecutadas | Limitaciones | Commit y SHA |

@@ -1,5 +1,7 @@
 # Acompaña
 
+PLAN-006 añade navegación e Inicio reorganizados, archivo reversible de fichas, consulta completa de precios y acentos Glass. Estado local y verificación en [PLAN-006](docs/PLAN-006-evolucion-integral-ux.md).
+
 **Gestión del cuidado familiar** · *Cuidar también es organizar.*
 
 Acompaña es una aplicación web progresiva para organizar información del cuidado familiar. El repositorio contiene una aplicación frontend que funciona con datos guardados localmente en cada dispositivo. Comprueba el código antes de considerar disponible cualquier función descrita como objetivo o propuesta.

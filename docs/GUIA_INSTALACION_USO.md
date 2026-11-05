@@ -10,6 +10,10 @@
 
 ## Organización básica
 
+En PLAN-006 local, **Archivar ficha activa** solicita confirmación y conserva todos los registros. **Consultar archivadas** permite elegir una ficha y **Reactivar ficha activa** la devuelve a la lista habitual. Las fichas archivadas siguen disponibles para consultar y editar, y sus avisos y saldos siguen formando parte del resumen familiar. Si todas están archivadas, se conserva una selección válida y puedes reactivar o añadir una ficha. Los respaldos incluyen el estado de archivo.
+
+Inicio ofrece accesos rápidos al calendario, Medicinas/fichas, Pagos/historial y respaldos. El historial expandible de precios muestra todas las anotaciones, comenzando por las últimas capturadas.
+
 - La aplicación inicia con dos fichas locales. En la versión local de PLAN-005A, abre **Medicinas** y elige **Añadir ficha** para crear otra. El nombre admite hasta 80 caracteres y la nueva ficha queda activa. Las fichas con el mismo nombre se distinguen por su posición en el selector.
 - Usa **Editar ficha activa** en Medicinas o **Editar ficha** en la tarjeta correspondiente de Pagos. **Cancelar** conserva los datos anteriores. Confirma la ficha seleccionada antes de registrar medicinas, citas o turnos.
 - Evita editar la misma instalación en varias pestañas a la vez. Si otra pestaña cambia los datos, Acompaña bloquea los guardados de esta pestaña y ofrece recargar el estado más reciente. Antes de recargar, copia aparte cualquier nota que aún no hayas guardado. Esta protección detecta cambios observados, pero no constituye una transacción entre pestañas.
