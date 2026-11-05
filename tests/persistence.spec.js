@@ -132,6 +132,7 @@ before(async () => {
         : file.endsWith('.css') ? 'text/css; charset=utf-8'
           : file.endsWith('.json') ? 'application/json; charset=utf-8'
             : file.endsWith('.png') ? 'image/png'
+            : file.endsWith('.svg') ? 'image/svg+xml'
             : file.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     if (file.endsWith(path.sep + 'sw.js') && swUpdateVariant) {
@@ -948,6 +949,88 @@ function patientBackup(){
   };
   return backup;
 }
+
+test('archivo reversible conserva relaciones, todas archivadas, reactivación y respaldo',async()=>{
+  await cdp.send('Page.bringToFront');
+  await seed(JSON.stringify(patientBackup()));await navigate();
+  const before=await evaluate('S');
+  for(let n=0;n<2;n++){
+    await evaluate("document.querySelector('#archivePatient').click();document.querySelector('#f').requestSubmit()");
+    await waitFor("!document.querySelector('#dlg').open");
+  }
+  assert.equal(await evaluate('S.p.every(p=>p.archived===true)'),true);
+  assert.equal(await evaluate("document.querySelectorAll('#tabs .tab').length"),2);
+  const archived=await evaluate('S');
+  assert.deepEqual(archived.pay,before.pay);
+  assert.deepEqual(archived.appts,before.appts);
+  assert.deepEqual(archived.p.map(({archived,...p})=>p),before.p);
+  await navigate();
+  assert.equal(await evaluate("document.querySelector('#archivePatient').textContent"),'Reactivar ficha activa');
+  await evaluate("document.querySelector('#exp').click()");
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+  await uploadJson(exported);await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.deepEqual(await evaluate('S.p'),archived.p);
+  await evaluate("document.querySelector('#archivePatient').click();document.querySelector('#f').requestSubmit()");
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.equal(await evaluate('S.p[S.sel].archived'),false);
+  assert.equal(await evaluate("document.querySelectorAll('#tabs .tab').length"),1);
+  await evaluate("document.querySelector('#showArchived').click()");
+  assert.equal(await evaluate('S.p[S.sel].archived'),true);
+  await evaluate("document.querySelector('#addPatient').click()");
+  await submitPatientName('Ficha activa nueva');
+  assert.equal(await evaluate("document.querySelector('#tabs [aria-pressed=true]').textContent"),'Ficha activa nueva');
+});
+
+test('archivo cancelado, escritura fallida y conflicto conservan estado previo',async()=>{
+  for(const failure of ['cancel','write','conflict']){
+    await seed(JSON.stringify(patientBackup()));await navigate();
+    const before=await evaluate('S'),raw=await evaluate('__persistenceTest.read()');
+    await evaluate("document.querySelector('#archivePatient').click()");
+    if(failure==='cancel')await evaluate("document.querySelector('#no').click()");
+    else{
+      if(failure==='write')await evaluate('__persistenceTest.failSet=true');
+      if(failure==='conflict')await seed(JSON.stringify({...before,last:'Otra pestaña'}));
+      await evaluate("document.querySelector('#f').requestSubmit()");
+      assert.match(await evaluate("document.querySelector('#err').textContent"),/No se pudo guardar/);
+    }
+    assert.deepEqual(await evaluate('S'),before);
+    if(failure!=='conflict')assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  }
+});
+
+test('Inicio, historial completo y superficies adaptables mantienen datos y recursos locales',async()=>{
+  const backup=patientBackup();backup.mode='home';
+  backup.p[0].meds[0].buys=Array.from({length:12},(_,i)=>({d:'2020-01-01',p:i+1,n:1,w:'Tienda ficticia '+i}));
+  await seed(JSON.stringify(backup));await navigate();
+  const before=await evaluate('S');
+  assert.equal(await evaluate("document.querySelectorAll('[aria-label=\"Accesos rápidos\"] a').length"),2);
+  await waitFor("[...document.querySelectorAll('.nav-icon')].every(img=>img.complete&&img.naturalWidth>0)",'iconos locales decodificados');
+  try{
+    for(const width of [320,360,375,390,430,768,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800});
+      assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true,'reflujo '+width+' '+JSON.stringify(await evaluate("[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>document.documentElement.clientWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,70)})).slice(0,12)")));
+    }
+    await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-transparency',value:'reduce'},{name:'prefers-reduced-motion',value:'reduce'}]});
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.glass')).backdropFilter"),'none');
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:320,height:900,deviceScaleFactor:1,mobile:true});
+    if(process.env.QA_SCREENSHOT){
+      const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
+      fs.writeFileSync(process.env.QA_SCREENSHOT,Buffer.from(shot.data,'base64'));
+    }
+    await evaluate('priceForm(0,0)');
+    assert.equal(await evaluate("document.querySelectorAll('#dlg [data-pa=prm]').length"),12);
+    assert.deepEqual(await evaluate('S'),before);
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+    for(const resource of ['/icons/house.svg','/icons/pill.svg','/icons/wallet.svg','/fonts/NunitoSans.ttf']){
+      assert.equal(await evaluate(`fetch('${resource}').then(r=>r.ok)`),true);
+    }
+  }finally{
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+    await cdp.send('Emulation.setEmulatedMedia',{features:[]});
+  }
+});
 
 function submitPatientName(name){
   return evaluate(`document.querySelector('#patientName').value=${JSON.stringify(name)};document.querySelector('#f').requestSubmit()`);

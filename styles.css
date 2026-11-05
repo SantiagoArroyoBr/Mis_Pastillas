@@ -117,7 +117,7 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .history .vrow{border-bottom:1px solid var(--line);padding:12px 0}
 .history{background:var(--card)}
 .vrow>div{min-width:0;overflow-wrap:anywhere}
-@media(max-width:430px){.vrow{flex-wrap:wrap}.vrow>div:first-child{flex:1 1 100%}}
+@media(max-width:430px){.mbtn{flex-direction:column;gap:2px}.vrow{flex-wrap:wrap}.vrow>div:first-child{flex:1 1 100%}}
 @supports(backdrop-filter:blur(4px)){
   .glass{background:rgba(250,248,243,.92);backdrop-filter:blur(4px)}
 }
