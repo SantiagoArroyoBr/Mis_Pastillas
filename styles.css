@@ -1,4 +1,4 @@
-@font-face{font-family:Nunito;src:url('./fonts/Nunito[wght].ttf') format('truetype');font-style:normal;font-weight:200 1000;font-display:swap}
+@font-face{font-family:Nunito;src:url('./fonts/NunitoSans.ttf') format('truetype');font-style:normal;font-weight:200 1000;font-display:swap}
 
 :root{--bg:#F4EBDD;--card:#FAF8F3;--navy:#315B50;--ink:#293A34;--green:#315B50;--amber:#8A5200;--red:#B3261E;--line:#E4E0D6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -107,6 +107,23 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .psel[aria-pressed=true]{background:var(--navy);color:#fff}
 .tabs,.psels{flex-wrap:wrap}
 .tab,.psel{flex:1 1 8rem;min-width:0;overflow-wrap:anywhere}
+.tagline{margin:4px 0 12px;font-size:16px}
+.quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border-radius:20px}
+.glass{background:#FAF8F3;border:1px solid #E4E0D6;box-shadow:0 4px 12px #293a3410}
+.nav-icon{width:22px;height:22px;flex-shrink:0}
+.mbtn{display:flex;gap:6px;align-items:center;justify-content:center}
+.mbtn:not([aria-pressed=true]) .nav-icon{filter:invert(1)}
+summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
+.history .vrow{border-bottom:1px solid var(--line);padding:12px 0}
+.history{background:var(--card)}
+.vrow>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:430px){.vrow{flex-wrap:wrap}.vrow>div:first-child{flex:1 1 100%}}
+@supports(backdrop-filter:blur(4px)){
+  .glass{background:rgba(250,248,243,.92);backdrop-filter:blur(4px)}
+}
+@media(prefers-reduced-transparency:reduce){.glass{background:#FAF8F3;backdrop-filter:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media(forced-colors:active){.glass{backdrop-filter:none;border:1px solid CanvasText}.nav-icon{display:none}}
 .mk{font-size:12px;line-height:1.1}
 .cell.today{background:#EAF0FF}
 .cell.buy{border-color:var(--amber);border-width:3px}
