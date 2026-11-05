@@ -97,6 +97,10 @@ Validación DEV-003C: 33/33 pruebas automatizadas aprobadas (4 de motor y 29 en 
 
 **PAG-001 (2026-10-31):** en el checkout local de `development` se amplió el registro de nuevas asignaciones con tarifa fija por servicio e ID estable, y se añadió un libro de abonos individuales con asignación FIFO explícita, cálculo en centavos y rechazo de excedentes. Los pagos anteriores quedan globales y no conciliados. `pastillas-v1` y el formato JSON anterior se conservan; consulta el [informe PAG-001](docs/PAG-001-sistema-pagos-individuales.md) para reglas, límites y validación. La suite automatizada local pasó 39/39 en Edge 156.0.4314.50 con fixtures ficticios. Validación manual del propietario pendiente.
 
+## PLAN-005A — Fechas con atención registrada y fichas
+
+En la versión local de PLAN-005A, Medicinas permite añadir fichas y editar el nombre de la ficha activa. El calendario distingue las fechas con atención registrada, su imputación al prepago y los importes de Pagos. Consulta las [decisiones aprobadas](PLAN-005A-DECISIONES.md) y la [guía de uso](docs/GUIA_INSTALACION_USO.md#organización-básica). La revisión manual del propietario queda pendiente.
+
 ## Tarifas, jornadas y saldo administrativo — ADMIN-001
 
 La evolución local más reciente centraliza las tarifas completas y medias por enfermero en Pagos, fija el costo al crear cada jornada y muestra un solo saldo general verificable con la administradora. Los nuevos abonos generales se registran en centavos y se pueden cancelar con una referencia histórica; los pagos individuales PAG-001, importes legados y servicios antiguos sin tarifa se conservan y no se descuentan ni se reinterpretan. Se mantiene `pastillas-v1`; los importes históricos de servicio no se recalculan al cambiar tarifas. Ver [modelo, compatibilidad, limitaciones y validación](docs/ADMIN-001-tarifas-adeudo-general.md).

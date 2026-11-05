@@ -10,12 +10,13 @@
 
 ## Organización básica
 
-- La aplicación inicia con dos fichas locales de personas. Selecciona la ficha correspondiente antes de añadir o editar información; cambiar de ficha cambia el contexto de las vistas.
+- La aplicación inicia con dos fichas locales. En la versión local de PLAN-005A, abre **Medicinas** y elige **Añadir ficha** para crear otra. El nombre admite hasta 80 caracteres y la nueva ficha queda activa. Las fichas con el mismo nombre se distinguen por su posición en el selector.
+- Usa **Editar ficha activa** en Medicinas o **Editar ficha** en la tarjeta correspondiente de Pagos. **Cancelar** conserva los datos anteriores. Confirma la ficha seleccionada antes de registrar medicinas, citas o turnos.
 - Evita editar la misma instalación en varias pestañas a la vez. Si otra pestaña cambia los datos, Acompaña bloquea los guardados de esta pestaña y ofrece recargar el estado más reciente. Antes de recargar, copia aparte cualquier nota que aún no hayas guardado. Esta protección detecta cambios observados, pero no constituye una transacción entre pestañas.
 - Las fechas nuevas deben ser fechas reales del calendario. Los datos anteriores con una fecha imposible se conservan y se señalan como inválidos; no se convierten automáticamente. Las entradas inválidas no se usan como fechas válidas en calendarios o estimaciones temporales.
 - En **Inicio** se muestran resúmenes y pendientes derivados de la información capturada.
 - En **Medicinas** se administran medicinas e insumos, existencias, consumos, compras y precios según los controles disponibles. Revisa los datos antes de guardar; los avisos de reposición son estimaciones de inventario.
-- En **Pagos** se consultan asignaciones, citas y cobertura administrativa según los registros guardados.
+- En el calendario de **Inicio**, **Fechas con atención registrada** cuenta una fecha por día con asignación desde la fecha base configurada e incluye asignaciones futuras. La marca ✓ indica imputación al prepago y ! indica una fecha pendiente en el conteo administrativo. En **Pagos** se consultan por separado jornadas, tarifas, costos y saldo de la administradora.
 - Las notificaciones disponibles dependen de que la aplicación se abra, del navegador y de un permiso previamente concedido. No equivalen a un servicio de alertas que funcione siempre en segundo plano.
 - WhatsApp y Calendar se abren como servicios externos cuando se usan sus accesos; la aplicación no sincroniza automáticamente calendarios ni mensajes.
 
@@ -25,6 +26,21 @@
 2. Conserva una copia original sin editar. No publiques ni envíes el archivo por chats o correo; puede contener información de cuidado.
 3. Para restaurarlo, elige el JSON desde la opción de importación y revisa la confirmación. Restaurar reemplaza toda la información local del perfil actual por el contenido del archivo.
 4. Si no estás seguro de que el archivo sea correcto, cancela. No uses una importación para combinar datos de dispositivos distintos.
+
+## Validación manual local de PLAN-005A
+
+Usa un perfil aislado y registros ficticios.
+
+1. En **Medicinas**, crea la tercera ficha y comprueba que quede activa.
+2. Crea una cuarta ficha y confirma que ambas aparezcan al final del selector.
+3. Renombra una ficha, guarda y confirma el nombre. Repite y cancela para verificar que se conserva el nombre guardado.
+4. Cambia entre fichas y confirma la selección visible.
+5. Registra medicamentos y citas distintos en dos fichas.
+6. Comprueba que cada medicamento y cita se muestre en la ficha correspondiente.
+7. Recarga y comprueba los nombres, la selección y los registros.
+8. Exporta y restaura el respaldo JSON. Vuelve a verificar las asociaciones.
+9. Configura una fecha base y asigna dos enfermeros a una fecha, al menos uno con media jornada. Verifica una sola fecha en el indicador y revisa las jornadas y costos en Pagos.
+10. Repite la selección, el alta y la edición desde una vista de 320 px. Recorre los controles con Tab y verifica el foco visible.
 
 ## Privacidad y seguridad local
 

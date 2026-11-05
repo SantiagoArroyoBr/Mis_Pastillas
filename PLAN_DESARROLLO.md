@@ -174,6 +174,13 @@ El pago `{d,n,a,old}` no tiene destinatario. Se reproduce que un registro de cob
 
 La autorización expresa posterior resolvió las reglas de tarifas independientes, snapshot de jornadas y adeudo general con la administradora. Por ello la pausa histórica de DEV-003B y la limitación previa FIX-003 quedan sustituidas únicamente para este alcance; el historial individual PAG-001 se retiene y no se convierte en saldo general. TAR-001, TURN-001, PAG-002, PAG-003, QA-004 y UX-003 están implementadas localmente y pasaron 42/42 pruebas automatizadas. Revisión visual/manual del responsable pendiente. No se hizo commit, push, merge, despliegue ni cambio en `main`; el registro detallado está en [ADMIN-001](docs/ADMIN-001-tarifas-adeudo-general.md).
 
+## PLAN-005A — Atención registrada y gestión de fichas
+
+- **CONS-007:** se aprobó mantener el conteo administrativo por fecha y añadir fichas al final con edición de nombre y selección. Véanse las [decisiones vigentes](PLAN-005A-DECISIONES.md).
+- **COB-002 y FICHAS-001:** implementación local en `development`. La ficha nueva queda activa después de guardar. Se conservan los índices, el esquema y la clave `pastillas-v1`.
+- **QA-009 y DOC-009:** pruebas automatizadas y documentación registradas en el [historial de cambios](HISTORIAL_CAMBIOS.md#2026-11-05--plan-005a). Revisión manual del propietario y publicación pendientes.
+- Quedan fuera de este ciclo el archivo, la reactivación, el borrado, el reordenamiento, la fusión, los identificadores nuevos y los modelos de cobertura por fracciones o cierres.
+
 ## PREVIEW-002 — publicación de ADMIN-001 — 2026-10-31
 
 Se publicaron los seis commits locales en `development` hasta `e5e00f1f51dcaf00d582a8094a567f809563e362`. GitHub confirmó `Vercel: success`; la URL Preview conocida redirigió a inicio de sesión y esta revisión no ejecutó pruebas funcionales allí. El dominio productivo respondió por HTTPS mostrando “Cuidados v9” y la interfaz previa; no se pudo leer la configuración de Vercel para confirmar rama o SHA productivos. La suite automatizada local previamente verificada fue 42/42. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales individuales; esto registra la declaración, no una verificación independiente ni aprobación de producción. `main` no cambió. Detalle: [guía de uso](docs/GUIA_INSTALACION_USO.md#cierre-de-admin-001-y-preview-002).
