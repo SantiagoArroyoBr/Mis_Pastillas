@@ -74,7 +74,7 @@ function spendHTML(){
 }
 function priceForm(pi,mi){
   const m=S.p[pi]&&S.p[pi].meds[mi];if(!m)return;
-  const rows=(m.buys||[]).map((b,k)=>({b,k})).filter(x=>x.b&&x.b.n>0&&isFinite(x.b.p)).slice(-8).reverse();
+  const rows=(m.buys||[]).map((b,k)=>({b,k})).filter(x=>x.b&&x.b.n>0&&isFinite(x.b.p)).reverse();
   form('Precios: '+esc(m.name),[
     {id:'pcost',l:'Precio total',ph:'Ej. 180'},
     {id:'pun',l:'¿Para cuántas '+un(m)+'?',ph:'Ej. 30'},
@@ -91,7 +91,7 @@ function priceForm(pi,mi){
   const list=rows.length
     ? '<div>'+rows.map(({b,k})=>`<div class="vrow"><div><b>${esc(fmtD(b.d))}</b>${b.w?' · '+esc(b.w):''}<br><span class="hint">${money(b.p)} por ${num(b.n)} ${un(m)} · ${money(unitPrice(b))} por ${unit1(m)}</span></div><button type="button" class="link" data-pa="prm" data-i="${pi}" data-m="${mi}" data-k="${k}">Quitar</button></div>`).join('')+'</div>'
     : '<p class="hint">Aún no hay precios anotados. Anota lo que pagaste o lo que viste en la farmacia.</p>';
-  dlg.querySelector('h2').insertAdjacentHTML('afterend',list);
+  dlg.querySelector('h2').insertAdjacentHTML('afterend','<details class="history"><summary>Historial de precios · '+rows.length+' registros</summary><p class="hint">Orden de captura, últimos primero. Todas las anotaciones permanecen disponibles.</p>'+list+'</details>');
 }
 
 

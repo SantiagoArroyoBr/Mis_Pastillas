@@ -43,7 +43,7 @@ function generalSummaryHTML(){
     <div class="vrow"><span>Costo de jornadas registradas</span><b>${A(summary.costCents/100)} MXN</b></div>
     <div class="vrow"><span>Abonos generales recibidos</span><b>${A(summary.receivedCents/100)} MXN</b></div>${warning}
     <button class="btn" data-pa="adminPay"${canReceive?'':' disabled'}>Registrar abono</button>
-    <details><summary>Historial de abonos y cancelaciones</summary>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
+    <details class="history"><summary>Historial de abonos y cancelaciones · ${moves.length} movimientos</summary><p class="hint">Más recientes primero. Los abonos cancelados conservan su movimiento original y la referencia de cancelación.</p>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
     </article>`;
 }
 
