@@ -3,7 +3,13 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 function fixture(){
-  const window={};vm.runInNewContext(fs.readFileSync(require.resolve('../payments.js'),'utf8'),{window});
+  const context=vm.createContext({window:{}});
+  // Carga la dependencia real en el mismo orden que index.html.
+  for(const script of ['../compatibility.js','../payments.js']){
+    const filename=require.resolve(script);
+    vm.runInContext(fs.readFileSync(filename,'utf8'),context,{filename});
+  }
+  const {window}=context;
   const cfg={base:'2026-01-01',who:'Responsable ficticio',time:'half',rate:100,pays:[{d:'2026-12-31',n:1,a:20,old:false},{d:'2025-01-01',n:80,a:8000,old:true}]};
   const state={p:[{name:'Ficha ficticia'},{name:'Otra ficha ficticia'}],pay:{v:{'2025-12-31':{0:[{n:'A ficticia'}]},'2026-01-01':{0:[{n:'A ficticia'},{n:'B ficticia'}]},'2026-01-03':{0:[{n:'A ficticia'}]},'2026-01-10':{0:[{n:'B ficticia'}]},'2026-01-11':{1:[{n:'C ficticia'}]}}}};
   const empty={base:'2026-01-01',who:'Otro responsable',pays:[],rate:null};
@@ -12,7 +18,9 @@ function fixture(){
 }
 const plain=x=>JSON.parse(JSON.stringify(x));
 test('cobertura conserva fechas únicas, FIFO, hoy, huecos, futuro y pagos antiguos',()=>{
-  const {api,cfg,state}=fixture(),before=JSON.stringify({cfg,state});
+  const {api,cfg,state}=fixture();
+  state.pay.v['2026-02-30']={0:[{n:'A ficticia'}]};
+  const before=JSON.stringify({cfg,state});
   const c=api.cover(0);
   assert.deepEqual(plain(c.dates),['2026-01-01','2026-01-03','2026-01-10']);
   assert.deepEqual([...c.covered],['2026-01-01']);assert.equal(c.owed,1);assert.equal(c.future,1);assert.equal(c.total,1);
@@ -48,6 +56,9 @@ test('adelantos distinguen fechas asignadas de crédito; cambios de base conserv
   const pays=JSON.stringify(cfg.pays);cfg.base='2026-01-03';assert.equal(api.cover(0).dates.length,2);assert.equal(JSON.stringify(cfg.pays),pays);
   cfg.pays.forEach(p=>p.old=true);assert.equal(api.cover(0).total,0);assert.equal(cfg.pays.length,3);
   cfg.base='';assert.equal(api.cover(0).has,false);
+  cfg.base='2026-02-30';
+  assert.equal(api.cover(0).has,false);
+  assert.equal(cfg.base,'2026-02-30','la consulta conserva la fecha base histórica');
 });
 
 test('importe monetario nuevo usa centavos exactos y rechaza precisión inválida',()=>{
