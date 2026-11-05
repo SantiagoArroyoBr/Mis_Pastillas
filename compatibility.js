@@ -140,6 +140,7 @@ function validateStoredState(d){
     if(Array.isArray(z.nurses))z.nurses.forEach(n=>{
       if(!Array.isArray(n))fail('Lista de enfermeros no válida.');
       n.forEach(x=>{
+        if(x&&typeof x==='object'&&own(x,'inactive')&&typeof x.inactive!=='boolean')fail('El estado de inactividad del enfermero debe ser verdadero o falso.');
         if(!(typeof x==='string'&&x)&&!(x&&typeof x.n==='string'&&x.n))fail('Registro de enfermero incompleto.');
         if(x&&typeof x==='object'&&own(x,'id')&&(typeof x.id!=='string'||!x.id))fail('Identificador de enfermero no válido.');
         if(x&&typeof x==='object'&&own(x,'ratesCents')){

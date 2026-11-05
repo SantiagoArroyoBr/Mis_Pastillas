@@ -213,11 +213,7 @@ function payAction(t){
   else if(pa==='day')dayForm(i,ds);
   else if(pa==='nadd')nurseForm(i);
   else if(pa==='nedit')nurseForm(i,+t.dataset.k);
-  else if(pa==='nrm'){
-    const nm=nurList(i)[+t.dataset.k];if(!nm)return;
-    if(nm.id&&serviceRows(i).some(s=>s.nurseId===nm.id)){form('No se puede quitar este enfermero/a',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>La persona tiene servicios nuevos asociados. Conserva su identificador para mantener costos y pagos históricos íntegros.</p>');return}
-    form('¿Quitar a '+esc(nm.n)+' de la lista?',[],()=>{nurList(i).splice(+t.dataset.k,1);save();render()},'Sí, quitar');
-  }
+  else if(pa==='nrm')nurseRemovalForm(i,+t.dataset.k);
   else if(pa==='ren')patientForm(i);
   else if(pa==='rm'){
     const a=S.pay.v[ds]&&S.pay.v[ds][i];
@@ -303,9 +299,9 @@ function render(){
 }
 
 const dlg=$('#dlg');
-function archivePatient(){
-  const i=S.sel,archived=S.p[i].archived!==true;
-  form(archived?'¿Archivar esta ficha?':'¿Reactivar esta ficha?',[],()=>{
+function archivePatient(retiring=false){
+  const i=S.sel,archived=retiring||S.p[i].archived!==true;
+  form(retiring?'Retiro mediante archivo reversible':archived?'¿Archivar esta ficha?':'¿Reactivar esta ficha?',[],()=>{
     const patients=S.p.map((p,j)=>j===i?{...p,archived}:p);
     const active=patients.findIndex(p=>p.archived!==true);
     const next={...S,p:patients,sel:archived&&active>=0?active:i};
@@ -315,6 +311,43 @@ function archivePatient(){
     dlg.addEventListener('close',()=>$('#archivePatient').focus(),{once:true});
   },archived?'Archivar':'Reactivar');
   dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>${esc(S.p[i].name)}</p><p>Conserva todos sus registros. Puedes consultar y reactivar la ficha desde Archivadas. Sus avisos y saldos siguen visibles.</p>`);
+  if(retiring){
+    const assignments=Object.values(S.pay.v).reduce((sum,day)=>sum+(day[i]?.length||0),0);
+    const counts=[S.p[i].meds.length+' medicamentos o insumos',S.appts.filter(a=>a.i===i).length+' citas',assignments+' asignaciones',nurList(i).length+' enfermeros',(cfg(i).pays.length+ledgerRows().filter(m=>m.patientIndex===i).length)+' pagos históricos'];
+    dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>'+counts.join(' · ')+'</p><p>La ficha conserva su posición y su nombre mediante archivo. Esta operación es reversible. El borrado físico de fichas requiere una estrategia adicional para proteger las referencias.</p>');
+  }
+}
+
+function nurseDependencies(i,nurse){
+  const dates=[];
+  Object.entries(S.pay.v).forEach(([date,patients])=>Object.entries(patients).forEach(([index,entries])=>{
+    if(entries.some(entry=>entry&&(nurse.id&&entry.service?.nurseId===nurse.id||+index===i&&entry.n===nurse.n)))dates.push(date);
+  }));
+  const payments=ledgerRows().filter(m=>nurse.id&&m.nurseId===nurse.id).length;
+  const unknown=Object.keys(nurse).some(key=>!['id','n','c','ratesCents','inactive'].includes(key))
+    ||Object.keys(nurse.ratesCents||{}).some(key=>!['full','half'].includes(key));
+  return {dates:[...new Set(dates)].sort(),payments,unknown};
+}
+
+function nurseRemovalForm(i,k){
+  const nurse=nurList(i)[k];if(!nurse)return;
+  const dependencies=nurseDependencies(i,nurse);
+  const linked=dependencies.dates.length>0||dependencies.payments>0||dependencies.unknown;
+  const reactivating=nurse.inactive===true;
+  const action=reactivating?'Reactivar':linked?'Desactivar':'Eliminar definitivamente';
+  form(action+' enfermero/a',[],()=>{
+    if(nurList(i)[k]!==nurse)return 'El registro cambió. Cierra y vuelve a revisarlo.';
+    const current=nurseDependencies(i,nurse);
+    if(!linked&&!reactivating&&(current.dates.length||current.payments||current.unknown))return 'Se encontraron registros asociados. Cierra y revisa las dependencias.';
+    const list=reactivating||linked?nurList(i).map((n,j)=>j===k?{...n,inactive:!reactivating}:n):nurList(i).filter((_,j)=>j!==k);
+    const next={...S,pay:{...S.pay,nurses:S.pay.nurses.map((row,j)=>j===i?list:row)}};
+    if(!save(next))return 'No se pudo guardar. Se conserva el registro anterior.';
+    S=next;render();
+    dlg.addEventListener('close',()=>$('#payView [data-pa="nadd"][data-i="'+i+'"]')?.focus(),{once:true});
+  },action);
+  const future=dependencies.dates.filter(date=>window.AcompanaCompatibility.isValidDateOnly(date)&&date>ymd(new Date()));
+  const detail=linked?'Tiene registros asociados. La desactivación conserva el historial y excluye a esta persona de nuevas asignaciones.':'Sin asignaciones, referencias de pagos ni propiedades adicionales en este registro. La eliminación definitiva requiere esta confirmación.';
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p><b>${esc(nurse.n)}</b></p><p>${reactivating?'Volverá a estar disponible para nuevas asignaciones.':detail}</p><p>${dependencies.dates.length} fechas con asignación · ${dependencies.payments} movimientos individuales${dependencies.unknown?' · Información adicional conservada':''}</p>${future.length?'<p>Asignaciones futuras conservadas</p><ul>'+future.map(date=>'<li>'+esc(fmtD(date))+'</li>').join('')+'</ul><p>Consulta esos días en el calendario para gestionar sus turnos de forma explícita.</p>':''}`);
 }
 function patientForm(index){
   const adding=index===undefined;
@@ -380,6 +413,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='ren')patientForm(S.sel);
   else if(t.id==='addPatient')patientForm();
   else if(t.id==='archivePatient')archivePatient();
+  else if(t.id==='retirePatient')archivePatient(true);
   else if(t.id==='showArchived'){
     showArchived=!showArchived;
     const index=S.p.findIndex(p=>(p.archived===true)===showArchived);

@@ -13,7 +13,7 @@ function patientHTML(p,i){
     const unknown=rows.length-full-half;
     const rates=n.ratesCents||{};
     const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:''].filter(Boolean).join(' · ');
-    return `<div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b><br><span class="hint">${rateLabel||'Sin tarifa para nuevas jornadas'}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}">Editar</button></div>`;
+    return `<div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b>${n.inactive===true?' <span class="hint">Inactivo</span>':''}<br><span class="hint">${rateLabel||'Sin tarifa para nuevas jornadas'}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}">Editar</button></div>`;
   }).join('');
   const oldPayments=cfg(i).pays||[],oldIndividual=(ledger()||[]).filter(m=>m.patientIndex===i);
   const oldArchive=oldPayments.length||oldIndividual.length?`<details class="legacy-payments"><summary>Historial anterior no incluido en el saldo general</summary><p class="hint">Estos registros se conservan como fueron guardados. No se reinterpretan ni se descuentan del saldo general porque su relación con los cargos no está confirmada.</p>${oldPayments.map(m=>`<div class="vrow"><div>${m.d?esc(fmtD(m.d)):'Fecha anterior sin dato'} · ${m.n} días${m.a!==null&&m.a!==undefined?` · ${A(m.a)} (importe histórico)`:''}${m.old?' · anterior':''}</div></div>`).join('')}${oldIndividual.map(m=>`<div class="vrow"><div>${esc(fmtD(m.date))} · movimiento individual anterior · ${A(m.amountCents/100)} MXN</div><span class="hint">Conservado</span></div>`).join('')}</details>`:'';
@@ -192,7 +192,7 @@ function nurseForm(i,k){
     save();render();
   },'Guardar');
   if(cur){
-    $('#nc').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="nrm" data-i="${i}" data-k="${k}">Quitar de la lista</button>`);
+    $('#f .stack').insertAdjacentHTML('afterend',`<div class="record-actions"><button type="button" class="btn ghost small danger" data-pa="nrm" data-i="${i}" data-k="${k}">${cur.inactive===true?'Reactivar enfermero/a':'Retirar enfermero/a'}</button></div>`);
     ['full','half'].forEach(type=>{
       if(rates[type]===null||rates[type]===undefined)return;
       const id=type==='full'?'rateFull':'rateHalf',other=type==='full'?'half':'full',label=type==='full'?'jornada completa':'media jornada';
@@ -224,7 +224,7 @@ function dayForm(i,ds){
   const cur=ents(ds,i);
   const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>${e.service?`<br><span class="hint">Servicio ${e.service.type==='half'?'medio turno':'completo'} · ${A(e.service.amountCents/100)} MXN</span>`:'<br><span class="hint">Registro anterior, sin tarifa conciliable</span>'}</div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
   const title=label+' · '+esc(p.name);
-  const eligible=nurses.map((n,k)=>({n,k})).filter(({n})=>n.ratesCents&&(['full','half'].some(type=>Number.isSafeInteger(n.ratesCents[type])&&n.ratesCents[type]>=0)));
+  const eligible=nurses.map((n,k)=>({n,k})).filter(({n})=>n.inactive!==true&&n.ratesCents&&(['full','half'].some(type=>Number.isSafeInteger(n.ratesCents[type])&&n.ratesCents[type]>=0)));
   if(!eligible.length){
     form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Configurar en Pagos');
     dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Configura al menos una tarifa en Pagos para permitir nuevas asignaciones.</p>`);
@@ -239,6 +239,7 @@ function dayForm(i,ds){
   ],v=>{
     const selected=eligible.find(x=>String(x.k)===v.nm);if(!selected)return'Elige un enfermero/a configurado.';
     const nurse=selected.n,type=v.serviceType;
+    if(nurse.inactive===true)return 'Este enfermero está inactivo. Revisa la selección.';
     const amountCents=nurse.ratesCents&&nurse.ratesCents[type];
     if(!['full','half'].includes(type)||!Number.isSafeInteger(amountCents)||amountCents<0)return'Esta jornada no está ofrecida por el enfermero/a seleccionado.';
     if(!nurse.id)nurse.id=newId('nurse');
