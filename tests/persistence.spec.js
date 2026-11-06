@@ -77,6 +77,11 @@ const initScript = String.raw`(() => {
     return nativeSet.call(this, name, value);
   };
   Object.defineProperty(window, '__persistenceTest', { value: state });
+  const nativeInterval=window.setInterval.bind(window);
+  window.setInterval=(callback,delay,...args)=>{
+    if(delay===60000)state.refresh=()=>callback(...args);
+    return nativeInterval(callback,delay,...args);
+  };
   window.addEventListener('error', event => state.errors.push(event.message));
   const createObjectURL = URL.createObjectURL.bind(URL);
   URL.createObjectURL = blob => { state.exportBlob = blob; return createObjectURL(blob); };
@@ -960,6 +965,49 @@ function mixedNursesBackup(){
   );
   return backup;
 }
+
+test('actualización periódica conserva paneles, foco y nodos cuando el contenido coincide',async()=>{
+  await cdp.send('Page.bringToFront');
+  await seed(JSON.stringify(mixedNursesBackup()));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  const result=await evaluate(`(()=>{
+    const root=document.querySelector('#payView'),panels=[...root.querySelectorAll('details[data-panel]')];
+    panels.forEach(panel=>panel.open=true);
+    const summary=panels[0].querySelector('summary');summary.focus();
+    const observer=new MutationObserver(()=>{});observer.observe(root,{childList:true,subtree:true});
+    for(let i=0;i<20;i++)__persistenceTest.refresh();
+    const result={mutations:observer.takeRecords().length,same:panels.every(panel=>panel.isConnected&&panel.open),focus:document.activeElement===summary};
+    observer.disconnect();return result;
+  })()`);
+  assert.deepEqual(result,{mutations:0,same:true,focus:true});
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  const key=await evaluate("document.activeElement.closest('details').dataset.panel");
+  await evaluate("showT=Date.now()+60000;S.pay.nurses[0][0].ratesCents.full=12345;__persistenceTest.refresh()");
+  assert.equal(await evaluate("document.activeElement.closest('details')?.dataset.panel"),key);
+  assert.equal(await evaluate("[...document.querySelectorAll('#payView details[data-panel]')].every(panel=>panel.open)"),true);
+  assert.match(await evaluate("document.querySelector('[data-nurse-index=\"0\"]').textContent"),/123.45/);
+  await evaluate("document.querySelector('details[data-panel=\"general-ledger\"]').open=false;showT=0;__persistenceTest.refresh()");
+  assert.equal(await evaluate("document.querySelector('details[data-panel=\"general-ledger\"]').open"),false);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nrm]').click()");
+  assert.match(await evaluate("document.querySelector('#dlg h2').textContent"),/Reactivar/);
+});
+
+test('diálogos reemplazados enfocan su acción y los errores reciben foco sin escribir',async()=>{
+  await cdp.send('Page.bringToFront');
+  const backup=patientBackup();backup.mode='pay';
+  await seed(JSON.stringify(backup));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate("document.querySelector('[data-pa=nedit][data-i=\"0\"][data-k=\"0\"]').click();document.querySelector('#dlg [data-pa=nrm]').click()");
+  assert.equal(await evaluate("document.activeElement===document.querySelector('#f button[type=submit]')"),true);
+  assert.equal(await evaluate("document.querySelector('#f').getAttribute('aria-labelledby')"),'formTitle');
+  await evaluate("document.querySelector('#no').click();document.querySelector('[data-m=meds]').click()");
+  const stored=await evaluate('__persistenceTest.read()');
+  await evaluate("document.querySelector('#addPatient').click();document.querySelector('#patientName').value=' ';document.querySelector('#f').requestSubmit()");
+  assert.equal(await evaluate('document.activeElement.id'),'err');
+  assert.equal(await evaluate('__persistenceTest.read()'),stored);
+  assert.equal(await evaluate('JSON.parse(__persistenceTest.read()).p.length'),JSON.parse(raw).p.length);
+});
 
 test('acciones de enfermería caben en sus tarjetas con textos largos e historial abierto',async()=>{
   const backup=mixedNursesBackup();
