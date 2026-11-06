@@ -126,6 +126,16 @@ function validBackup(name = 'Paciente ficticio restaurado') {
   return { sel: 0, last: '', mode: 'home', p: [{ name, meds: [] }], appts: [], pay: {} };
 }
 
+function contrastRatio(first,second){
+  const luminance=color=>color.match(/\d+/g).map(Number).reduce((sum,value,index)=>{
+    const channel=value/255;
+    const linear=channel<=0.04045?channel/12.92:((channel+0.055)/1.055)**2.4;
+    return sum+linear*[0.2126,0.7152,0.0722][index];
+  },0);
+  const values=[luminance(first),luminance(second)];
+  return (Math.max(...values)+0.05)/(Math.min(...values)+0.05);
+}
+
 before(async () => {
   assert.ok(CHROME, 'No se encontró Chromium. Define CHROME_BIN para indicar su ruta.');
   server = http.createServer((req, res) => {
@@ -141,7 +151,7 @@ before(async () => {
             : file.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     if (file.endsWith(path.sep + 'sw.js') && swUpdateVariant) {
-      res.end(fs.readFileSync(file, 'utf8') + '\n// cambio sintético para verificar actualización\n');
+      res.end(fs.readFileSync(file, 'utf8').replace("'v10'", "'v11'"));
       return;
     }
     fs.createReadStream(file).pipe(res);
@@ -218,21 +228,28 @@ test('los formularios anuncian errores de validación a tecnologías de asistenc
   assert.equal(await evaluate("document.querySelector('.schtabs').getAttribute('role')"),'group');
   assert.equal(await evaluate("document.querySelector('.schtabs button[aria-pressed=true]')?.dataset.v"),'daily');
 });
-test('la vista se adapta a seis anchuras móviles y conserva los datos locales', async () => {
+test('Inicio, Medicinas y Pagos se adaptan a siete anchuras y conservan los datos locales', async () => {
   const before = await evaluate('__persistenceTest.read()');
+  const mode = await evaluate('S.mode');
   try {
-    for (const width of [320, 360, 375, 390, 430, 768]) {
-      await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: true });
-      await waitFor(`document.documentElement.clientWidth === ${width}`, `viewport de ${width} px`);
-      const view = await evaluate("({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,direction:getComputedStyle(document.querySelector('.backup')).flexDirection,bg:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()})");
-      assert.equal(view.width, width);
-      assert.ok(view.scroll <= view.width, `sin desbordamiento horizontal a ${width} px`);
-      assert.equal(view.direction, width <= 360 ? 'column' : 'row');
-      assert.equal(view.bg, '#F4EBDD');
+    for (const width of [320, 360, 375, 390, 430, 768, 1280]) {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: width<768 });
+      await waitFor(`innerWidth === ${width}`, `viewport de ${width} px`);
+      for(const view of ['home','meds','pay']){
+        const layout=await evaluate(`S.mode='${view}';render();({
+          client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,
+          direction:getComputedStyle(document.querySelector('.backup')).flexDirection,
+          bg:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+        })`);
+        assert.ok(layout.scroll<=layout.client,`${view} desborda a ${width} px (${layout.scroll} > ${layout.client})`);
+        assert.equal(layout.direction,width<=360?'column':'row');
+        assert.equal(layout.bg,'#F4EBDD');
+      }
     }
     assert.equal(await evaluate('__persistenceTest.read()'), before);
   } finally {
     await cdp.send('Emulation.clearDeviceMetricsOverride');
+    await evaluate(`S.mode=${JSON.stringify(mode)};render()`);
   }
 });
 test('el tema del manifest, el navegador y la interfaz mantienen la identidad visual', async () => {
@@ -450,6 +467,38 @@ test('la restauración también recupera un fallo de lectura de localStorage', a
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Recuperado tras fallo de lectura');
 });
 
+test('el respaldo con fecha imposible se puede revisar y cancelar por teclado', async () => {
+  const raw=JSON.stringify(validBackup('Datos actuales'));
+  await seed(raw);await navigate();await cdp.send('Page.bringToFront');
+  await evaluate("document.querySelector('#imp').focus()");
+  await uploadJson({...validBackup(),exportedAt:'2026-99-99T12:00:00Z'});
+  await waitFor("document.querySelector('#continueRestore')");
+  assert.match(await evaluate("document.querySelector('#dlg').textContent"),/Fecha: no incluida o no válida/);
+  assert.equal(await evaluate("document.activeElement.id"),'formTitle');
+  await continueRestore();
+  assert.equal(await evaluate("document.activeElement.id"),'formTitle');
+  assert.equal(await evaluate("document.querySelector('#dlg').getAttribute('aria-labelledby')"),'formTitle');
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.equal(await evaluate("document.activeElement.id"),'imp');
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+});
+
+test('una recuperación de JSON corrupto comprueba el valor guardado antes de reemplazarlo', async () => {
+  await seed('{"p":');await navigate();
+  await uploadJson(validBackup('Copia preparada'));
+  await continueRestore();
+  // Simula una escritura externa visible en almacenamiento antes de recibir el evento storage.
+  const newer=JSON.stringify(validBackup('Datos de otra pestaña'));
+  await seed(newer);
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  assert.equal(await evaluate('persistenceFailure'),'conflict');
+  assert.equal(await evaluate('__persistenceTest.read()'),newer);
+  assert.equal(await evaluate('__persistenceTest.writes'),0);
+});
+
 test('el respaldo JSON exportado puede restaurarse en el perfil aislado', async () => {
   const fixture = validBackup('Cuidadora ficticia de prueba');
   fixture.p[0].meds = [{ name: 'Medicamento ficticio', base: 12, cons: [], t0: 1000 }];
@@ -656,40 +705,71 @@ test('las citas identifican la ficha por índice aunque los nombres coincidan', 
   }
 });
 
-test('el service worker limpia solo sus cachés y sirve / y /index.html offline', async () => {
-  await seed(null); await navigate();
+test('la PWA abre y recarga offline, espera para actualizar y conserva los datos', async () => {
+  const raw=JSON.stringify(patientBackup());
+  await seed(raw); await navigate();
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
-  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v9');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
-  assert.ok(cached.names.includes('acompanha-v9'));
-  for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/Nunito[wght].ttf']) {
+  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v10');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
+  assert.ok(cached.names.includes('acompanha-v10'));
+  for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/NunitoSans.ttf', '/fonts/Nunito[wght].ttf', '/icons/house.svg', '/icons/pill.svg', '/icons/wallet.svg']) {
     assert.ok(cached.keys.some(key => key.endsWith(asset)), `Falta en caché ${asset}`);
   }
   await evaluate("fetch('/private-data').catch(()=>null)");
-  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v9');return Boolean(await c.match('/private-data'))})()");
+  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v10');return Boolean(await c.match('/private-data'))})()");
   assert.equal(privateCached, false);
 
-  await evaluate(`Promise.all(['acompanha-v8','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
+  await evaluate(`Promise.all(['acompanha-v9','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
   await cdp.send('Network.enable');
   await cdp.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
   try {
-    for (const route of ['/', '/index.html']) {
-      await cdp.send('Page.navigate', { url: serverUrl + route });
+    for (const route of ['/', '/index.html?offline=1', 'reload']) {
+      if (route==='reload') await cdp.send('Page.reload');
+      else await cdp.send('Page.navigate', { url: serverUrl + route });
       await waitFor("document.readyState === 'complete' && typeof persistenceReady !== 'undefined'", `carga offline de ${route}`);
       assert.equal(await evaluate('typeof S !== "undefined" && persistenceReady'), true);
       assert.equal(await evaluate("[...document.styleSheets].some(sheet=>sheet.href&&sheet.href.endsWith('/styles.css'))"), true);
       assert.equal(await evaluate("document.fonts.load('600 18px Nunito').then(fonts=>fonts.length>0&&fonts[0].status==='loaded')"), true);
+      assert.equal(await evaluate("[...document.querySelectorAll('.nav-icon')].every(icon=>icon.complete&&icon.naturalWidth>0)"), true);
+      assert.equal(await evaluate('__persistenceTest.read()'),raw);
       assert.equal(await evaluate("performance.getEntriesByType('resource').some(entry=>/fonts\\.(googleapis|gstatic)\\.com/.test(entry.name))"), false);
     }
   } finally {
     await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   }
-  swUpdateVariant = true;
-  const update = await evaluate(`new Promise((resolve,reject)=>{navigator.serviceWorker.getRegistration().then(r=>{const timeout=setTimeout(()=>reject(new Error('Tiempo agotado esperando la nueva versión del service worker')),10000);r.addEventListener('updatefound',()=>{const worker=r.installing;worker.addEventListener('statechange',()=>{if(worker.state==='activated'){clearTimeout(timeout);resolve(worker.state)}})});r.update().catch(reject)}).catch(reject)})`);
-  assert.equal(update, 'activated');
-  swUpdateVariant = false;
+  const versions=new Map();
+  const observeVersions=event=>{
+    const message=JSON.parse(event.data);
+    if(message.method==='ServiceWorker.workerVersionUpdated'){
+      for(const version of message.params.versions)versions.set(version.versionId,version.status);
+    }
+  };
+  cdp.ws.addEventListener('message',observeVersions);
+  await cdp.send('ServiceWorker.enable');
+  try {
+    await evaluate("document.querySelector('[data-m=meds]').click();document.querySelector('#addPatient').click();document.querySelector('#patientName').value='Borrador ficticio'");
+    swUpdateVariant = true;
+    await evaluate("navigator.serviceWorker.getRegistration().then(registration=>registration.update()).then(()=>true)");
+    await waitFor("navigator.serviceWorker.getRegistration().then(registration=>registration.waiting?.state==='installed')", 'actualización en espera');
+    assert.equal(await evaluate("document.querySelector('#dlg').open&&document.querySelector('#patientName').value==='Borrador ficticio'"),true);
+    assert.ok((await evaluate('caches.keys()')).includes('acompanha-v10'));
+    const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
+    assert.ok(waitingVersion);
+    const dataBeforeUpdate=await evaluate('__persistenceTest.read()');
+    await cdp.send('Page.navigate',{url:'about:blank'});
+    for(let attempt=0;attempt<100&&versions.get(waitingVersion)!=='activated';attempt++){
+      await new Promise(resolve=>setTimeout(resolve,50));
+    }
+    assert.equal(versions.get(waitingVersion),'activated');
+    await navigate();
+    assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+  } finally {
+    cdp.ws.removeEventListener('message',observeVersions);
+    await cdp.send('ServiceWorker.disable');
+  }
   const remainingCaches = await evaluate('caches.keys()');
-  assert.ok(remainingCaches.includes('acompanha-v9'));
-  assert.ok(!remainingCaches.includes('acompanha-v8'));
+  assert.ok(remainingCaches.includes('acompanha-v11'));
+  assert.ok(!remainingCaches.includes('acompanha-v10'));
+  assert.ok(!remainingCaches.includes('acompanha-v9'));
   assert.ok(!remainingCaches.includes('cuidados-v8'));
   assert.ok(remainingCaches.includes('other-component-v1'));
   const otherComponentEntry = await evaluate("(async()=>{const c=await caches.open('other-component-v1');return Boolean(await c.match(location.origin+'/fixture-other-component-v1'))})()");
@@ -936,7 +1016,14 @@ test('una pestaña con estado obsoleto detecta la escritura externa y no sobresc
     const reloadStarted=Date.now();
     while(Date.now()-reloadStarted<5000){try{if(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"))break}catch{};await new Promise(resolve=>setTimeout(resolve,50))}
     assert.equal(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"),true,'el botón permitido recarga la versión guardada más reciente');
-  } finally { second.close(); }
+    await evaluate('localStorage.clear()');
+    const clearStarted=Date.now();
+    while(Date.now()-clearStarted<3000&&await evalSecond('persistenceReady'))await new Promise(resolve=>setTimeout(resolve,25));
+    assert.equal(await evalSecond('persistenceFailure'),'conflict');
+  } finally {
+    second.close();
+    await fetch(browserEndpoint+'/json/close/'+target.id);
+  }
 });
 
 function patientBackup(){
@@ -993,6 +1080,30 @@ test('actualización periódica conserva paneles, foco y nodos cuando el conteni
   assert.match(await evaluate("document.querySelector('#dlg h2').textContent"),/Reactivar/);
 });
 
+test('Medicinas conserva tarjetas y foco durante actualizaciones sin cambios',async t=>{
+  const backup=validBackup('Ficha ficticia');
+  backup.mode='meds';
+  backup.p[0].meds=Array.from({length:24},(_,i)=>({
+    name:'Medicina ficticia '+i,base:12,cons:[],t0:1000
+  }));
+  await seed(JSON.stringify(backup));await navigate();
+  const result=await evaluate(`(()=>{
+    const root=document.querySelector('#medsView'),button=root.querySelector('#list button');
+    button.focus();
+    const observer=new MutationObserver(()=>{});
+    observer.observe(root,{childList:true,subtree:true});
+    const start=performance.now();
+    for(let i=0;i<20;i++)__persistenceTest.refresh();
+    const elapsed=performance.now()-start;
+    const mutations=observer.takeRecords().length;
+    observer.disconnect();
+    return {elapsed,mutations,focus:document.activeElement===button};
+  })()`);
+  t.diagnostic(JSON.stringify(result));
+  assert.equal(result.mutations,0);
+  assert.equal(result.focus,true);
+});
+
 test('diálogos reemplazados enfocan su acción y los errores reciben foco sin escribir',async()=>{
   await cdp.send('Page.bringToFront');
   const backup=patientBackup();backup.mode='pay';
@@ -1030,6 +1141,60 @@ test('acciones de enfermería caben en sus tarjetas con textos largos e historia
     await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nedit]').click()");
     assert.equal(await evaluate("document.querySelector('#nn').value"),backup.pay.nurses[0][0].n);
     await evaluate("document.querySelector('#no').click()");
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+});
+
+test('historiales activos e inactivos integran todos los registros en un panel con contraste y reflujo',async()=>{
+  const backup=mixedNursesBackup();
+  backup.pay.v['2020-02-01']={0:[{n:'Enfermera ficticia A',s:'full'},{n:'B ficticio',s:'half'}]};
+  await seed(JSON.stringify(backup));await navigate();await cdp.send('Page.bringToFront');
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate(`showT=Date.now()+60000;render();
+    document.querySelectorAll('.nurse-history').forEach(panel=>panel.open=true);
+    const firstInactive=document.querySelector('.nurse-inactive .nurse-history summary');firstInactive.focus();
+  `);
+  for(const open of [false,true]){
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    await waitFor(`document.activeElement.parentElement.open===${open}`,'activación del historial con Espacio');
+  }
+  await evaluate('__persistenceTest.refresh()');
+  assert.equal(await evaluate("document.activeElement.matches('.nurse-inactive summary:focus-visible')&&document.activeElement.parentElement.open"),true);
+  const content=await evaluate(`[...document.querySelectorAll('.nurse-history')].map(panel=>[...panel.querySelectorAll('p')].map(row=>row.textContent))`);
+  assert.deepEqual(content.map(rows=>rows.length),[1,1,2,1]);
+  assert.match(content[0][0],/Media jornada · Registro anterior/);
+  assert.match(content[1][0],/Sin asignaciones/);
+  assert.match(content[2][0],/Jornada completa · Registro anterior · Inactivo/);
+  assert.match(content[2][1],/Media jornada · Inactivo · Costo guardado.*50.*MXN/);
+  try{
+    for(const width of [320,360,390,430,768,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const panels=await evaluate(`[...document.querySelectorAll('.nurse-history')].map(panel=>{
+        const card=panel.parentElement,header=panel.querySelector('summary');
+        const bounds=panel.getBoundingClientRect(),outer=card.getBoundingClientRect(),style=getComputedStyle(panel);
+        return {
+          inset:Math.min(bounds.left-outer.left,outer.right-bounds.right,outer.bottom-bounds.bottom),
+          radius:parseFloat(style.borderRadius),border:parseFloat(style.borderWidth),
+          padding:parseFloat(style.paddingLeft),fit:panel.scrollWidth<=panel.clientWidth,
+          bg:style.backgroundColor,fg:getComputedStyle(header).color,focus:getComputedStyle(header).outlineColor,
+          inactive:card.classList.contains('nurse-inactive')
+        };
+      })`);
+      for(const panel of panels){
+        assert.ok(panel.inset>=10&&panel.radius>=10&&panel.border===1&&panel.padding>=8&&panel.fit,JSON.stringify({width,panel}));
+        assert.equal(panel.bg,panel.inactive?'rgb(228, 231, 226)':'rgb(244, 235, 221)');
+        assert.ok(contrastRatio(panel.fg,panel.bg)>=4.5);
+        assert.ok(contrastRatio(panel.focus,panel.bg)>=3);
+      }
+      assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true);
+      if(width===390&&process.env.QA_NURSES_SCREENSHOT){
+        await evaluate("document.querySelector('.nurse-inactive').scrollIntoView()");
+        const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
+        fs.writeFileSync(process.env.QA_NURSES_SCREENSHOT,Buffer.from(shot.data,'base64'));
+      }
+    }
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
   }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
 });
 
@@ -1078,6 +1243,12 @@ test('calendario y detalle distinguen modalidades, legado e inactividad sin alte
   assert.match(label,/Jornada completa/);
   assert.match(label,/Modalidad sin confirmar · Registro anterior · Inactivo/);
   assert.match(label,/fecha pendiente en el conteo administrativo/);
+  const colors=await evaluate(`[...document.querySelectorAll('[data-d="${today}"] .chip')].map(chip=>{
+    const style=getComputedStyle(chip);
+    return [style.color,style.backgroundColor];
+  })`);
+  assert.equal(colors.length,3);
+  assert.ok(colors.every(([fg,bg])=>contrastRatio(fg,bg)>=4.5));
   assert.equal(await evaluate('cover(0).dates.length'),2);
   await evaluate(`document.querySelector('[data-pa=day][data-d="${today}"]').click()`);
   assert.match(await evaluate("document.querySelector('.assignment-list').textContent"),/Media jornada · Inactivo/);
@@ -1101,10 +1272,6 @@ test('listas de enfermería mantienen reflujo, contraste y foco con información
     assert.equal(await evaluate("document.activeElement.matches('[data-pa=nrm]:focus-visible')"),true);
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.nurse-inactive')).opacity"),'1');
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.nurse-inactive')).backgroundColor"),'rgb(238, 239, 234)');
-    if(process.env.QA_NURSES_SCREENSHOT){
-      const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
-      fs.writeFileSync(process.env.QA_NURSES_SCREENSHOT,Buffer.from(shot.data,'base64'));
-    }
     assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
   }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
 });
