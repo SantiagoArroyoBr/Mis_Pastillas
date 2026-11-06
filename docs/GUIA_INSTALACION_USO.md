@@ -2,6 +2,16 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## Asignaciones y estado de cuenta en PLAN-010
+
+1. En el calendario abre la fecha y comprueba la ficha debajo de **Asignar enfermero/a**. El panel **Asignaciones registradas** muestra las jornadas existentes y sus costos guardados cuando se conocen.
+2. Elige un enfermero activo y una modalidad con tarifa configurada. **Sin configurar** bloquea esa modalidad. Una tarifa explícita de cero permite asignarla. Usa Tab para ir a las opciones y las flechas para cambiar de modalidad o repetición.
+3. Elige **Solo este día** o **Cada [día] hasta fin de mes**. Comprueba el costo por jornada con los montos visibles en Pagos y pulsa **Asignar**. **Cancelar** o Escape descarta la captura.
+4. En **Pagos**, consulta las jornadas con costo guardado hasta hoy y los abonos generales activos. Una jornada futura permanece en el calendario y se incorpora al estado de cuenta cuando llega su fecha.
+5. Pulsa **Registrar abono** e indica la fecha y el importe recibido. Un excedente aparece como **Saldo a favor** y compensa jornadas cuando se devengan. Para corregir un abono, cancélalo desde el historial y registra el correcto. El historial conserva el recibo y la cancelación vinculada.
+
+La cobertura por fechas y el historial anterior se consultan por separado. [Reglas, respaldo y checklist de revisión](PLAN-010-turnos-pagos-abonos.md).
+
 ## PREVIEW-008 y cambios locales de PLAN-009
 
 PREVIEW-008 incorpora PLAN-008 y se publicó en `development` hasta `8b49a7380a260a6475f8064e0ff5cc99f9b692cd`. La revisión funcional del propietario sigue pendiente. [Abrir Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Despliegue de Vercel](https://vercel.com/dinamita20/pastillas-1/9QtkRsexr6VPaicvTJRartPc3aTq).

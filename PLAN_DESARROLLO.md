@@ -1,5 +1,17 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-010 — Asignaciones y estado de cuenta
+
+| Etapa | Entrega local |
+| --- | --- |
+| TURN-001 | Detalle de fecha, enfermeros activos, tarjetas de modalidad y repetición semanal hasta fin de mes. |
+| PAG-003 y ABO-001 | Corte por fecha local, saldo en centavos y abonos generales con saldo a favor. |
+| UX-015 | Estado de cuenta compacto con importes protegidos, desglose e historial. |
+| DATA-005 y QA-018 | Compatibilidad con historial, prepagos, respaldos y regresión de navegador. |
+| DOC-014 | Reglas, evidencia y checklist para revisión del propietario. |
+
+Implementación en `development`, pendiente de validación manual y autorización de publicación. [Informe de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).
+
 ## PREVIEW-008 y PLAN-009 — 2026-11-06
 
 PREVIEW-008 publicó los cuatro commits de PLAN-008 hasta `8b49a73`. GitHub y Vercel registraron éxito. Sigue pendiente la revisión funcional del propietario.

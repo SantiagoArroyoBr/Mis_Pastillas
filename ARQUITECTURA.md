@@ -1,5 +1,11 @@
 # Arquitectura de Acompaña
 
+## PLAN-010 — Jornadas devengadas y saldo general
+
+`payments.js` aplica un corte inclusivo por fecha local validada al costo monetario de cada servicio. El libro general sigue separado de la cobertura de `cover()` y de las aplicaciones de PAG-001. `compatibility.js` valida la precisión del total de abonos activos de forma independiente del costo registrado, para admitir anticipos generales con la misma estructura de datos.
+
+`care-ui.js` deriva el estado de cuenta y usa el formulario compartido para guardar asignaciones, abonos y cancelaciones. Estas operaciones preparan estados candidatos y actualizan la vista tras el guardado. `app.js` reutiliza el refresco existente y detecta cambios de día al volver a la pestaña o cerrar el diálogo. Los historiales conservan su apertura mediante `updateHTML`. [Reglas y límites de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).
+
 ## PLAN-009 — Vistas, recuperación y actualización de la PWA
 
 `updateHTML` también gestiona avisos, gastos y tarjetas de Medicinas. Las claves de los historiales de enfermería se conservan y el estilo se limita a `.nurse-history`. El diálogo obtiene su nombre del título de la pantalla actual. Las transiciones de respaldo enfocan el título para presentar el contexto antes de las acciones.

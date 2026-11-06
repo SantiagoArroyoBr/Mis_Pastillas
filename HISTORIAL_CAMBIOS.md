@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-06 — PLAN-010
+
+El diálogo de asignación distingue las jornadas guardadas, ofrece tarjetas de modalidad y mantiene la repetición semanal hasta fin de mes. El saldo general incorpora costos guardados hasta hoy y resta abonos generales activos. Pagos muestra saldo pendiente, sin saldo pendiente o saldo a favor. El calendario conserva las jornadas futuras. Los prepagos por fecha, registros legados y el libro individual conservan su interpretación. La caché local de la PWA sube a v12.
+
+La inspección de `origin/development` confirmó PLAN-009 y UX-013 hasta `6968fec`. PLAN-010 queda en `development` local, pendiente de revisión del propietario. [Evidencia y checklist](docs/PLAN-010-turnos-pagos-abonos.md).
+
 ## 2026-11-06 — UX-013
 
 El historial de enfermeros activos usaba el crema general de la aplicación. Ahora usa blanco sobre la tarjeta clara y conserva el borde, los márgenes, el radio y los separadores. El historial inactivo conserva su estilo gris. La caché de la PWA pasa a v11 para distribuir el CSS corregido. Los cambios se limitan a `styles.css`, `sw.js`, `tests/persistence.spec.js` y los dos documentos del ciclo.
