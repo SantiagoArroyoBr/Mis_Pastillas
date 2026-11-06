@@ -116,6 +116,11 @@ const serviceRows=i=>Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPati
 const allServiceRows=()=>S.p.flatMap((_,i)=>serviceRows(i));
 const ledgerRows=()=>Array.isArray(S.pay.ledger)?S.pay.ledger:[];
 const generalRows=()=>Array.isArray(S.pay.generalLedger)?S.pay.generalLedger:[];
+function assignmentRemovalBlock(service,hasGeneralReceipts){
+  if(!service)return '';
+  if(ledgerRows().some(m=>m.allocations?.some(a=>a.serviceId===service.id)))return 'Servicio con pagos aplicados';
+  return hasGeneralReceipts?'Servicio con abonos generales activos':'';
+}
 const ledgerFor=i=>{const services=serviceRows(i),nurses=nurList(i);return nurses.filter(n=>n.id).map(n=>({n,summary:ledgerSummary(services,ledgerRows(),n.id)}))};
 function patientLabel(p,i){
   return esc(p.name)+(S.p.some((other,j)=>j!==i&&other.name===p.name)?' · Ficha '+(i+1):'')+(p.archived===true?' · Archivada':'');
@@ -239,16 +244,18 @@ function payAction(t){
   else if(pa==='nrm')nurseRemovalForm(i,+t.dataset.k);
   else if(pa==='ren')patientForm(i);
   else if(pa==='rm'){
-    const a=S.pay.v[ds]&&S.pay.v[ds][i];
-    if(Array.isArray(a)){
-      const service=a[+t.dataset.k]&&a[+t.dataset.k].service;
-      if(service&&ledgerRows().some(m=>m.allocations&&m.allocations.some(x=>x.serviceId===service.id))){form('Servicio con pagos aplicados',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>No se puede quitar un servicio que ya tiene abonos aplicados. Mantén el registro para conservar la conciliación.</p>');return}
-      if(service&&generalSummary(allServiceRows(),generalRows()).receivedCents>0){form('Servicio con abonos generales activos',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>El abono general no se asigna a una jornada concreta. Para conservar el saldo trazable no se puede quitar un servicio mientras existan abonos generales activos.</p>');return}
-      a.splice(+t.dataset.k,1);
-      if(!a.length)delete S.pay.v[ds][i];
-      if(!Object.keys(S.pay.v[ds]).length)delete S.pay.v[ds];
-      save();render();setTimeout(()=>dayForm(i,ds),30);
-    }
+    const day=S.pay.v[ds],k=+t.dataset.k;
+    if(!day?.[i]?.[k])return;
+    const block=assignmentRemovalBlock(day[i][k].service,generalSummary([],generalRows()).receivedCents>0);
+    if(block){form(block,[],()=>{},'Entendido');return}
+    const remaining=day[i].filter((_,index)=>index!==k);
+    const visits={...S.pay.v},updatedDay={...day};
+    if(remaining.length)updatedDay[i]=remaining;
+    else delete updatedDay[i];
+    if(Object.keys(updatedDay).length)visits[ds]=updatedDay;
+    else delete visits[ds];
+    const pay={...S.pay,v:visits};
+    if(save({...S,pay})){S.pay=pay;render();dayForm(i,ds)}
   }
 }
 
@@ -275,7 +282,9 @@ function notifyDaily(){
   try{new Notification('Cuidados',{body:parts.join(' · ')})}catch(e){}
 }
 
+let renderedDay;
 function render(){
+  renderedDay=ymd(new Date());
   if(!persistenceReady)showPersistenceWarning();
   const P=S.p[S.sel];
   const md=S.mode;
@@ -419,7 +428,7 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
+const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId,assignmentRemovalBlock});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
@@ -597,3 +606,10 @@ $('#impFile').addEventListener('change',e=>{
 
 render();
 setInterval(()=>{if(!dlg.open)render()},60000);
+function refreshAfterDayChange(){
+  if(!dlg.open&&renderedDay!==ymd(new Date()))render();
+}
+dlg.addEventListener('close',refreshAfterDayChange);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)refreshAfterDayChange();
+});

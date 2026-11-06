@@ -179,9 +179,8 @@ function validateStoredState(d){
         cancelled.add(m.originalId);
       }
     });
-    const verifiedCosts=[...serviceIds.values()].reduce((sum,s)=>{const next=sum+s.amountCents;if(!Number.isSafeInteger(next))fail('El costo general excede la precisión monetaria segura.');return next},0);
-    const activeGeneral=[...receipts.values()].filter(m=>!cancelled.has(m.id)).reduce((sum,m)=>{const next=sum+m.amountCents;if(!Number.isSafeInteger(next))fail('Los abonos generales exceden la precisión monetaria segura.');return next},0);
-    if(!Number.isSafeInteger(verifiedCosts)||!Number.isSafeInteger(activeGeneral)||activeGeneral>verifiedCosts)fail('Los abonos generales exceden los costos verificables registrados.');
+    [...serviceIds.values()].reduce((sum,s)=>{const next=sum+s.amountCents;if(!Number.isSafeInteger(next))fail('El costo general excede la precisión monetaria segura.');return next},0);
+    [...receipts.values()].filter(m=>!cancelled.has(m.id)).reduce((sum,m)=>{const next=sum+m.amountCents;if(!Number.isSafeInteger(next))fail('Los abonos generales exceden la precisión monetaria segura.');return next},0);
   }
   return d;
 }

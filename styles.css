@@ -138,8 +138,18 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .sidebtns{display:flex;flex-direction:column;gap:6px}
 .sidebtns .btn{width:auto;min-width:96px}
 .admin-summary{--c:var(--green);padding:14px}
-.admin-summary .big{margin:4px 0 10px;font-size:34px;line-height:1.15;font-weight:900;color:var(--green)}
+.account-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;margin:0}
+.account-balance{padding:12px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+.admin-credit .account-balance{background:#E6EEE8}
+.account-balance .top{flex-wrap:wrap;gap:4px 12px}
+.account-balance h2{margin:0}
+.admin-summary .big{margin:6px 0 0;font-size:clamp(26px,6vw,34px);line-height:1.15;font-weight:900;color:var(--green);overflow-wrap:anywhere}
 .admin-summary .big small{font-size:16px}
+.account-breakdown{margin:8px 0}
+.account-breakdown>div{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.account-breakdown dd{margin:0;font-weight:800;overflow-wrap:anywhere}
+.admin-summary [data-pa=adminPay]{margin-top:10px}
+.admin-summary .vrow>div{min-width:0;overflow-wrap:anywhere}
 .admin-summary .vrow{font-size:15px}
 .admin-summary details{margin-top:8px}
 .admin-summary summary{min-height:44px}
@@ -163,6 +173,25 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .assignment-list .hint{color:#4E5E54}
 .assignment-list h3{font-size:17px;margin:0 0 8px}
 .assignment-list .vrow{align-items:flex-start}
+.assignment-list .vrow>div{min-width:0;overflow-wrap:anywhere}
+.assignment-form h2{margin-bottom:2px}
+.assignment-context{margin:0 0 12px;overflow-wrap:anywhere}
+.assignment-form select{appearance:none;width:100%;min-height:48px;border:2px solid var(--green);border-radius:12px;padding:8px 38px 8px 12px;font:inherit;color:var(--ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%23315B50' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center}
+.assignment-options{min-width:0;margin:14px 0 0;padding:0;border:0}
+.assignment-options legend{font-weight:800}
+.assignment-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.assignment-option{display:flex;align-items:flex-start;gap:8px;min-height:44px;margin:4px 0;padding:8px;border:1px solid #789486;border-radius:12px;background:#fff;cursor:pointer;font-size:16px;overflow-wrap:anywhere}
+.assignment-option:has(:checked){background:#E6EEE8;border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.assignment-option:has(:focus-visible){outline:3px solid var(--green);outline-offset:2px}
+.assignment-option:has(:disabled){background:var(--card);color:#4E5E54;cursor:default}
+.assignment-option input{flex:none;width:17px;height:17px;min-height:0;margin:3px 0 0;accent-color:var(--green)}
+.assignment-option input:focus-visible{outline:none}
+.assignment-option svg{vertical-align:text-bottom}
+.assignment-option small,.assignment-option b{display:block}
+.assignment-cost{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:16px;overflow-wrap:anywhere}
+.assignment-form .stack{grid-template-columns:repeat(2,minmax(0,1fr))}
+.assignment-form button:disabled{background:#E4E7E2;color:#4E5E54;cursor:default}
+@media(max-width:360px){.assignment-modes,.assignment-form .stack{grid-template-columns:1fr}}
 .nurse-record .sidebtns .btn{min-height:44px}
 .nurse-record>.vrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
 .nurse-record>.vrow>.sidebtns{min-width:0;justify-self:end}
