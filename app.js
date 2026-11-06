@@ -72,7 +72,7 @@ const save=(state=S)=>{
 };
 
 window.addEventListener('storage',e=>{
-  if(e.key!==STORAGE_KEY||e.newValue===lastPersistedRaw)return;
+  if(e.storageArea!==localStorage||(e.key!==STORAGE_KEY&&e.key!==null)||e.newValue===lastPersistedRaw)return;
   persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();
 });
 
@@ -526,7 +526,8 @@ function confirmRestore(candidate){
   const nurses=(candidate.pay.nurses||[]).reduce((n,list)=>n+list.length,0);
   const rawDate=candidate.exportedAt;
   const datePart=typeof rawDate==='string'&&rawDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-  const dateValid=Boolean(datePart&&new Date(datePart+'T00:00:00Z').toISOString().slice(0,10)===datePart);
+  const date=new Date(datePart+'T00:00:00Z');
+  const dateValid=Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===datePart;
   const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
   const backupDate=dateValid&&(rawDate===datePart||timestampValid)
     ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
@@ -543,7 +544,7 @@ function showRestoreConfirmation(candidate){
   $('#restoreConfirm').onclick=()=>{
     let serialized;
     try{
-      if(persistenceFailure!=='read'&&persistenceFailure!=='load'&&localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';dlg.close();showPersistenceWarning();setBackupStatus('Los datos cambiaron en otra pestaña. Recarga y revisa el respaldo antes de volver a restaurarlo.');return}
+      if(persistenceFailure!=='read'&&localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';dlg.close();showPersistenceWarning();setBackupStatus('Los datos cambiaron en otra pestaña. Recarga y revisa el respaldo antes de volver a restaurarlo.');return}
       serialized=JSON.stringify(candidate);
       localStorage.setItem(STORAGE_KEY,serialized);
     }catch(err){
