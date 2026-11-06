@@ -158,6 +158,14 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .assignment-list h3{font-size:17px;margin:0 0 8px}
 .assignment-list .vrow{align-items:flex-start}
 .nurse-record .sidebtns .btn{min-height:44px}
+.nurse-record>.vrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+.nurse-record>.vrow>.sidebtns{min-width:0;justify-self:end}
+.nurse-record .sidebtns .btn{white-space:nowrap;overflow-wrap:normal;word-break:normal;min-width:0;width:auto}
+@media(max-width:600px){
+  .nurse-record>.vrow{grid-template-columns:minmax(0,1fr)}
+  .nurse-record>.vrow>.sidebtns{justify-self:stretch;flex-direction:row;flex-wrap:wrap;gap:10px}
+  .nurse-record .sidebtns .btn{flex:1 1 auto}
+}
 .care-staff .legacy-payments{margin-top:10px;border-top:1px solid var(--line)}
 @media(max-width:360px){.admin-summary .vrow,.care-staff .vrow{align-items:flex-start}.admin-summary .vrow{font-size:14px}.care-staff .btn.small{min-width:80px}}
 @media(max-width:360px){.backup{flex-direction:column}.backup .btn{width:100%}}

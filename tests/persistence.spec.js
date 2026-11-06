@@ -961,6 +961,30 @@ function mixedNursesBackup(){
   return backup;
 }
 
+test('acciones de enfermería caben en sus tarjetas con textos largos e historial abierto',async()=>{
+  const backup=mixedNursesBackup();
+  backup.pay.nurses[0].forEach((n,i)=>{n.n='Enfermería ficticia con nombre extenso '+i;n.ratesCents={full:123456789,half:98765432}});
+  await seed(JSON.stringify(backup));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate("showT=Date.now()+60000;render();document.querySelectorAll('.nurse-record details').forEach(d=>d.open=true)");
+  try{
+    for(const width of [320,360,390,430,768,1024,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      const geometry=await evaluate(`[...document.querySelectorAll('.nurse-record .sidebtns button')].map(button=>{
+        const b=button.getBoundingClientRect(),card=button.closest('.nurse-record').getBoundingClientRect();
+        const range=document.createRange();range.selectNodeContents(button);
+        return {inside:b.left>=card.left&&b.right<=card.right,height:b.height,lines:range.getClientRects().length};
+      })`);
+      assert.ok(geometry.every(b=>b.inside&&b.height>=44&&b.lines===1),JSON.stringify({width,geometry}));
+      assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true);
+    }
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+    await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nedit]').click()");
+    assert.equal(await evaluate("document.querySelector('#nn').value"),backup.pay.nurses[0][0].n);
+    await evaluate("document.querySelector('#no').click()");
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+});
+
 test('enfermeros se agrupan visualmente con índices originales y reactivación estable',async()=>{
   await cdp.send('Page.bringToFront');
   await seed(JSON.stringify(mixedNursesBackup()));await navigate();
