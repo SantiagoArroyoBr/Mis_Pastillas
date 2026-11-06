@@ -284,9 +284,9 @@ function render(){
   updateHTML($('#modes'),[['home','Inicio','house'],['meds','Medicinas','pill'],['pay','Pagos','wallet']].map(([m,l,icon])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}"><img class="nav-icon" src="icons/${icon}.svg" alt="">${l}</button>`).join(''));
   $('#tabs').hidden=md!=='meds';$('#patientActions').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
-  if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
-  if(md==='home'){$('#paysoon').innerHTML='';renderHome();return}
-  $('#paysoon').innerHTML=payNotice();
+  updateHTML($('#paysoon'),md==='meds'?payNotice():'');
+  if(md==='pay'){renderPay();return}
+  if(md==='home'){renderHome();return}
   $('#showArchived').setAttribute('aria-pressed',String(showArchived));
   $('#showArchived').textContent=showArchived?'Ver fichas activas':'Consultar archivadas';
   $('#archivePatient').textContent=P.archived===true?'Reactivar ficha activa':'Archivar ficha activa';
@@ -302,9 +302,9 @@ function render(){
     <a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">📅 Avisarme en Calendario</a>
     ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
   }
-  $('#soon').innerHTML=h;
-  $('#spend').innerHTML=spendHTML();
-  $('#list').innerHTML=P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
+  updateHTML($('#soon'),h);
+  updateHTML($('#spend'),spendHTML());
+  updateHTML($('#list'),P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
     const c=calc(m),[ic,tx]=LBL[c.st];
     return `<article class="card ${c.st}">
       <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
@@ -318,7 +318,7 @@ function render(){
       <button class="btn ghost small" style="margin-top:8px" data-a="price" data-i="${i}">💲 Precios</button>
       <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
       <button class="link" data-a="del" data-i="${i}">${m.kind==='sup'?'Borrar este insumo':'Borrar esta medicina'}</button>
-    </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`;
+    </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`);
 }
 
 const dlg=$('#dlg');
