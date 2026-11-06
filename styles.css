@@ -64,7 +64,8 @@ textarea{width:100%;font:600 17px/1.4 Nunito,system-ui,sans-serif;border:2px sol
 .wdaybtn[aria-pressed=true]{background:var(--navy);color:#fff}
 .chead{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:8px;border-top:3px solid var(--line)}
 .chead h3{margin:0;color:var(--navy);font-size:21px}
-:focus-visible{outline:4px solid #F5B301;outline-offset:2px}
+:focus-visible{outline:4px solid var(--navy);outline-offset:2px}
+header :focus-visible{outline-color:#F5B301}
 [hidden]{display:none!important}
 .modes{display:flex;gap:8px;margin-top:12px}
 .mbtn{flex:1;min-width:0;min-height:56px;border:0;border-radius:16px;background:rgba(255,255,255,.15);color:#fff;font:800 16px Nunito,sans-serif;padding:6px 4px}
