@@ -2,6 +2,23 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 }
 const $=s=>document.querySelector(s);
+const renderedMarkup=new WeakMap();
+function updateHTML(element,markup){
+  if(renderedMarkup.get(element)===markup)return;
+  const expanded=new Set([...element.querySelectorAll('details[data-panel][open]')].map(panel=>panel.dataset.panel));
+  const focused=element.contains(document.activeElement)?document.activeElement:null;
+  const panelKey=focused?.closest('details[data-panel]')?.dataset.panel;
+  const attributes=focused?[...focused.attributes].filter(attribute=>attribute.name==='id'||attribute.name.startsWith('data-')):[];
+  element.innerHTML=markup;
+  renderedMarkup.set(element,markup);
+  element.querySelectorAll('details[data-panel]').forEach(panel=>{panel.open=expanded.has(panel.dataset.panel)});
+  if(focused){
+    const scope=panelKey?[...element.querySelectorAll('details[data-panel]')].find(panel=>panel.dataset.panel===panelKey):element;
+    const replacement=focused.tagName==='SUMMARY'?scope?.querySelector('summary')
+      :attributes.length?[...element.querySelectorAll(focused.tagName)].find(candidate=>attributes.every(attribute=>candidate.getAttribute(attribute.name)===attribute.value)):null;
+    replacement?.focus({preventScroll:true});
+  }
+}
 const {parseTimes,at,dayMatches,schedText,evs,calc,fmt,num,consText,calUrl,ymd,pd,fmtD,money}=window.AcompanaDomain;
 
 const {NPAL,NPALN,migrate,defaultState,validateStoredState,validateMigrationInput,assertMigrationIntegrity,prepareMigratedState,validateMigratedState}=window.AcompanaCompatibility;
@@ -137,7 +154,7 @@ function renderHome(){
   const todo=rows.length
     ? `<div class="soon${pend?'':' ok'}"><h2>${pend?'✅ Por hacer':'✓ Todo al día'}</h2>${rows.map(r=>r.h).join('')}${pend&&('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`
     : '<div class="soon ok">✓ Todo al día: no hay pendientes.</div>';
-  $('#homeView').innerHTML=`<h2>Atención prioritaria</h2>`+todo+`<nav class="quick-links glass" aria-label="Accesos rápidos">
+  updateHTML($('#homeView'),`<h2>Atención prioritaria</h2>`+todo+`<nav class="quick-links glass" aria-label="Accesos rápidos">
       <button class="btn ghost small" data-pa="gomed" data-i="${homeP}">Medicinas y fichas</button>
       <button class="btn ghost small" data-pa="gopay">Pagos e historial</button>
       <a class="btn ghost small" href="#careCalendar">Calendario</a>
@@ -146,7 +163,7 @@ function renderHome(){
       <div class="top"><h3 class="name">🗓️ Calendario</h3></div>
       <div class="psels" role="group" aria-label="Elegir ficha">${S.p.map((p,i)=>`<button class="psel" aria-pressed="${i===homeP}" data-pa="hp" data-i="${i}">${patientLabel(p,i)}</button>`).join('')}</div>
       ${calHTML(homeP)}
-    </article>${apptsCard()}`;
+    </article>${apptsCard()}`);
 }
 
 function calHTML(i){
@@ -264,7 +281,7 @@ function render(){
   const md=S.mode;
   notifyDaily();
   $('#modes').setAttribute('role','group');$('#modes').setAttribute('aria-label','Sección de la aplicación');
-  $('#modes').innerHTML=[['home','Inicio','house'],['meds','Medicinas','pill'],['pay','Pagos','wallet']].map(([m,l,icon])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}"><img class="nav-icon" src="icons/${icon}.svg" alt="">${l}</button>`).join('');
+  updateHTML($('#modes'),[['home','Inicio','house'],['meds','Medicinas','pill'],['pay','Pagos','wallet']].map(([m,l,icon])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}"><img class="nav-icon" src="icons/${icon}.svg" alt="">${l}</button>`).join(''));
   $('#tabs').hidden=md!=='meds';$('#patientActions').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   if(md==='pay'){$('#paysoon').innerHTML='';renderPay();return}
@@ -273,7 +290,7 @@ function render(){
   $('#showArchived').setAttribute('aria-pressed',String(showArchived));
   $('#showArchived').textContent=showArchived?'Ver fichas activas':'Consultar archivadas';
   $('#archivePatient').textContent=P.archived===true?'Reactivar ficha activa':'Archivar ficha activa';
-  $('#tabs').innerHTML=S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||'<p>Sin fichas archivadas.</p>';
+  updateHTML($('#tabs'),S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||'<p>Sin fichas archivadas.</p>');
   const items=[];
   S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
   items.sort((a,b)=>a.c.buy-b.c.buy);
@@ -402,7 +419,7 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
+const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
