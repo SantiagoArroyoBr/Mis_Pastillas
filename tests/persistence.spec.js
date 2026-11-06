@@ -950,6 +950,93 @@ function patientBackup(){
   return backup;
 }
 
+function mixedNursesBackup(){
+  const backup=patientBackup();backup.mode='pay';
+  backup.pay.nurses[0][0].inactive=true;
+  backup.pay.nurses[0].push(
+    {id:'nurse_b',n:'B ficticio',c:'#1864AB',ratesCents:{full:0,half:null}},
+    {id:'nurse_c',n:'C ficticio',c:'#2B8A3E',inactive:true},
+    {id:'nurse_d',n:'D ficticio',c:'#862E9C',ratesCents:{full:null,half:2500}}
+  );
+  return backup;
+}
+
+test('enfermeros se agrupan visualmente con índices originales y reactivación estable',async()=>{
+  await cdp.send('Page.bringToFront');
+  await seed(JSON.stringify(mixedNursesBackup()));await navigate();
+  const raw=await evaluate('__persistenceTest.read()'),before=await evaluate('S');
+  const readOrder=()=>evaluate("[...document.querySelectorAll('#payView .care-staff')[0].querySelectorAll('[data-nurse-index]')].map(e=>+e.dataset.nurseIndex)");
+  assert.deepEqual(await readOrder(),[1,3,0,2]);
+  await evaluate('render();render()');
+  assert.deepEqual(await evaluate('S'),before);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  assert.match(await evaluate("document.querySelector('[data-nurse-index=\"1\"]').textContent"),/Completa.*MXN.*Media sin configurar/s);
+  await evaluate('showT=Date.now()+60000;render()');
+  assert.equal(await evaluate("document.querySelector('[data-nurse-index=\"1\"]').textContent.includes('Completa '+money(0)+' MXN')"),true);
+  assert.equal(await evaluate("document.querySelector('[data-nurse-index=\"3\"]').textContent.includes('Media '+money(25)+' MXN')"),true);
+  assert.match(await evaluate("document.querySelector('[data-nurse-index=\"2\"]').textContent"),/Completa sin configurar.*Media sin configurar/s);
+  await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nrm]').click();document.querySelector('#f').requestSubmit()");
+  assert.deepEqual(await readOrder(),[0,1,3,2]);
+  assert.equal(await evaluate('S.pay.nurses[0][0].inactive'),false);
+  await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nedit]').click();document.querySelector('#dlg [data-pa=nrm]').click();document.querySelector('#f').requestSubmit()");
+  assert.deepEqual(await readOrder(),[1,3,0,2]);
+  assert.deepEqual(await evaluate('S.pay.nurses[0].map(n=>n.id)'),before.pay.nurses[0].map(n=>n.id));
+  assert.deepEqual(await evaluate('S.pay.v'),before.pay.v);
+  await navigate();assert.deepEqual(await readOrder(),[1,3,0,2]);
+  await evaluate("document.querySelector('#exp').click()");
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+  await uploadJson(exported);await continueRestore();await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("!document.querySelector('#dlg').open");
+  assert.deepEqual(await readOrder(),[1,3,0,2]);
+});
+
+test('calendario y detalle distinguen modalidades, legado e inactividad sin alterar fechas ni costos',async()=>{
+  const backup=mixedNursesBackup();backup.mode='home';
+  const today=await evaluate('ymd(new Date())');
+  backup.pay.v[today]={0:[
+    {n:'Enfermera ficticia A',service:{id:'today_a',nurseId:'staff_a',type:'half',amountCents:6000}},
+    {n:'B ficticio',service:{id:'today_b',nurseId:'nurse_b',type:'full',amountCents:0}},
+    {n:'C ficticio'}
+  ]};
+  await seed(JSON.stringify(backup));await navigate();
+  const before=await evaluate('S'),raw=await evaluate('__persistenceTest.read()');
+  const label=await evaluate(`document.querySelector('[data-pa=day][data-d="${today}"]').getAttribute('aria-label')`);
+  assert.match(label,/3 asignaciones/);
+  assert.match(label,/Media jornada · Inactivo/);
+  assert.match(label,/Jornada completa/);
+  assert.match(label,/Modalidad sin confirmar · Registro anterior · Inactivo/);
+  assert.match(label,/fecha pendiente en el conteo administrativo/);
+  assert.equal(await evaluate('cover(0).dates.length'),2);
+  await evaluate(`document.querySelector('[data-pa=day][data-d="${today}"]').click()`);
+  assert.match(await evaluate("document.querySelector('.assignment-list').textContent"),/Media jornada · Inactivo/);
+  assert.deepEqual(await evaluate("[...document.querySelector('#nm').options].map(o=>o.value)"),['1','3']);
+  assert.deepEqual(await evaluate('S'),before);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
+
+test('listas de enfermería mantienen reflujo, contraste y foco con información mixta',async()=>{
+  await cdp.send('Page.bringToFront');
+  await seed(JSON.stringify(mixedNursesBackup()));await navigate();
+  try{
+    for(const width of [320,360,390,430,768,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800});
+      assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true,'ancho '+width);
+    }
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:true});
+    await evaluate("document.querySelector('[data-nurse-index=\"0\"]').scrollIntoView();document.querySelector('[data-nurse-index=\"0\"] [data-pa=nedit]').focus()");
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    assert.equal(await evaluate("document.activeElement.matches('[data-pa=nrm]:focus-visible')"),true);
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.nurse-inactive')).opacity"),'1');
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.nurse-inactive')).backgroundColor"),'rgb(238, 239, 234)');
+    if(process.env.QA_NURSES_SCREENSHOT){
+      const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
+      fs.writeFileSync(process.env.QA_NURSES_SCREENSHOT,Buffer.from(shot.data,'base64'));
+    }
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+});
+
 test('retiro de fichas usa archivo explícito y conserva posiciones, dependencias y alta posterior',async()=>{
   await seed(JSON.stringify(patientBackup()));await navigate();
   const before=await evaluate('S');
