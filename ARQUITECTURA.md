@@ -1,5 +1,13 @@
 # Arquitectura de Acompaña
 
+## PLAN-008 — Actualización de vistas y estado transitorio
+
+`app.js` incorpora `updateHTML`, inyectado en `AcompanaCareUI.create`. Un `WeakMap` conserva la última cadena renderizada por contenedor y evita reemplazos idénticos en Inicio, Pagos, navegación y selector de fichas. Los cálculos y la generación de cadenas siguen ejecutándose; no se trata de una caché de datos ni de un renderizador incremental general.
+
+Ante contenido diferente, el coordinador captura los `details[data-panel]` abiertos del DOM actual, reemplaza el contenido y restaura apertura por clave y foco por resumen/atributos identificadores. `care-ui.js` define claves para historial general, pagos legados por ficha e historial de enfermero por ficha e ID (nombre como alternativa antigua). Solo se conservan claves y atributos durante la sustitución; no se guardan referencias a nodos retirados. El estado visual no se serializa en `pastillas-v1`, y se pierde al recargar. El cambio de nombre de un enfermero antiguo sin ID puede reiniciar su panel. Los contenedores gestionados deben actualizarse mediante el helper para mantener coherente su comparación.
+
+El temporizador de 60 segundos y la delegación de eventos existentes permanecen. `forms.js` centraliza el nombre accesible del formulario y el foco tras errores o sustituciones dentro del diálogo abierto. Persistencia, importación, esquema y reglas de negocio mantienen sus responsabilidades. [Evidencia y límites](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+
 ## PLAN-007B — Presentación de enfermería
 
 care-ui.js agrupa filas derivadas de enfermeros manteniendo sus índices originales para acciones. Su función assignmentLabel centraliza modalidad, condición legada y estado de inactividad y se utiliza desde el calendario de app.js y el detalle del día. Los historiales por enfermero se derivan de las asignaciones existentes y conservan el orden temporal. La representación conserva el estado persistido.

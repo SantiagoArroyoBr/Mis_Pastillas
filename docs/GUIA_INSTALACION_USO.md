@@ -2,6 +2,14 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## PREVIEW-007 y cambios locales de PLAN-008
+
+PREVIEW-007 incluye PLAN-007, PLAN-007B y la distribución corregida de tarjetas de enfermería UX-009. Se publicó en `development` hasta `e79a95f98dabab7348deb17e7231c344da6322ef`. [Abrir Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Estado de Vercel observado: success](https://vercel.com/dinamita20/pastillas-1/88xGnRvV1RaaVK1E7tatBqoPzrrH). La validación funcional del propietario sigue pendiente; el estado de despliegue no la sustituye.
+
+En la versión local de PLAN-008, los historiales de Pagos permanecen abiertos durante las actualizaciones normales, incluso al cambiar los datos mostrados. Puedes cerrar cada historial cuando quieras. La apertura es temporal: recargar o cerrar la aplicación la reinicia. Al renombrar un enfermero antiguo sin identificador, su historial puede volver a cerrarse. No se guarda esta preferencia en el respaldo.
+
+Los formularios comunes llevan el foco al mensaje cuando rechazan un dato; una fecha inválida detectada por la aplicación recibe el foco en su campo. Al abrir una confirmación dentro de un diálogo que ya estaba abierto, el foco pasa al primer control de la nueva pantalla. Usa Tab para recorrer controles, Enter/Espacio para activarlos y Cancelar o Escape para salir. Estos cambios de PLAN-008 todavía no están en Preview. [Pruebas, límites y checklist](PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+
 ## Abrir e instalar
 
 1. Abre la dirección oficial de la aplicación desde un navegador compatible: https://pastillas-1.vercel.app/.
@@ -10,11 +18,11 @@
 
 ## Organización básica
 
-En PLAN-007B local, Pagos muestra primero **Activos** y después **Inactivos**, con contadores. Los inactivos tienen fondo gris y botón **Reactivar** que abre la confirmación. **Editar** permite revisar datos y gestionar el retiro. Cada persona incluye **Asignaciones e historial**, con fechas futuras y anteriores.
+En PLAN-007B, incluido en PREVIEW-007, Pagos muestra primero **Activos** y después **Inactivos**, con contadores. Los inactivos tienen fondo gris y botón **Reactivar** que abre la confirmación. **Editar** permite revisar datos y gestionar el retiro. Cada persona incluye **Asignaciones e historial**, con fechas futuras y anteriores.
 
 Las tarifas distinguen **Sin configurar**, cero y montos positivos. Usa **Ver montos** para consultar importes. El calendario usa **C** para jornada completa, **M** para media y **?** para modalidad sin confirmar. Abre el día para consultar todas las asignaciones, el estado del personal y los costos guardados. Una fecha con varias asignaciones mantiene su conteo administrativo por fecha.
 
-En PLAN-007 local, abre **Retirar ficha** en Medicinas y pulsa **Revisar retiro de ficha**. La confirmación muestra los registros relacionados y ofrece archivo reversible conservando la posición de la ficha. Puedes cancelar o consultar sus datos antes de decidir.
+En PLAN-007, incluido en PREVIEW-007, abre **Retirar ficha** en Medicinas y pulsa **Revisar retiro de ficha**. La confirmación muestra los registros relacionados y ofrece archivo reversible conservando la posición de la ficha. Puedes cancelar o consultar sus datos antes de decidir.
 
 En Pagos, edita al enfermero y usa **Retirar enfermero/a** en el grupo separado al final del formulario. Si tiene historial se ofrece **Desactivar**, conservando los turnos futuros mostrados. Si está libre de dependencias se ofrece **Eliminar definitivamente** con confirmación. Los inactivos se identifican en Pagos y se pueden reactivar desde su edición. Para gestionar un turno futuro existente, abre su fecha en el calendario.
 

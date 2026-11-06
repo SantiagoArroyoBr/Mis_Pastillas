@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2026-11-06 — UX-009, PREVIEW-007 y PLAN-008
+
+UX-009 corrigió las acciones de tarjetas de enfermería con CSS acotado y una prueba a 320, 360, 390, 430, 768, 1024 y 1280 px. QA-013 pasó 63/63 antes de publicar los diez commits pendientes y `e79a95f98dabab7348deb17e7231c344da6322ef`. Se verificó el SHA remoto, Vercel success y Vercel Preview Comments success; `main` permaneció en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. La publicación no acredita validación funcional manual.
+
+Después de PREVIEW-007 se implementó PLAN-008 local: `app.js` y `care-ui.js` preservan paneles abiertos y foco identificable, y omiten reconstrucción de contenido idéntico; `forms.js` etiqueta el formulario y corrige foco de errores y diálogos reemplazados. Dos casos nuevos en `tests/persistence.spec.js` elevan la suite a **65/65** (8 de motor y 57 de navegador), con datos ficticios y perfil aislado. Veinte invocaciones del callback periódico sin cambios producen cero mutaciones estructurales en Pagos y conservan los nodos. Sintaxis de 12 scripts, manifest y diff correctos. No hay medición de velocidad ni memoria en móvil. Se actualizan README, plan, arquitectura, guía y el [informe PLAN-008](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+
+Commits funcionales locales: `0e5a952`, `149f11d` y `8bab21f`; el commit documental cierra este registro. No se publican. Los cuatro documentos locales ajenos se conservan fuera de los commits. La limitación de cierre periódico de historiales descrita en PLAN-007B queda corregida para los paneles identificados de Pagos; recargar la aplicación reinicia el estado visual.
+
 ## 2026-11-06 — PLAN-007B
 
 Pagos agrupa visualmente enfermeros activos e inactivos con índices originales, contadores, estados vacíos y reactivación confirmada. El calendario y el detalle de fecha comparten etiquetas de modalidad, registros legados e inactividad. Se añaden historiales operativos por persona y etiquetas claras para tarifa ausente, cero y positiva. Las fórmulas y la persistencia conservan su comportamiento.

@@ -1,12 +1,20 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-008 — Estabilidad, accesibilidad y rendimiento — 2026-11-06
+
+Implementación local, sin publicación. EST-001 conserva expansión y foco identificable al actualizar Pagos; PERF-001 evita reemplazar DOM idéntico en Pagos, Inicio, navegación y selector de fichas. ACC-002 corrige foco al reemplazar formularios abiertos y al mostrar errores, y da nombre accesible al formulario común. UX-010 unifica ese comportamiento común sin cambios visuales adicionales. QA-014 pasó **65/65**, con persistencia, JSON y offline incluidos. La revisión con lectores de pantalla, zoom real y dispositivos físicos sigue pendiente; no se declara conformidad integral WCAG. [Informe y checklist](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+
+## UX-009 y PREVIEW-007 — Publicación completada
+
+UX-009 ajustó solo las tarjetas de enfermería y añadió la regresión responsive. QA-013 pasó **63/63**. Se publicaron los diez commits de PLAN-007/007B y UX-009 hasta `e79a95f98dabab7348deb17e7231c344da6322ef`; GitHub registró Vercel success y Vercel Preview Comments success. Validación funcional del propietario pendiente. `main` conservó `92c4034085e13bb38fd0a7ff2622c46ef797873d`.
+
 ## PLAN-007B — Organización operativa
 
-UX-007 y ENF-003 agrupan visualmente activos e inactivos conservando índices. ENF-004 y CAL-002 explican modalidades, estados y asignaciones. PAG-002 aclara tarifas y saldo de la administradora, UX-008 reutiliza las confirmaciones existentes. La revisión manual y la publicación conjunta con PLAN-007 quedan pendientes. [Detalle](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
+UX-007 y ENF-003 agrupan visualmente activos e inactivos conservando índices. ENF-004 y CAL-002 explican modalidades, estados y asignaciones. PAG-002 aclara tarifas y saldo de la administradora, UX-008 reutiliza las confirmaciones existentes. Publicado junto con PLAN-007 en PREVIEW-007; revisión manual pendiente. [Detalle](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
 
 ## PLAN-007 — Gestión segura de registros
 
-PREVIEW-006 publicó los seis commits de PLAN-006 hasta 972a856. DATA-002 documenta las referencias por índice, nombre e ID. FICHAS-003 implementa retiro lógico mediante archivo y mantiene pendiente el borrado físico. ENF-002 añade inactividad reversible y borrado de enfermeros sin dependencias. UX-006 separa las acciones de retiro y confirma su alcance. Validación manual y publicación de PLAN-007 pendientes.
+PREVIEW-006 publicó los seis commits de PLAN-006 hasta 972a856. DATA-002 documenta las referencias por índice, nombre e ID. FICHAS-003 implementa retiro lógico mediante archivo y mantiene pendiente el borrado físico. ENF-002 añade inactividad reversible y borrado de enfermeros sin dependencias. UX-006 separa las acciones de retiro y confirma su alcance. PLAN-007 fue publicado en PREVIEW-007; validación manual pendiente.
 
 ## PLAN-006 — Ciclo local implementado
 
