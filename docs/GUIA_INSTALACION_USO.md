@@ -10,6 +10,10 @@
 
 ## Organización básica
 
+En PLAN-007B local, Pagos muestra primero **Activos** y después **Inactivos**, con contadores. Los inactivos tienen fondo gris y botón **Reactivar** que abre la confirmación. **Editar** permite revisar datos y gestionar el retiro. Cada persona incluye **Asignaciones e historial**, con fechas futuras y anteriores.
+
+Las tarifas distinguen **Sin configurar**, cero y montos positivos. Usa **Ver montos** para consultar importes. El calendario usa **C** para jornada completa, **M** para media y **?** para modalidad sin confirmar. Abre el día para consultar todas las asignaciones, el estado del personal y los costos guardados. Una fecha con varias asignaciones mantiene su conteo administrativo por fecha.
+
 En PLAN-007 local, abre **Retirar ficha** en Medicinas y pulsa **Revisar retiro de ficha**. La confirmación muestra los registros relacionados y ofrece archivo reversible conservando la posición de la ficha. Puedes cancelar o consultar sus datos antes de decidir.
 
 En Pagos, edita al enfermero y usa **Retirar enfermero/a** en el grupo separado al final del formulario. Si tiene historial se ofrece **Desactivar**, conservando los turnos futuros mostrados. Si está libre de dependencias se ofrece **Eliminar definitivamente** con confirmación. Los inactivos se identifican en Pagos y se pueden reactivar desde su edición. Para gestionar un turno futuro existente, abre su fecha en el calendario.

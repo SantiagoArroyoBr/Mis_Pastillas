@@ -1,5 +1,7 @@
 # PLAN-007 — Gestión y eliminación segura
 
+PLAN-007B amplía la presentación de personal, calendario e historial y reutiliza estas reglas de retiro y confirmación. [Ampliación local pendiente de revisión](PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
+
 ## DATA-002 — Relaciones comprobadas
 
 | Registro | Identidad y referencias | Riesgo de eliminación | Método |

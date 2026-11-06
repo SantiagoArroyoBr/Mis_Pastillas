@@ -1,5 +1,7 @@
 # Acompaña
 
+PLAN-007B local organiza enfermeros activos e inactivos, aclara modalidades en el calendario y ofrece historial operativo por persona. [Alcance y validación](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
+
 PLAN-007 local incorpora revisión del retiro de fichas, desactivación/reactivación de enfermeros y eliminación definitiva de enfermeros sin dependencias. [Reglas y validación](docs/PLAN-007-gestion-eliminacion-segura.md).
 
 PLAN-006 añade navegación e Inicio reorganizados, archivo reversible de fichas, consulta completa de precios y acentos Glass. Estado local y verificación en [PLAN-006](docs/PLAN-006-evolucion-integral-ux.md).

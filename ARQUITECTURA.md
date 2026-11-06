@@ -1,5 +1,9 @@
 # Arquitectura de Acompaña
 
+## PLAN-007B — Presentación de enfermería
+
+care-ui.js agrupa filas derivadas de enfermeros manteniendo sus índices originales para acciones. Su función assignmentLabel centraliza modalidad, condición legada y estado de inactividad y se utiliza desde el calendario de app.js y el detalle del día. Los historiales por enfermero se derivan de las asignaciones existentes y conservan el orden temporal. La representación conserva el estado persistido.
+
 ## PLAN-007 — Retiro de registros
 
 app.js concentra la consulta de dependencias y las confirmaciones de retiro. Guarda estados candidatos mediante save antes de sustituir S. Las fichas reutilizan archived y conservan su índice. Los enfermeros admiten inactive booleano opcional, validado en compatibility.js y preservado en respaldos. care-ui.js excluye los inactivos de nuevas asignaciones y mantiene sus filas históricas. Las asignaciones se relacionan por nombre legado o nurseId y los pagos individuales por nurseId. La eliminación de un enfermero exige ausencia de estas relaciones. El saldo general sigue siendo global.

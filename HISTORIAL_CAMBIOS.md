@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-06 — PLAN-007B
+
+Pagos agrupa visualmente enfermeros activos e inactivos con índices originales, contadores, estados vacíos y reactivación confirmada. El calendario y el detalle de fecha comparten etiquetas de modalidad, registros legados e inactividad. Se añaden historiales operativos por persona y etiquetas claras para tarifa ausente, cero y positiva. Las fórmulas y la persistencia conservan su comportamiento.
+
+QA-012 pasó **62/62** con perfil aislado y datos ficticios. Tres casos nuevos verifican agrupación estable, referencias, modalidades, importes, reflujo y foco. Se corrigió un selector de la prueba nueva que actuaba fuera del diálogo. Pasaron sintaxis, manifest y revisión del diff. El ciclo queda local, con revisión manual pendiente. [Detalle y checklist](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
+
 ## 2026-11-05 — PREVIEW-006 y PLAN-007
 
 PREVIEW-006 publicó los seis commits hasta 972a856 en development, con confirmación de GitHub y Vercel success. Validación funcional del propietario en Preview pendiente.
