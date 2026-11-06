@@ -1,8 +1,14 @@
 # Plan de desarrollo — Acompaña
 
+## PREVIEW-008 y PLAN-009 — 2026-11-06
+
+PREVIEW-008 publicó los cuatro commits de PLAN-008 hasta `8b49a73`. GitHub y Vercel registraron éxito. Sigue pendiente la revisión funcional del propietario.
+
+PLAN-009 queda local. UX-011 integra los historiales en las tarjetas de enfermería. QA-015 y UX-012 corrigen contraste, controles expandibles y foco de respaldos. DATA-003 refuerza la detección de cambios concurrentes y la vista previa de JSON. PWA-002 conserva los recursos por versión y difiere la activación. PERF-002 elimina reemplazos idénticos en Medicinas. QA-016 cubre las regresiones y DOC-013 registra evidencia y validación manual pendiente. [Informe de PLAN-009](docs/PLAN-009-calidad-integral.md).
+
 ## PLAN-008 — Estabilidad, accesibilidad y rendimiento — 2026-11-06
 
-Implementación local, sin publicación. EST-001 conserva expansión y foco identificable al actualizar Pagos; PERF-001 evita reemplazar DOM idéntico en Pagos, Inicio, navegación y selector de fichas. ACC-002 corrige foco al reemplazar formularios abiertos y al mostrar errores, y da nombre accesible al formulario común. UX-010 unifica ese comportamiento común sin cambios visuales adicionales. QA-014 pasó **65/65**, con persistencia, JSON y offline incluidos. La revisión con lectores de pantalla, zoom real y dispositivos físicos sigue pendiente; no se declara conformidad integral WCAG. [Informe y checklist](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+Publicado en PREVIEW-008. EST-001 conserva expansión y foco identificable al actualizar Pagos; PERF-001 evita reemplazar DOM idéntico en Pagos, Inicio, navegación y selector de fichas. ACC-002 corrige foco al reemplazar formularios abiertos y al mostrar errores, y da nombre accesible al formulario común. UX-010 unifica ese comportamiento común. QA-014 pasó **65/65**, con persistencia, JSON y offline incluidos. La revisión con lectores de pantalla, zoom real y dispositivos físicos sigue pendiente. [Informe y checklist](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
 
 ## UX-009 y PREVIEW-007 — Publicación completada
 

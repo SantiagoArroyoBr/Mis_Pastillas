@@ -2,13 +2,15 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
-## PREVIEW-007 y cambios locales de PLAN-008
+## PREVIEW-008 y cambios locales de PLAN-009
 
-PREVIEW-007 incluye PLAN-007, PLAN-007B y la distribución corregida de tarjetas de enfermería UX-009. Se publicó en `development` hasta `e79a95f98dabab7348deb17e7231c344da6322ef`. [Abrir Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Estado de Vercel observado: success](https://vercel.com/dinamita20/pastillas-1/88xGnRvV1RaaVK1E7tatBqoPzrrH). La validación funcional del propietario sigue pendiente; el estado de despliegue no la sustituye.
+PREVIEW-008 incorpora PLAN-008 y se publicó en `development` hasta `8b49a7380a260a6475f8064e0ff5cc99f9b692cd`. La revisión funcional del propietario sigue pendiente. [Abrir Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Despliegue de Vercel](https://vercel.com/dinamita20/pastillas-1/9QtkRsexr6VPaicvTJRartPc3aTq).
 
-En la versión local de PLAN-008, los historiales de Pagos permanecen abiertos durante las actualizaciones normales, incluso al cambiar los datos mostrados. Puedes cerrar cada historial cuando quieras. La apertura es temporal: recargar o cerrar la aplicación la reinicia. Al renombrar un enfermero antiguo sin identificador, su historial puede volver a cerrarse. No se guarda esta preferencia en el respaldo.
+En PREVIEW-008, los historiales de Pagos permanecen abiertos durante las actualizaciones normales, incluso al cambiar los datos mostrados. Puedes cerrar cada historial cuando quieras. Recargar o cerrar la aplicación reinicia la apertura. Al renombrar a un enfermero antiguo sin identificador, su historial puede volver a cerrarse. Esta preferencia es temporal y queda fuera del respaldo.
 
-Los formularios comunes llevan el foco al mensaje cuando rechazan un dato; una fecha inválida detectada por la aplicación recibe el foco en su campo. Al abrir una confirmación dentro de un diálogo que ya estaba abierto, el foco pasa al primer control de la nueva pantalla. Usa Tab para recorrer controles, Enter/Espacio para activarlos y Cancelar o Escape para salir. Estos cambios de PLAN-008 todavía no están en Preview. [Pruebas, límites y checklist](PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+Los formularios comunes llevan el foco al mensaje cuando rechazan un dato. Una fecha inválida detectada por la aplicación recibe el foco en su campo. Usa Tab para recorrer controles, Enter o Espacio para activarlos y Cancelar o Escape para salir.
+
+En PLAN-009 local, cada historial de enfermería tiene un panel dentro de la tarjeta y los inactivos usan una superficie gris. La revisión y la confirmación del respaldo enfocan su título. Cuando una actualización de la PWA esté preparada, guarda o cancela los formularios abiertos y cierra todas las pestañas y ventanas de la aplicación antes de volver a abrirla. [Pruebas y checklist de PLAN-009](PLAN-009-calidad-integral.md).
 
 ## Abrir e instalar
 

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-06 — PREVIEW-008 y PLAN-009
+
+PREVIEW-008 publicó `0e5a952`, `149f11d`, `8bab21f` y `8b49a73` en `development` tras repetir QA-014 con 65/65. GitHub registró Vercel y Vercel Preview Comments exitosos. `main` se verificó en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Validación funcional del propietario pendiente.
+
+PLAN-009 queda local. Integra los paneles de historial en las tarjetas de enfermería, mejora contraste y foco, protege una restauración ante escrituras externas y permite revisar respaldos con fechas de exportación inválidas. La PWA precarga recursos por versión y espera antes de activarse. Medicinas preserva tarjetas y foco al actualizar contenido idéntico. [Cambios, pruebas y checklist](docs/PLAN-009-calidad-integral.md).
+
 ## 2026-11-06 — UX-009, PREVIEW-007 y PLAN-008
 
 UX-009 corrigió las acciones de tarjetas de enfermería con CSS acotado y una prueba a 320, 360, 390, 430, 768, 1024 y 1280 px. QA-013 pasó 63/63 antes de publicar los diez commits pendientes y `e79a95f98dabab7348deb17e7231c344da6322ef`. Se verificó el SHA remoto, Vercel success y Vercel Preview Comments success; `main` permaneció en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. La publicación no acredita validación funcional manual.

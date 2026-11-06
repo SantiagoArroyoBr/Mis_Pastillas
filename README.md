@@ -1,6 +1,6 @@
 # Acompaña
 
-**Estado al 2026-11-06:** PREVIEW-007 publicó PLAN-007, PLAN-007B y UX-009 en `development` hasta `e79a95f`, con estado Vercel exitoso. PLAN-008 permanece local: conserva historiales abiertos durante actualizaciones, evita reemplazos de contenido idéntico y mejora el foco de formularios. QA-014: **65/65**. [Diagnóstico, evidencia y validación pendiente](docs/PLAN-008-estabilidad-accesibilidad-rendimiento.md).
+**Estado al 2026-11-06:** PREVIEW-008 publicó PLAN-008 en `development` hasta `8b49a73`, con estado Vercel exitoso y revisión funcional del propietario pendiente. PLAN-009 queda local para revisión e integra los paneles de enfermería, mejoras de accesibilidad, protección al restaurar, caché por versión y estabilidad del foco en Medicinas. [Informe y checklist de PLAN-009](docs/PLAN-009-calidad-integral.md).
 
 PLAN-007B organiza enfermeros activos e inactivos, aclara modalidades en el calendario y ofrece historial operativo por persona. [Alcance y validación](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
 
