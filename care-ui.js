@@ -234,18 +234,18 @@ function dayForm(i,ds){
   if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
   if(ev&&ev.end.length)info+=`<p class="info">⚠️ Se acaban: <b>${ev.end.map(x=>esc(x)).join(', ')}</b> (última toma completa ese día)</p>`;
   const cur=ents(ds,i);
-  const list=cur.length?'<div>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>${e.service?`<br><span class="hint">Servicio ${e.service.type==='half'?'medio turno':'completo'} · ${A(e.service.amountCents/100)} MXN</span>`:'<br><span class="hint">Registro anterior, sin tarifa conciliable</span>'}</div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}">Quitar</button></div>`).join('')+'</div>':'';
+  const list=cur.length?'<section class="assignment-list"><h3>Asignaciones registradas · '+cur.length+'</h3>'+cur.map((e,k)=>`<div class="vrow"><div><span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b><br><span class="hint">${esc(assignmentLabel(e,nurses))}</span><br><span class="hint">${e.service?'Costo guardado '+A(e.service.amountCents/100)+' MXN':'Sin tarifa conciliable'}</span></div><button type="button" class="link" data-pa="rm" data-i="${i}" data-d="${ds}" data-k="${k}" aria-label="Quitar asignación de ${esc(e.n)}">Quitar</button></div>`).join('')+'</section>':'<p class="hint">Sin asignaciones registradas para esta fecha.</p>';
   const title=label+' · '+esc(p.name);
   const eligible=nurses.map((n,k)=>({n,k})).filter(({n})=>n.inactive!==true&&n.ratesCents&&(['full','half'].some(type=>Number.isSafeInteger(n.ratesCents[type])&&n.ratesCents[type]>=0)));
   if(!eligible.length){
     form(title,[],()=>{S.mode='pay';save();render();window.scrollTo(0,0)},'Configurar en Pagos');
-    dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Configura al menos una tarifa en Pagos para permitir nuevas asignaciones.</p>`);
+    dlg.querySelector('h2').insertAdjacentHTML('afterend',info+list+`<p class="hint">Para nuevas asignaciones necesitas un enfermero activo con tarifa configurada. Puedes agregarlo o reactivarlo en Pagos.</p>`);
     return;
   }
   const wdn=WD_LONG[dt.getDay()];
   const once='Solo este día',weekly='Cada '+wdn+' hasta fin de mes';
   form(title,[
-    {id:'nm',l:'Enfermero/a',t:'select',v:String(eligible[0].k),options:eligible.map(({n,k})=>({v:String(k),l:n.n}))},
+    {id:'nm',l:'Enfermero/a activo para nueva asignación',t:'select',v:String(eligible[0].k),options:eligible.map(({n,k})=>({v:String(k),l:n.n}))},
     {id:'serviceType',l:'Jornada',t:'select',v:'full',options:[{v:'full',l:'Jornada completa'},{v:'half',l:'Media jornada'}]},
     {id:'rp',l:'¿Repetir?',t:'text',v:once,presets:[{l:once,v:once},{l:weekly,v:weekly}]}
   ],v=>{
