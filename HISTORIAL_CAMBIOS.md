@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-06 — UX-013
+
+El historial de enfermeros activos usaba el crema general de la aplicación. Ahora usa blanco sobre la tarjeta clara y conserva el borde, los márgenes, el radio y los separadores. El historial inactivo conserva su estilo gris. La caché de la PWA pasa a v11 para distribuir el CSS corregido. Los cambios se limitan a `styles.css`, `sw.js`, `tests/persistence.spec.js` y los dos documentos del ciclo.
+
+La suite pasó **69/69** en Edge con datos ficticios. Se verificaron los paneles en seis anchos, las capturas a 390 px, el foco, la actualización periódica y el CSS offline. UX-013 y PLAN-009 siguen locales y pendientes de aprobación del propietario. [Detalle de UX-013](docs/PLAN-009-calidad-integral.md#ux-013--superficie-del-historial-activo).
+
 ## 2026-11-06 — PREVIEW-008 y PLAN-009
 
 PREVIEW-008 publicó `0e5a952`, `149f11d`, `8bab21f` y `8b49a73` en `development` tras repetir QA-014 con 65/65. GitHub registró Vercel y Vercel Preview Comments exitosos. `main` se verificó en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Validación funcional del propietario pendiente.

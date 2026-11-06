@@ -153,7 +153,7 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .nurse-status{display:inline-block;font-size:13px;font-weight:800;border:1px solid #68736B;border-radius:6px;padding:2px 6px}
 .nurse-group{margin-top:18px}
 .nurse-record .vrow{border-top:0}
-.nurse-history{margin:8px 0 0;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-wrap:anywhere}
+.nurse-history{margin:8px 0 0;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow-wrap:anywhere}
 .nurse-inactive>.nurse-history{background:#E4E7E2;border-color:#C7CCC6}
 .nurse-history>summary,.record-actions>summary{display:list-item;padding-block:12px}
 .nurse-history>p{border-top:1px solid var(--line);margin:0;padding:8px 0}

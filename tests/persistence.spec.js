@@ -83,6 +83,8 @@ const initScript = String.raw`(() => {
     return nativeInterval(callback,delay,...args);
   };
   window.addEventListener('error', event => state.errors.push(event.message));
+  const logError = console.error.bind(console);
+  console.error = (...args) => { state.errors.push(args.map(String).join(' ')); logError(...args); };
   const createObjectURL = URL.createObjectURL.bind(URL);
   URL.createObjectURL = blob => { state.exportBlob = blob; return createObjectURL(blob); };
 })();`;
@@ -151,7 +153,7 @@ before(async () => {
             : file.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
     if (file.endsWith(path.sep + 'sw.js') && swUpdateVariant) {
-      res.end(fs.readFileSync(file, 'utf8').replace("'v10'", "'v11'"));
+      res.end(fs.readFileSync(file, 'utf8').replace("'v11'", "'v12'"));
       return;
     }
     fs.createReadStream(file).pipe(res);
@@ -706,19 +708,19 @@ test('las citas identifican la ficha por índice aunque los nombres coincidan', 
 });
 
 test('la PWA abre y recarga offline, espera para actualizar y conserva los datos', async () => {
-  const raw=JSON.stringify(patientBackup());
+  const raw=JSON.stringify(mixedNursesBackup());
   await seed(raw); await navigate();
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
-  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v10');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
-  assert.ok(cached.names.includes('acompanha-v10'));
+  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v11');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
+  assert.ok(cached.names.includes('acompanha-v11'));
   for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/NunitoSans.ttf', '/fonts/Nunito[wght].ttf', '/icons/house.svg', '/icons/pill.svg', '/icons/wallet.svg']) {
     assert.ok(cached.keys.some(key => key.endsWith(asset)), `Falta en caché ${asset}`);
   }
   await evaluate("fetch('/private-data').catch(()=>null)");
-  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v10');return Boolean(await c.match('/private-data'))})()");
+  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v11');return Boolean(await c.match('/private-data'))})()");
   assert.equal(privateCached, false);
 
-  await evaluate(`Promise.all(['acompanha-v9','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
+  await evaluate(`Promise.all(['acompanha-v10','acompanha-v9','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
   await cdp.send('Network.enable');
   await cdp.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
   try {
@@ -728,6 +730,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       await waitFor("document.readyState === 'complete' && typeof persistenceReady !== 'undefined'", `carga offline de ${route}`);
       assert.equal(await evaluate('typeof S !== "undefined" && persistenceReady'), true);
       assert.equal(await evaluate("[...document.styleSheets].some(sheet=>sheet.href&&sheet.href.endsWith('/styles.css'))"), true);
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.nurse-record:not(.nurse-inactive)>.nurse-history')).backgroundColor"),'rgb(255, 255, 255)');
       assert.equal(await evaluate("document.fonts.load('600 18px Nunito').then(fonts=>fonts.length>0&&fonts[0].status==='loaded')"), true);
       assert.equal(await evaluate("[...document.querySelectorAll('.nav-icon')].every(icon=>icon.complete&&icon.naturalWidth>0)"), true);
       assert.equal(await evaluate('__persistenceTest.read()'),raw);
@@ -751,7 +754,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     await evaluate("navigator.serviceWorker.getRegistration().then(registration=>registration.update()).then(()=>true)");
     await waitFor("navigator.serviceWorker.getRegistration().then(registration=>registration.waiting?.state==='installed')", 'actualización en espera');
     assert.equal(await evaluate("document.querySelector('#dlg').open&&document.querySelector('#patientName').value==='Borrador ficticio'"),true);
-    assert.ok((await evaluate('caches.keys()')).includes('acompanha-v10'));
+    assert.ok((await evaluate('caches.keys()')).includes('acompanha-v11'));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
     const dataBeforeUpdate=await evaluate('__persistenceTest.read()');
@@ -767,7 +770,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     await cdp.send('ServiceWorker.disable');
   }
   const remainingCaches = await evaluate('caches.keys()');
-  assert.ok(remainingCaches.includes('acompanha-v11'));
+  assert.ok(remainingCaches.includes('acompanha-v12'));
+  assert.ok(!remainingCaches.includes('acompanha-v11'));
   assert.ok(!remainingCaches.includes('acompanha-v10'));
   assert.ok(!remainingCaches.includes('acompanha-v9'));
   assert.ok(!remainingCaches.includes('cuidados-v8'));
@@ -1149,17 +1153,22 @@ test('historiales activos e inactivos integran todos los registros en un panel c
   backup.pay.v['2020-02-01']={0:[{n:'Enfermera ficticia A',s:'full'},{n:'B ficticio',s:'half'}]};
   await seed(JSON.stringify(backup));await navigate();await cdp.send('Page.bringToFront');
   const raw=await evaluate('__persistenceTest.read()');
-  await evaluate(`showT=Date.now()+60000;render();
-    document.querySelectorAll('.nurse-history').forEach(panel=>panel.open=true);
-    const firstInactive=document.querySelector('.nurse-inactive .nurse-history summary');firstInactive.focus();
-  `);
-  for(const open of [false,true]){
-    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
-    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
-    await waitFor(`document.activeElement.parentElement.open===${open}`,'activación del historial con Espacio');
+  await evaluate('showT=Date.now()+60000;render()');
+  assert.equal(await evaluate("[...document.querySelectorAll('.nurse-history')].every(panel=>!panel.open)"),true);
+  const cardSelectors=['.nurse-record:not(.nurse-inactive)','.nurse-record.nurse-inactive'];
+  for(const card of cardSelectors){
+    const summary=card+' > .nurse-history > summary';
+    await evaluate(`document.querySelector(${JSON.stringify(summary)}).focus()`);
+    for(const open of [true,false,true]){
+      await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+      await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+      await waitFor(`document.activeElement.parentElement.open===${open}`,'activación del historial con Espacio');
+    }
+    await evaluate('__persistenceTest.refresh()');
+    assert.equal(await evaluate(`document.activeElement===document.querySelector(${JSON.stringify(summary)})&&document.activeElement.parentElement.open`),true);
   }
-  await evaluate('__persistenceTest.refresh()');
-  assert.equal(await evaluate("document.activeElement.matches('.nurse-inactive summary:focus-visible')&&document.activeElement.parentElement.open"),true);
+  assert.equal(await evaluate("document.activeElement.matches('.nurse-inactive summary:focus-visible')"),true);
+  await evaluate("document.querySelectorAll('.nurse-history').forEach(panel=>panel.open=true)");
   const content=await evaluate(`[...document.querySelectorAll('.nurse-history')].map(panel=>[...panel.querySelectorAll('p')].map(row=>row.textContent))`);
   assert.deepEqual(content.map(rows=>rows.length),[1,1,2,1]);
   assert.match(content[0][0],/Media jornada · Registro anterior/);
@@ -1172,25 +1181,38 @@ test('historiales activos e inactivos integran todos los registros en un panel c
       const panels=await evaluate(`[...document.querySelectorAll('.nurse-history')].map(panel=>{
         const card=panel.parentElement,header=panel.querySelector('summary');
         const bounds=panel.getBoundingClientRect(),outer=card.getBoundingClientRect(),style=getComputedStyle(panel);
+        const rows=[...panel.querySelectorAll('p')].map(row=>getComputedStyle(row));
         return {
           inset:Math.min(bounds.left-outer.left,outer.right-bounds.right,outer.bottom-bounds.bottom),
           radius:parseFloat(style.borderRadius),border:parseFloat(style.borderWidth),
           padding:parseFloat(style.paddingLeft),fit:panel.scrollWidth<=panel.clientWidth,
           bg:style.backgroundColor,fg:getComputedStyle(header).color,focus:getComputedStyle(header).outlineColor,
+          divider:rows.every(row=>row.borderTopStyle==='solid'&&parseFloat(row.borderTopWidth)>=1&&row.borderTopColor!==style.backgroundColor),
+          text:rows.map(row=>row.color),
           inactive:card.classList.contains('nurse-inactive')
         };
       })`);
       for(const panel of panels){
         assert.ok(panel.inset>=10&&panel.radius>=10&&panel.border===1&&panel.padding>=8&&panel.fit,JSON.stringify({width,panel}));
-        assert.equal(panel.bg,panel.inactive?'rgb(228, 231, 226)':'rgb(244, 235, 221)');
+        assert.equal(panel.bg,panel.inactive?'rgb(228, 231, 226)':'rgb(255, 255, 255)');
+        assert.equal(panel.divider,true);
         assert.ok(contrastRatio(panel.fg,panel.bg)>=4.5);
+        assert.ok(panel.text.every(color=>contrastRatio(color,panel.bg)>=4.5));
         assert.ok(contrastRatio(panel.focus,panel.bg)>=3);
       }
       assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true);
-      if(width===390&&process.env.QA_NURSES_SCREENSHOT){
-        await evaluate("document.querySelector('.nurse-inactive').scrollIntoView()");
-        const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
-        fs.writeFileSync(process.env.QA_NURSES_SCREENSHOT,Buffer.from(shot.data,'base64'));
+      if(width===390&&process.env.QA_NURSES_SCREENSHOT_DIR){
+        await evaluate('document.activeElement.blur();document.fonts.ready.then(()=>true)');
+        for(const [index,filename] of ['UX-013-activo.png','UX-013-inactivo.png'].entries()){
+          const clip=await evaluate(`(()=>{
+            const card=document.querySelector(${JSON.stringify(cardSelectors[index])});
+            card.scrollIntoView({block:'center'});
+            const {left,top,width,height}=card.getBoundingClientRect();
+            return {x:left+scrollX-8,y:top+scrollY-8,width:width+16,height:height+16,scale:1};
+          })()`);
+          const shot=await cdp.send('Page.captureScreenshot',{format:'png',clip,captureBeyondViewport:true});
+          fs.writeFileSync(path.join(process.env.QA_NURSES_SCREENSHOT_DIR,filename),Buffer.from(shot.data,'base64'));
+        }
       }
     }
     assert.equal(await evaluate('__persistenceTest.read()'),raw);

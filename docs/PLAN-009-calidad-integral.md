@@ -2,6 +2,16 @@
 
 Trabajo local en `development` del 6 de noviembre de 2026. Todas las pruebas usaron datos ficticios y un perfil aislado de Microsoft Edge.
 
+## UX-013 · Superficie del historial activo
+
+El propietario reportó que las demás evaluaciones de PLAN-009 fueron satisfactorias y señaló el fondo crema del historial activo como el único ajuste pendiente. La regla `.nurse-history` usaba `var(--bg)` (`#F4EBDD`), el fondo general de la aplicación. Ahora usa blanco (`#FFFFFF`) sobre la tarjeta `#FAF8F3`, con el borde de 1 px, el radio de 12 px y los separadores existentes. El historial inactivo conserva su gris `#E4E7E2`, su borde y su etiqueta. La relación de contraste del título activo es 7.66:1 y la del texto principal es 12.01:1.
+
+La corrección visual está en `styles.css`. `sw.js` incrementa la caché a `acompanha-v11` para que los perfiles locales que probaron v10 reciban el CSS actualizado. `tests/persistence.spec.js` amplía las comprobaciones de ambos estados y del CSS precargado. La documentación se actualiza aquí y en el historial de cambios.
+
+La suite completa pasó **69/69** en Edge 156.0.4314.58 con perfil aislado. Se verificaron paneles cerrados y abiertos, uno y varios registros, espaciado, bordes, divisores, contraste, foco y apertura durante una actualización periódica. La comprobación de reflujo cubrió 320, 360, 390, 430, 768 y 1280 px. Se revisaron capturas comparativas a 390 px y el caso de historiales pasó sin errores de JavaScript ni llamadas a `console.error`. La prueba offline confirmó el nuevo fondo, la activación diferida de una actualización sintética y la conservación de los datos. También pasaron la sintaxis de los 12 scripts, el parseo del manifest y `git diff --check`. Esta corrección se verificó en Edge automatizado, con anchos emulados y datos ficticios.
+
+UX-013 y PLAN-009 quedan preparados para revisión del propietario. Su publicación en `development` requiere autorización explícita después de revisar la corrección.
+
 ## Estado inicial y PREVIEW-008
 
 - HEAD inicial `8b49a7380a260a6475f8064e0ff5cc99f9b692cd`. Tras `git fetch origin`, `development` llevaba cuatro commits por delante y cero por detrás de `e79a95f98dabab7348deb17e7231c344da6322ef`.
@@ -9,7 +19,7 @@ Trabajo local en `development` del 6 de noviembre de 2026. Todas las pruebas usa
 - GitHub registró **Vercel success** y **Vercel Preview Comments completed/success**. La URL respondió HTTP 302 en la consulta sin credenciales. La revisión funcional del despliegue corresponde al propietario y está pendiente. [Commit publicado](https://github.com/SantiagoArroyoBr/Mis_Pastillas/commit/8b49a7380a260a6475f8064e0ff5cc99f9b692cd) · [Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Vercel](https://vercel.com/dinamita20/pastillas-1/9QtkRsexr6VPaicvTJRartPc3aTq).
 - PLAN-009 queda en commits locales. Los documentos preexistentes `docs/COB-001-propuesta-cobertura.md`, `docs/UX-004-propuesta-gestion-fichas.md`, `docs/PLAN-005-cobertura-gestion-fichas.md` y `docs/QA-008-casos-cobertura-fichas.md` quedaron fuera.
 
-## UX-011, QA-015 y UX-012
+## UX-011, QA-015 y UX-012 · Antes de UX-013
 
 El historial de enfermería se identifica con `.nurse-history`. Dentro de la tarjeta tiene margen superior de 8 px, borde de 1 px, radio de 12 px, relleno lateral de 10 px y separadores discretos. La variante activa usa crema y la inactiva usa gris `#E4E7E2` sobre la tarjeta `#EEEFEA`. El indicador nativo distingue apertura y cierre. Se conservaron el orden, las fechas, las modalidades y los costos históricos, así como las claves que mantienen la apertura y el foco durante el render periódico.
 
