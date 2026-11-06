@@ -96,7 +96,7 @@ test('abonos parciales se asignan FIFO, se acumulan y rechazan excedentes',()=>{
 
 test('el saldo general incluye solo abonos activos y mantiene el historial cancelado',()=>{
   const {api}=fixture();
-  const services=[{id:'s1',amountCents:50000},{id:'s2',amountCents:12500}];
+  const services=[{id:'s1',date:'2026-01-02',amountCents:50000},{id:'s2',date:'2026-01-03',amountCents:12500}];
   const movements=[
     {id:'r1',type:'receipt',date:'2026-01-02',amountCents:10000,concept:'parcial'},
     {id:'r2',type:'receipt',date:'2026-01-03',amountCents:5000},
@@ -108,4 +108,26 @@ test('el saldo general incluye solo abonos activos y mantiene el historial cance
   assert.equal(summary.balanceCents,57500);
   assert.equal(summary.cancelledIds.has('r1'),true);
   assert.deepEqual(plain(summary.receipts.map(r=>({id:r.id,cancelled:r.cancelled}))),[{id:'r1',cancelled:true},{id:'r2',cancelled:false}]);
+});
+
+test('el corte estricto devenga por fecha local y consume el crédito sin cambiar registros',()=>{
+  const {api,cfg,state}=fixture();
+  const services=[
+    {date:'2025-12-30',amountCents:6000},
+    {date:'2025-12-31',amountCents:2000},
+    {date:'2025-12-31',amountCents:0},
+    {date:'2025-12-31',amountCents:null},
+    {date:'2025-02-30',amountCents:99900},
+    {date:'2026-01-01',amountCents:2000},
+    {date:'2026-01-02',amountCents:2500},
+    {date:'2026-02-01',amountCents:3000}
+  ];
+  const movements=[{id:'r1',type:'receipt',amountCents:10000},{id:'r2',type:'receipt',amountCents:400},{id:'c1',type:'cancellation',originalId:'r2',amountCents:400}];
+  const before=JSON.stringify({services,movements,cfg,state});
+  const dates=['2025-12-31','2026-01-01','2026-01-02','2026-02-01'];
+  assert.deepEqual(dates.map(date=>api.generalSummary(services,movements,date).balanceCents),[-2000,0,2500,5500]);
+  assert.equal(api.generalSummary(services,[],dates[0]).costCents,8000);
+  assert.equal(api.generalSummary(services,movements,dates[0]).receivedCents,10000);
+  assert.equal(api.cover(0).total,1);
+  assert.equal(JSON.stringify({services,movements,cfg,state}),before);
 });

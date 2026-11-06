@@ -56,9 +56,10 @@
       return remaining ? null : allocations;
     }
 
-    function generalSummary(services, movements) {
+    function generalSummary(services, movements, today = ymd(new Date())) {
       const costCents = services.reduce((sum, service) => {
-        const amount = service && service.amountCents;
+        if (!window.AcompanaCompatibility.isValidDateOnly(service?.date) || service.date > today) return sum;
+        const amount = service.amountCents;
         if (!Number.isSafeInteger(amount) || amount < 0) return sum;
         const next = sum + amount;
         if (!Number.isSafeInteger(next)) throw new Error('El total de costos excede la precisión monetaria segura.');
