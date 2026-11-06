@@ -25,7 +25,7 @@ function fieldHTML(f){
 }
 
 function form(title,fields,ok,btn='Guardar'){
-  dlg.innerHTML=`<form method="dialog" id="f"><h2>${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err" role="alert" aria-live="polite"></p>
+  dlg.innerHTML=`<form method="dialog" id="f" aria-labelledby="formTitle"><h2 id="formTitle">${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err" role="alert" aria-live="polite" tabindex="-1"></p>
   <div class="stack"><button class="btn" type="submit">${btn}</button><button class="btn ghost" type="button" id="no">Cancelar</button></div></form>`;
   $('#no').onclick=()=>dlg.close();
 
@@ -97,11 +97,12 @@ function form(title,fields,ok,btn='Guardar'){
     e.preventDefault();
     const values=collect();
     const invalidDate=fields.find(f=>f.t==='date'&&values[f.id]&&!window.AcompanaCompatibility.isValidDateOnly(values[f.id]));
-    if(invalidDate){$('#err').textContent='La fecha no existe en el calendario. Revísala antes de guardar.';return}
+    if(invalidDate){$('#err').textContent='La fecha no existe en el calendario. Revísala antes de guardar.';$('#'+invalidDate.id).focus();return}
     const r=ok(values);
-    if(r){$('#err').textContent=r}else dlg.close();
+    if(r){$('#err').textContent=r;$('#err').focus()}else dlg.close();
   };
   if(!dlg.open)dlg.showModal();
+  else dlg.querySelector('input,select,textarea,button')?.focus();
 }
     return form;
   }
