@@ -48,6 +48,7 @@ textarea{width:100%;font:600 17px/1.4 Nunito,system-ui,sans-serif;border:2px sol
 .patient-actions{display:flex;flex-wrap:wrap;gap:0 16px}
 .record-actions{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
 .patient-actions .record-actions{flex-basis:100%;font-size:16px}
+.patient-actions .record-actions>summary{color:inherit}
 .btn.danger{color:var(--red);border-color:var(--red);background:#fff}
 .ren{background:none;border:0;color:#fff;font:700 15px Nunito,sans-serif;text-decoration:underline;padding:0;min-height:44px}
 .trow{display:flex;gap:8px;margin:6px 0}.trow input{flex:1}.trow button{width:56px;min-height:56px;border:2px solid var(--red);background:#fff;color:var(--red);border-radius:14px;font:900 24px Nunito,sans-serif}
@@ -92,7 +93,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .cell{min-width:0;min-height:62px;border:2px solid var(--line);border-radius:10px;background:#fff;padding:3px;display:flex;flex-direction:column;align-items:stretch;gap:2px;font:700 14px Nunito,sans-serif;color:var(--ink);text-align:left;overflow:hidden;cursor:pointer}
 .cell.today{border:3px solid var(--navy)}
 .cell .dn{font-weight:900;font-size:14px}
-.chip{display:block;font-size:11px;font-weight:800;color:#fff;border-radius:5px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:block;font-size:11px;font-weight:800;color:var(--ink);background:var(--bg);border-inline-start:3px solid var(--nurse-color);border-radius:5px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip.lite{opacity:.6}
 .dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
@@ -153,6 +154,7 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .nurse-record .vrow{border-top:0}
 .nurse-history{margin:8px 0 0;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-wrap:anywhere}
 .nurse-inactive>.nurse-history{background:#E4E7E2;border-color:#C7CCC6}
+.nurse-history>summary,.record-actions>summary{display:list-item;padding-block:12px}
 .nurse-history>p{border-top:1px solid var(--line);margin:0;padding:8px 0}
 .nurse-inactive>.nurse-history>p{border-color:#C7CCC6}
 .nurse-record .hint{color:#4E5E54}

@@ -188,7 +188,7 @@ function calHTML(i){
       const label=window.AcompanaCareUI.assignmentLabel(e,nurList(i));
       const type=e.service?e.service.type:e.s;
       const short=type==='half'?'M':type==='full'?'C':'?';
-      return `<span class="chip" title="${esc(e.n+' · '+label)}" style="background:${nurColor(i,e.n)}">${short} · ${esc(e.n)}${label.includes('Inactivo')?' · Inactivo':''}</span>`;
+      return `<span class="chip" title="${esc(e.n+' · '+label)}" style="--nurse-color:${nurColor(i,e.n)}">${short} · ${esc(e.n)}${label.includes('Inactivo')?' · Inactivo':''}</span>`;
     }).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
     const notes=[coveredLegacy?'atención registrada, fecha imputada al prepago':es.length?'atención registrada':'',firstUnp?'fecha pendiente en el conteo administrativo':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
     const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.length+' asignaciones · '+es.map(e=>e.n+' · '+window.AcompanaCareUI.assignmentLabel(e,nurList(i))).join(', '):'');
@@ -504,10 +504,15 @@ document.addEventListener('click',e=>{
   }
 });
 
-function importMessage(title,message){
-  dlg.innerHTML='<h2>'+title+'</h2><p>'+message+'</p><div class="stack"><button type="button" class="btn ghost" id="closeImportMessage">Cerrar</button></div>';
-  $('#closeImportMessage').onclick=()=>dlg.close();
+function focusBackupDialog(){
   if(!dlg.open)dlg.showModal();
+  $('#formTitle').focus();
+}
+
+function importMessage(title,message){
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">'+title+'</h2><p>'+message+'</p><div class="stack"><button type="button" class="btn ghost" id="closeImportMessage">Cerrar</button></div>';
+  $('#closeImportMessage').onclick=()=>dlg.close();
+  focusBackupDialog();
 }
 
 function setBackupStatus(message){
@@ -525,15 +530,15 @@ function confirmRestore(candidate){
   const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
   const backupDate=dateValid&&(rawDate===datePart||timestampValid)
     ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
-  dlg.innerHTML='<h2>Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   $('#exportBeforeRestore').onclick=()=>document.querySelector('#exp').click();
   $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate);
-  if(!dlg.open)dlg.showModal();
+  focusBackupDialog();
 }
 
 function showRestoreConfirmation(candidate){
-  dlg.innerHTML='<h2>¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   $('#restoreConfirm').onclick=()=>{
     let serialized;
@@ -560,7 +565,7 @@ function showRestoreConfirmation(candidate){
     render();
     setBackupStatus('Restauración completada. Los datos del respaldo ya están guardados en esta instalación.');
   };
-  if(!dlg.open)dlg.showModal();
+  focusBackupDialog();
 }
 
 $('#impFile').addEventListener('change',e=>{

@@ -97,7 +97,7 @@ function priceForm(pi,mi){
 
 function result(m){
   const c=calc(m);
-  dlg.innerHTML=`<h2>¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} ${un(m)}</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
+  dlg.innerHTML=`<h2 id="formTitle">¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} ${un(m)}</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
   <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
   $('#cl').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
 }
