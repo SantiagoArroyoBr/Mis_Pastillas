@@ -151,7 +151,10 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .nurse-status{display:inline-block;font-size:13px;font-weight:800;border:1px solid #68736B;border-radius:6px;padding:2px 6px}
 .nurse-group{margin-top:18px}
 .nurse-record .vrow{border-top:0}
-.nurse-record .history p{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+.nurse-history{margin:8px 0 0;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-wrap:anywhere}
+.nurse-inactive>.nurse-history{background:#E4E7E2;border-color:#C7CCC6}
+.nurse-history>p{border-top:1px solid var(--line);margin:0;padding:8px 0}
+.nurse-inactive>.nurse-history>p{border-color:#C7CCC6}
 .nurse-record .hint{color:#4E5E54}
 .assignment-list{background:#FAF8F3;border:1px solid var(--line);border-radius:14px;padding:10px;margin:12px 0}
 .assignment-list .hint{color:#4E5E54}
