@@ -153,6 +153,11 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .nurse-record .vrow{border-top:0}
 .nurse-record .history p{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
 .nurse-record .hint{color:#4E5E54}
+.assignment-list{background:#FAF8F3;border:1px solid var(--line);border-radius:14px;padding:10px;margin:12px 0}
+.assignment-list .hint{color:#4E5E54}
+.assignment-list h3{font-size:17px;margin:0 0 8px}
+.assignment-list .vrow{align-items:flex-start}
+.nurse-record .sidebtns .btn{min-height:44px}
 .care-staff .legacy-payments{margin-top:10px;border-top:1px solid var(--line)}
 @media(max-width:360px){.admin-summary .vrow,.care-staff .vrow{align-items:flex-start}.admin-summary .vrow{font-size:14px}.care-staff .btn.small{min-width:80px}}
 @media(max-width:360px){.backup{flex-direction:column}.backup .btn{width:100%}}
