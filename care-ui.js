@@ -1,5 +1,11 @@
 // Presentación y formularios del área Pagos/calendario de cuidados.
 (() => {
+  function assignmentLabel(entry,nurses){
+    const type=entry.service?entry.service.type:entry.s;
+    const modality=type==='half'?'Media jornada':type==='full'?'Jornada completa':'Modalidad sin confirmar';
+    const nurse=nurses.find(n=>entry.service?.nurseId?n.id===entry.service.nurseId:n.n===entry.n);
+    return modality+(entry.service?'':' · Registro anterior')+(nurse?.inactive===true?' · Inactivo':'');
+  }
   function create({getState,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,amountVisible,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,allServices,ledger,generalLedger,ledgerSummary,allocatePayment,generalSummary,toCents,newId}) {
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
     const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
@@ -12,14 +18,20 @@ function patientHTML(p,i){
     const half=rows.filter(({entry})=>(entry.service&&entry.service.type==='half')||(!entry.service&&entry.s==='half')).length;
     const unknown=rows.length-full-half;
     const rates=n.ratesCents||{};
-    const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:''].filter(Boolean).join(' · ');
-    return `<div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b>${n.inactive===true?' <span class="hint">Inactivo</span>':''}<br><span class="hint">${rateLabel||'Sin tarifa para nuevas jornadas'}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}">Editar</button></div>`;
+    const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'Completa sin configurar',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:'Media sin configurar'].join(' · ');
+    const history=Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).filter(entry=>entry.service?.nurseId?n.id===entry.service.nurseId:entry.n===n.n).map(entry=>({date,entry}))).sort((a,b)=>b.date.localeCompare(a.date));
+    const html=`<div class="nurse-record${n.inactive===true?' nurse-inactive':''}" data-nurse-index="${k}"><div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b> <span class="nurse-status">${n.inactive===true?'Inactivo':'Activo'}</span><br><span class="hint">${rateLabel}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><div class="sidebtns"><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}" aria-label="Editar y gestionar a ${esc(n.n)}">Editar</button>${n.inactive===true?`<button class="btn ghost small" data-pa="nrm" data-i="${i}" data-k="${k}" aria-label="Reactivar a ${esc(n.n)}">Reactivar</button>`:''}</div></div><details class="history"><summary>Asignaciones e historial · ${history.length}</summary>${history.map(({date,entry})=>`<p><b>${esc(fmtD(date))}</b><br>${esc(assignmentLabel(entry,nurses))}${entry.service?' · Costo guardado '+A(entry.service.amountCents/100)+' MXN':''}</p>`).join('')||'<p class="hint">Sin asignaciones registradas.</p>'}</details></div>`;
+    return {inactive:n.inactive===true,html};
+  });
+  const groups=[false,true].map(inactive=>{
+    const rows=nurseRows.filter(row=>row.inactive===inactive);
+    return `<section class="nurse-group"><h4>${inactive?'Inactivos':'Activos'} · ${rows.length}</h4>${rows.map(row=>row.html).join('')||`<p class="hint">${inactive?'Sin enfermeros inactivos.':'Sin enfermeros activos. Agrega uno o reactiva un registro existente.'}</p>`}</section>`;
   }).join('');
   const oldPayments=cfg(i).pays||[],oldIndividual=(ledger()||[]).filter(m=>m.patientIndex===i);
   const oldArchive=oldPayments.length||oldIndividual.length?`<details class="legacy-payments"><summary>Historial anterior no incluido en el saldo general</summary><p class="hint">Estos registros se conservan como fueron guardados. No se reinterpretan ni se descuentan del saldo general porque su relación con los cargos no está confirmada.</p>${oldPayments.map(m=>`<div class="vrow"><div>${m.d?esc(fmtD(m.d)):'Fecha anterior sin dato'} · ${m.n} días${m.a!==null&&m.a!==undefined?` · ${A(m.a)} (importe histórico)`:''}${m.old?' · anterior':''}</div></div>`).join('')}${oldIndividual.map(m=>`<div class="vrow"><div>${esc(fmtD(m.date))} · movimiento individual anterior · ${A(m.amountCents/100)} MXN</div><span class="hint">Conservado</span></div>`).join('')}</details>`:'';
   const ratesVisible=nurses.some(n=>n.ratesCents&&Object.values(n.ratesCents).some(v=>v!==null&&v!==undefined));
   return `<article class="card care-staff"><div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><button class="link" data-pa="ren" data-i="${i}">Editar ficha</button></div>
-    <h4>Enfermeros y tarifas</h4>${nurseRows||'<p class="hint">Aún no hay enfermeros configurados.</p>'}
+    <h4>Enfermeros y tarifas</h4><p class="hint">Jornadas registradas hasta hoy. Los costos y abonos se consultan en el saldo general con la administradora.</p>${groups}
     <button class="btn ghost small" data-pa="nadd" data-i="${i}">Agregar enfermero/a</button>
     ${ratesVisible?'<p class="hint">Las tarifas de nuevas jornadas se eligen aquí y quedan guardadas en cada asignación.</p>':''}${oldArchive}</article>`;
 }
@@ -272,5 +284,5 @@ function dayForm(i,ds){
 // ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
   return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm});
   }
-  window.AcompanaCareUI=Object.freeze({create});
+  window.AcompanaCareUI=Object.freeze({create,assignmentLabel});
 })();

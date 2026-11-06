@@ -146,6 +146,13 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .care-staff .vrow>div{min-width:0;overflow-wrap:anywhere}
 .care-staff .vrow .hint{font-size:14px}
 .care-staff>.btn{margin-top:8px}
+.nurse-record{background:#FAF8F3;border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0}
+.nurse-record.nurse-inactive{background:#EEEFEA;border-color:#C7CCC6;color:#293A34}
+.nurse-status{display:inline-block;font-size:13px;font-weight:800;border:1px solid #68736B;border-radius:6px;padding:2px 6px}
+.nurse-group{margin-top:18px}
+.nurse-record .vrow{border-top:0}
+.nurse-record .history p{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+.nurse-record .hint{color:#4E5E54}
 .care-staff .legacy-payments{margin-top:10px;border-top:1px solid var(--line)}
 @media(max-width:360px){.admin-summary .vrow,.care-staff .vrow{align-items:flex-start}.admin-summary .vrow{font-size:14px}.care-staff .btn.small{min-width:80px}}
 @media(max-width:360px){.backup{flex-direction:column}.backup .btn{width:100%}}
