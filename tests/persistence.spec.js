@@ -7,6 +7,10 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+const PREVIOUS_ASSETS = process.env.ACOMPANHA_PREVIOUS_ASSETS;
+const versionOf = root => fs.readFileSync(path.join(root, 'sw.js'), 'utf8').match(/APP_CACHE_PREFIX \+ '(v\d+)'/)[1];
+const initialVersion = versionOf(PREVIOUS_ASSETS || ROOT);
+const updatedVersion = PREVIOUS_ASSETS ? versionOf(ROOT) : 'v' + (Number(initialVersion.slice(1)) + 1);
 const CHROME = process.env.CHROME_BIN || [
   '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/chromium-browser',
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -142,8 +146,9 @@ before(async () => {
   assert.ok(CHROME, 'No se encontró Chromium. Define CHROME_BIN para indicar su ruta.');
   server = http.createServer((req, res) => {
     const requested = new URL(req.url, 'http://localhost').pathname;
-    const file = requested === '/' ? path.join(ROOT, 'index.html') : path.join(ROOT, requested);
-    if (!file.startsWith(ROOT) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404).end(); return; }
+    const root = !swUpdateVariant && PREVIOUS_ASSETS ? PREVIOUS_ASSETS : ROOT;
+    const file = path.join(root, requested === '/' ? '/index.html' : requested);
+    if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404).end(); return; }
     const contentType = file.endsWith('.html') ? 'text/html; charset=utf-8'
       : file.endsWith('.js') ? 'text/javascript; charset=utf-8'
         : file.endsWith('.css') ? 'text/css; charset=utf-8'
@@ -152,9 +157,10 @@ before(async () => {
             : file.endsWith('.svg') ? 'image/svg+xml'
             : file.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
-    if (file.endsWith(path.sep + 'sw.js') && swUpdateVariant) {
-      res.end(fs.readFileSync(file, 'utf8').replace("'v12'", "'v13'"));
-      return;
+    if (swUpdateVariant && !PREVIOUS_ASSETS) {
+      if (requested === '/sw.js') return res.end(fs.readFileSync(file, 'utf8').replace("'" + initialVersion + "'", "'" + updatedVersion + "'"));
+      if (requested === '/care-ui.js') return res.end(fs.readFileSync(file, 'utf8') + '\nwindow.__updatedCareUI = true;');
+      if (requested === '/styles.css') return res.end(fs.readFileSync(file, 'utf8') + '\n:root{--updated-style: 1}');
     }
     fs.createReadStream(file).pipe(res);
   });
@@ -718,13 +724,13 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const raw=JSON.stringify(mixedNursesBackup());
   await seed(raw); await navigate();
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
-  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-v12');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
-  assert.ok(cached.names.includes('acompanha-v12'));
+  const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-${initialVersion}');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
+  assert.ok(cached.names.includes('acompanha-' + initialVersion));
   for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/NunitoSans.ttf', '/fonts/Nunito[wght].ttf', '/icons/house.svg', '/icons/pill.svg', '/icons/wallet.svg']) {
     assert.ok(cached.keys.some(key => key.endsWith(asset)), `Falta en caché ${asset}`);
   }
   await evaluate("fetch('/private-data').catch(()=>null)");
-  const privateCached = await evaluate("(async()=>{const c=await caches.open('acompanha-v12');return Boolean(await c.match('/private-data'))})()");
+  const privateCached = await evaluate(`(async()=>{const c=await caches.open('acompanha-${initialVersion}');return Boolean(await c.match('/private-data'))})()`);
   assert.equal(privateCached, false);
 
   await evaluate(`Promise.all(['acompanha-v10','acompanha-v9','cuidados-v8','other-component-v1'].map(name=>caches.open(name).then(cache=>cache.put(location.origin+'/fixture-'+name,new Response(name)))))`);
@@ -761,9 +767,12 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     await evaluate("navigator.serviceWorker.getRegistration().then(registration=>registration.update()).then(()=>true)");
     await waitFor("navigator.serviceWorker.getRegistration().then(registration=>registration.waiting?.state==='installed')", 'actualización en espera');
     assert.equal(await evaluate("document.querySelector('#dlg').open&&document.querySelector('#patientName').value==='Borrador ficticio'"),true);
-    assert.ok((await evaluate('caches.keys()')).includes('acompanha-v12'));
+    assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
+    const updatedAssets = PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
+      : "window.__updatedCareUI === true && getComputedStyle(document.documentElement).getPropertyValue('--updated-style').trim()==='1'";
+    assert.equal(await evaluate(updatedAssets),false,'la pestaña activa mantiene sus recursos anteriores');
     const dataBeforeUpdate=await evaluate('__persistenceTest.read()');
     await cdp.send('Page.navigate',{url:'about:blank'});
     for(let attempt=0;attempt<100&&versions.get(waitingVersion)!=='activated';attempt++){
@@ -772,13 +781,32 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+    const newAssets = PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
+    assert.equal(await evaluate(newAssets),true,'se aplican el JavaScript y CSS de la nueva versión');
+    const connection = offline => cdp.send('Network.emulateNetworkConditions', {offline,latency:0,downloadThroughput:offline?0:-1,uploadThroughput:offline?0:-1});
+    await connection(true);
+    let savedOffline;
+    try {
+      await navigate('?offline=updated');
+      assert.equal(await evaluate(newAssets),true);
+      assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+      await evaluate("document.querySelector('[data-m=meds]').click();document.querySelector('#addPatient').click()");
+      await submitPatientName('Ficha guardada sin conexión');
+      savedOffline=await evaluate('__persistenceTest.read()');
+      assert.equal(JSON.parse(savedOffline).p.at(-1).name,'Ficha guardada sin conexión');
+      await navigate('?offline=saved');
+      assert.equal(await evaluate('__persistenceTest.read()'),savedOffline);
+    } finally { await connection(false); }
+    await navigate();
+    assert.equal(await evaluate('__persistenceTest.read()'),savedOffline);
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
   } finally {
     cdp.ws.removeEventListener('message',observeVersions);
     await cdp.send('ServiceWorker.disable');
   }
   const remainingCaches = await evaluate('caches.keys()');
-  assert.ok(remainingCaches.includes('acompanha-v13'));
-  assert.ok(!remainingCaches.includes('acompanha-v12'));
+  assert.ok(remainingCaches.includes('acompanha-' + updatedVersion));
+  assert.ok(!remainingCaches.includes('acompanha-' + initialVersion));
   assert.ok(!remainingCaches.includes('acompanha-v10'));
   assert.ok(!remainingCaches.includes('acompanha-v9'));
   assert.ok(!remainingCaches.includes('cuidados-v8'));
@@ -993,7 +1021,7 @@ test('asignación refluye, permite teclado y repite hasta fin de mes sin duplica
   assert.deepEqual(check.repeats,['Solo este día','Cada viernes hasta fin de mes']);
   assert.equal(check.zero,'$0.00 MXN');
   assert.equal(check.unavailable,true);
-  for(const width of [320,360,390,430,768,1280]){
+  for(const width of [320,360,390,430,768,1024,1280]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:width<768});
     assert.equal(await evaluate("document.querySelector('#dlg').scrollWidth<=document.querySelector('#dlg').clientWidth"),true,`${width} px`);
     assert.equal(await evaluate("document.documentElement.scrollWidth<=document.documentElement.clientWidth"),true);
@@ -1004,6 +1032,12 @@ test('asignación refluye, permite teclado y repite hasta fin de mes sin duplica
   assert.equal(await evaluate("document.querySelector('#f [type=submit]').disabled"),true);
   assert.match(await evaluate("document.querySelector('#serviceCost').textContent"),/Configura una tarifa/);
   await choose(5);
+  const cards=await evaluate(`[...document.querySelectorAll('.assignment-modes label')].map(card=>({
+    height:card.getBoundingClientRect().height,
+    price:card.querySelector('b').getBoundingClientRect().bottom
+  }))`);
+  assert.equal(cards[0].height,cards[1].height);
+  assert.equal(cards[0].price,cards[1].price);
   const key=async(key,code,windowsVirtualKeyCode)=>{
     await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key,code,windowsVirtualKeyCode});
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode});
@@ -1055,7 +1089,7 @@ test('el saldo a favor sobrevive respaldo, cambia al avanzar el día y conserva 
     return [getComputedStyle(amount).color,getComputedStyle(amount.closest('.account-balance')).backgroundColor];
   })()`);
   assert.ok(contrastRatio(...colors)>=4.5);
-  for(const width of [320,360,390,430,768,1280]){
+  for(const width of [320,360,390,430,768,1024,1280]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:width<768});
     assert.equal(await evaluate("document.querySelector('.admin-summary').scrollWidth<=document.querySelector('.admin-summary').clientWidth"),true,`${width} px`);
   }
@@ -1343,7 +1377,7 @@ test('historiales activos e inactivos integran todos los registros en un panel c
   assert.match(content[2][0],/Jornada completa · Registro anterior · Inactivo/);
   assert.match(content[2][1],/Media jornada · Inactivo · Costo guardado.*50.*MXN/);
   try{
-    for(const width of [320,360,390,430,768,1280]){
+    for(const width of [320,360,390,430,768,1024,1280]){
       await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
       const panels=await evaluate(`[...document.querySelectorAll('.nurse-history')].map(panel=>{
         const card=panel.parentElement,header=panel.querySelector('summary');
@@ -1450,7 +1484,7 @@ test('listas de enfermería mantienen reflujo, contraste y foco con información
   await cdp.send('Page.bringToFront');
   await seed(JSON.stringify(mixedNursesBackup()));await navigate();
   try{
-    for(const width of [320,360,390,430,768,1280]){
+    for(const width of [320,360,390,430,768,1024,1280]){
       await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800});
       assert.equal(await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth'),true,'ancho '+width);
     }
@@ -1777,4 +1811,92 @@ test('un alta abierta protege una escritura concurrente y evita atribuir asignac
   assert.match(await evaluate("document.querySelector('#err').textContent"),/registros anteriores asociados/);
   assert.equal(await evaluate('S.p.length'),2);
   assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
+
+test('los conteos atribuyen jornadas por ID y legado por nombre; un abono conserva las tarjetas de enfermería',async()=>{
+  const backup=mixedNursesBackup();
+  backup.pay.nurses[0].push({n:'Legado A',c:'#C92A2A'},{n:'Legado B',c:'#1864AB'});
+  backup.pay.v['2020-01-30']={0:[{n:'Legado A',s:'full'},{n:'Legado B',s:'half'}]};
+  backup.pay.v['2020-01-31'][0][0].n='Legado B';
+  await seed(JSON.stringify(backup));await navigate();
+  const record=index=>evaluate('document.querySelector(\'[data-nurse-index="'+index+'"]\').textContent');
+  assert.match(await record(0),/0 jornadas completas · 1 medias jornadas/);
+  assert.match(await record(4),/1 jornadas completas · 0 medias jornadas/);
+  assert.match(await record(5),/0 jornadas completas · 1 medias jornadas/);
+  const retained=await evaluate(`(()=>{
+    const staff=document.querySelector('#staffView'),panel=staff.querySelector('details');
+    const summary=panel.querySelector('summary');panel.open=true;summary.focus();
+    const observer=new MutationObserver(()=>{});observer.observe(staff,{childList:true,subtree:true});
+    S.pay.generalLedger=[...S.pay.generalLedger,{id:'perf-receipt',type:'receipt',date:'2020-03-01',amountCents:3500}];
+    __persistenceTest.refresh();
+    const result={mutations:observer.takeRecords().length,connected:panel.isConnected,open:panel.open,
+      focus:document.activeElement===summary,heading:document.querySelector('.account-balance h2').textContent};
+    observer.disconnect();return result;
+  })()`);
+  assert.deepEqual(retained,{mutations:0,connected:true,open:true,focus:true,heading:'Saldo a favor'});
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+});
+
+test('crédito de $200 pasa a deuda de $200 al devengar $400 y el respaldo conserva fichas e historial',async()=>{
+  const dates=await evaluate(`(()=>{
+    const now=new Date(),offset=days=>{const date=new Date(now);date.setDate(date.getDate()+days);return ymd(date)};
+    return {yesterday:offset(-1),today:offset(0),tomorrow:offset(1),week:offset(7),later:offset(35)};
+  })()`);
+  const backup=mixedNursesBackup();backup.p[0].archived=true;backup.sel=1;
+  const shift=(id,cents,type='half')=>({n:'Enfermera ficticia A',service:{id,nurseId:'staff_a',type,amountCents:cents}});
+  const visits=backup.pay.v;
+  visits['2020-01-31'][0][0].service.amountCents=0;
+  backup.pay.ledger=[];
+  visits[dates.yesterday]={0:[shift('previous',50000,'full')]};
+  visits[dates.today]={0:[shift('today',30000),{n:'B ficticio',service:{id:'zero',nurseId:'nurse_b',type:'full',amountCents:0}},{n:'C ficticio'}]};
+  visits[dates.tomorrow]={0:[shift('tomorrow',40000)]};
+  visits[dates.week]={0:[shift('week',45000)]};
+  visits[dates.later]={0:[shift('later',70000)]};
+  backup.pay.generalLedger=[{id:'advance',type:'receipt',date:'2020-02-01',amountCents:100000}];
+  await seed(JSON.stringify(backup));await navigate();
+  const balance=()=>evaluate('generalSummary(allServiceRows(),generalRows()).balanceCents');
+  const heading=()=>evaluate("document.querySelector('.account-balance h2').textContent");
+  assert.equal(await balance(),-20000);
+  assert.equal(await heading(),'Saldo a favor');
+  assert.equal(await evaluate('cover(0).total'),1,'el prepago conserva su propio conteo');
+  await evaluate("document.querySelector('#exp').click()");
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+  assert.deepEqual(exported.pay.v,visits);
+  assert.equal(exported.p[0].archived,true);
+  assert.equal(exported.pay.nurses[0][0].inactive,true);
+  await uploadJson(exported,'saldo-legado-ficticio.json');await continueRestore();
+  await evaluate("document.querySelector('#restoreConfirm').click()");
+  await waitFor("!document.querySelector('#dlg').open",'restauración con saldo a favor');
+  await navigate();assert.equal(await balance(),-20000);
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate(`(()=>{
+    const next=new Date('${dates.tomorrow}T12:00:00'),NativeDate=Date;
+    window.Date=class extends NativeDate{constructor(...args){super(...(args.length?args:[+next]))}static now(){return +next}};
+    document.dispatchEvent(new Event('visibilitychange'));
+  })()`);
+  assert.equal(await balance(),20000);
+  assert.equal(await heading(),'Saldo pendiente');
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  assert.equal(JSON.parse(raw).pay.generalLedger.length,1);
+  await navigate();
+  for(const [cents,expected,title] of [
+    [80000,0,'Sin saldo pendiente'],
+    [30000,50000,'Saldo pendiente']
+  ]){
+    const state=JSON.parse(raw);
+    state.pay.generalLedger[0].amountCents=cents;
+    await uploadJson(state,'saldo-'+cents+'.json');
+    await continueRestore();
+    await evaluate("document.querySelector('#restoreConfirm').click()");
+    await waitFor("!document.querySelector('#dlg').open",'restauración del estado de cuenta');
+    await navigate();
+    assert.equal(await balance(),expected);
+    assert.equal(await heading(),title);
+    assert.match(await evaluate("document.querySelector('.account-balance .big').textContent"),/••••/);
+    await evaluate("document.querySelector('#exp').click()");
+    const saved=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+    assert.deepEqual(saved.pay.generalLedger,state.pay.generalLedger);
+    assert.deepEqual(saved.pay.v,visits);
+  }
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
 });
