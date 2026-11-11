@@ -1,5 +1,9 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-011 — Validación y estabilidad financiera
+
+QA-019 y QA-020 verificaron el corte por fecha, saldos, cancelaciones y respaldos. UX-016 ajustó la alineación y DATA-006 corrigió la atribución visual de jornadas. PWA-004 verificó el paso de v12 a v13 y PERF-003 conservó las tarjetas de enfermería al cambiar solo el saldo. DOC-015 registra la evidencia y los casos legados por decidir. PREVIEW-010 está en preparación local para revisión. [Informe y checklist](docs/PLAN-011-validacion-estabilidad-financiera.md).
+
 ## PLAN-010 — Asignaciones y estado de cuenta
 
 | Etapa | Entrega local |

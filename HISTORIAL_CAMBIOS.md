@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-11 — PLAN-011 / PREVIEW-010
+
+QA-019 validó el devengo y el crédito con fechas controladas. Se corrigió el conteo visible de enfermería, se alinearon importes y se separó el renderizado de Pagos. La regresión pasó 76/76 en Edge 157.0.4341.42 y la actualización local v12 a v13 conservó el respaldo y permitió guardar offline. PREVIEW-010 queda pendiente de revisión y autorización. [Evidencia, límites y checklist](docs/PLAN-011-validacion-estabilidad-financiera.md).
+
 ## 2026-11-06 — PLAN-010
 
 El diálogo de asignación distingue las jornadas guardadas, ofrece tarjetas de modalidad y mantiene la repetición semanal hasta fin de mes. El saldo general incorpora costos guardados hasta hoy y resta abonos generales activos. Pagos muestra saldo pendiente, sin saldo pendiente o saldo a favor. El calendario conserva las jornadas futuras. Los prepagos por fecha, registros legados y el libro individual conservan su interpretación. La caché local de la PWA sube a v12.
