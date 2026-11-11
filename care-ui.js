@@ -11,15 +11,17 @@
     const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
 function patientHTML(p,i){
   const nurses=nurList(i),today=ymd(new Date());
-  const assignments=Object.entries(S.pay.v).filter(([date])=>date<=today&&window.AcompanaCompatibility.isValidDateOnly(date)).flatMap(([date,byPatient])=>(byPatient[i]||[]).map(entry=>({date,entry})));
+  const assignments=Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).map(entry=>({date,entry})));
+  const accruedDates=new Set(assignments.map(({date})=>date).filter(date=>date<=today&&window.AcompanaCompatibility.isValidDateOnly(date)));
   const nurseRows=nurses.map((n,k)=>{
-    const rows=assignments.filter(({entry})=>entry.service?.nurseId===n.id||entry.n===n.n);
+    const history=assignments.filter(({entry})=>entry.service?.nurseId?n.id===entry.service.nurseId:entry.n===n.n)
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    const rows=history.filter(({date})=>accruedDates.has(date));
     const full=rows.filter(({entry})=>(entry.service&&entry.service.type==='full')||(!entry.service&&entry.s==='full')).length;
     const half=rows.filter(({entry})=>(entry.service&&entry.service.type==='half')||(!entry.service&&entry.s==='half')).length;
     const unknown=rows.length-full-half;
     const rates=n.ratesCents||{};
     const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'Completa sin configurar',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:'Media sin configurar'].join(' · ');
-    const history=Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).filter(entry=>entry.service?.nurseId?n.id===entry.service.nurseId:entry.n===n.n).map(entry=>({date,entry}))).sort((a,b)=>b.date.localeCompare(a.date));
     const html=`<div class="nurse-record${n.inactive===true?' nurse-inactive':''}" data-nurse-index="${k}"><div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b> <span class="nurse-status">${n.inactive===true?'Inactivo':'Activo'}</span><br><span class="hint">${rateLabel}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><div class="sidebtns"><button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}" aria-label="Editar y gestionar a ${esc(n.n)}">Editar</button>${n.inactive===true?`<button class="btn ghost small" data-pa="nrm" data-i="${i}" data-k="${k}" aria-label="Reactivar a ${esc(n.n)}">Reactivar</button>`:''}</div></div><details class="nurse-history" data-panel="${esc('nurse:'+i+':'+(n.id||n.n))}"><summary>Asignaciones e historial · ${history.length}</summary>${history.map(({date,entry})=>`<p><b>${esc(fmtD(date))}</b><br>${esc(assignmentLabel(entry,nurses))}${entry.service?' · Costo guardado '+A(entry.service.amountCents/100)+' MXN':''}</p>`).join('')||'<p class="hint">Sin asignaciones registradas.</p>'}</details></div>`;
     return {inactive:n.inactive===true,html};
   });
@@ -71,8 +73,9 @@ function generalSummaryHTML(){
 }
 
 function renderPay(){
-  const view=$('#payView'),status=$('#accountStatus');
-  updateHTML(view,generalSummaryHTML()+S.p.map((p,i)=>patientHTML(p,i)).join(''));
+  const view=$('#accountView'),status=$('#accountStatus');
+  updateHTML(view,generalSummaryHTML());
+  updateHTML($('#staffView'),S.p.map((p,i)=>patientHTML(p,i)).join(''));
   const heading=view.querySelector('.account-balance h2').textContent;
   if(status.textContent!==heading)status.textContent=heading;
 }
@@ -299,7 +302,7 @@ function dayForm(i,ds){
   dlg.querySelector('h2').insertAdjacentHTML('afterend',context+info+list);
   nurseSelect.insertAdjacentHTML('afterend',`
     <fieldset class="assignment-options"><legend>Modalidad</legend><div class="assignment-modes">
-      ${modes.map(({type,title,description,icon})=>`<label class="assignment-option"><input type="radio" name="serviceType" value="${type}" aria-label="${description}" aria-describedby="rate-${type}"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${icon}</svg> <strong>${title}</strong><small>${description}</small><b id="rate-${type}"></b></span></label>`).join('')}
+      ${modes.map(({type,title,description,icon})=>`<label class="assignment-option"><input type="radio" name="serviceType" value="${type}" aria-label="${description}" aria-describedby="rate-${type}"><span><strong><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${icon}</svg> ${title}</strong><small>${description}</small><b id="rate-${type}"></b></span></label>`).join('')}
     </div></fieldset>
     <fieldset class="assignment-options"><legend>Repetición</legend>
       <label class="assignment-option"><input type="radio" name="assignmentRepeat" value="once" checked>Solo este día</label>

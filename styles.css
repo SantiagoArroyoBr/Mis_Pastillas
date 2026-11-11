@@ -147,7 +147,9 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .admin-summary .big small{font-size:16px}
 .account-breakdown{margin:8px 0}
 .account-breakdown>div{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 12px;padding:8px 0;border-bottom:1px solid var(--line)}
-.account-breakdown dd{margin:0;font-weight:800;overflow-wrap:anywhere}
+.account-breakdown dd{margin:0 0 0 auto;font-weight:800;overflow-wrap:anywhere}
+.account-balance .big,.account-breakdown dd,.admin-summary .amtv,.assignment-cost output,.assignment-modes .assignment-option b{font-variant-numeric:tabular-nums}
+.admin-summary .amtv{min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:end}
 .admin-summary [data-pa=adminPay]{margin-top:10px}
 .admin-summary .vrow>div{min-width:0;overflow-wrap:anywhere}
 .admin-summary .vrow{font-size:15px}
@@ -187,7 +189,8 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .assignment-option input{flex:none;width:17px;height:17px;min-height:0;margin:3px 0 0;accent-color:var(--green)}
 .assignment-option input:focus-visible{outline:none}
 .assignment-option svg{vertical-align:text-bottom}
-.assignment-option small,.assignment-option b{display:block}
+.assignment-modes .assignment-option>span{display:flex;flex-direction:column;min-width:0}
+.assignment-modes .assignment-option b{margin-top:auto;padding-top:4px}
 .assignment-cost{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:16px;overflow-wrap:anywhere}
 .assignment-form .stack{grid-template-columns:repeat(2,minmax(0,1fr))}
 .assignment-form button:disabled{background:#E4E7E2;color:#4E5E54;cursor:default}
