@@ -131,3 +131,30 @@ test('el corte estricto devenga por fecha local y consume el crédito sin cambia
   assert.equal(api.cover(0).total,1);
   assert.equal(JSON.stringify({services,movements,cfg,state}),before);
 });
+
+test('el saldo general distingue abonos parciales, exactos y anticipos a través del devengo',()=>{
+  const {api}=fixture();
+  const today='2026-11-10',tomorrow='2026-11-11';
+  const services=[
+    {date:'2026-11-09',amountCents:50000},
+    {date:today,amountCents:30000},
+    {date:today,amountCents:0},
+    {date:today,amountCents:null},
+    {date:tomorrow,amountCents:40000},
+    {date:'2026-11-17',amountCents:50000},
+    {date:'2026-12-01',amountCents:60000}
+  ];
+  const receipt=(id,amountCents)=>({id,type:'receipt',date:'2026-11-08',amountCents});
+  const balance=(movements,cutoff=today)=>api.generalSummary(services,movements,cutoff).balanceCents;
+  const partial=receipt('parcial',30000),extra=receipt('excedente',70000);
+  const cancel={id:'cancel',type:'cancellation',date:today,originalId:extra.id,amountCents:70000};
+  const before=JSON.stringify({services,partial,extra,cancel});
+  assert.equal(balance([]),80000);
+  assert.equal(balance([partial]),50000);
+  assert.equal(balance([receipt('exacto',80000)]),0);
+  assert.equal(balance([partial,extra]),-20000);
+  assert.equal(balance([partial,extra],tomorrow),20000);
+  assert.equal(balance([partial,extra,cancel]),50000);
+  assert.equal(api.generalSummary([], [extra], today).balanceCents,-70000);
+  assert.equal(JSON.stringify({services,partial,extra,cancel}),before);
+});
