@@ -1,5 +1,9 @@
 # Arquitectura de Acompaña
 
+## MACRO-003 — Cálculo de inventario y retorno a la pestaña
+
+`domain.js` procesa la proyección futura por rangos contiguos y conserva el horizonte anterior. Medicinas reutiliza los resultados por render y no los conserva entre refrescos. `app.js` comprueba el valor persistido también cuando la pestaña vuelve a estar visible o retorna de la caché de navegación. El chequeo sigue siendo preventivo. Los recursos de la candidata usan `acompanha-v18`. [Método y resultados](docs/MACRO-003-validacion-integral.md).
+
 ## MACRO-002 — Persistencia y recuperación
 
 `app.js` serializa el estado candidato, compara el valor esperado de `pastillas-v1`, escribe y comprueba el resultado. Si falla esa última lectura, el resultado queda sin confirmar y exige revisar los datos persistidos. La comprobación entre pestañas es preventiva y deja una ventana entre la comparación y `setItem`. La restauración utiliza la misma ruta con el valor leído al revisar el respaldo. `compatibility.js` conserva los campos históricos existentes sin añadir un esquema. Los recursos de la entrega usan `acompanha-v17`. [Limitaciones y pruebas de resiliencia](docs/MACRO-002-estabilidad-integridad-recuperacion.md).

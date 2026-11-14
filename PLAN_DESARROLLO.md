@@ -1,8 +1,12 @@
 # Plan de desarrollo — Acompaña
 
+## MACRO-003 — Validación integral y candidata 1.0
+
+Entrega local para revisión, con clasificación B. La siguiente etapa propuesta es MACRO-004 para validación manual, revisión de la Preview autenticada y decisión de lanzamiento. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
+
 ## MACRO-002 — Estabilidad, integridad y recuperación
 
-PREVIEW-M001 publicó el paquete aprobado de seis commits. MACRO-002 queda local para revisión. La detección de conflictos verifica el valor persistido antes y después de guardar. La restauración exige una lectura previa, y los fallos recuperables conservan el formulario o la confirmación. MACRO-003 queda pendiente de autorización. [Matriz, QA-M002 y checklist](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
+PREVIEW-M002 publicó MACRO-002 en `development` hasta `6ea578c`. La detección de conflictos verifica el valor persistido antes y después de guardar. La restauración exige una lectura previa, y los fallos recuperables conservan el formulario o la confirmación. [Matriz, QA-M002 y checklist](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
 
 ## MACRO-001 — Finalización funcional y visual
 

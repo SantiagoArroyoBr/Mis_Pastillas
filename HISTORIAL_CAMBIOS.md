@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-14 — PREVIEW-M002 y MACRO-003 local
+
+MACRO-002 se publicó en `development` hasta `6ea578c`. MACRO-003 valida flujos con datos ficticios, corrige el desbordamiento de cantidades en compras, mejora foco y Calendar, reduce el costo de proyectar existencias y sube la caché local a v18. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
+
 ## 2026-11-14 — PREVIEW-M001 y MACRO-002 local
 
 Se publicaron PLAN-012 y MACRO-001 hasta `6896774` en `development`. Vercel registró `success`. MACRO-002 refuerza el control de escrituras y la recuperación, conserva turnos y textos legados y sube la caché local a v17. [Informe de estabilización](docs/MACRO-002-estabilidad-integridad-recuperacion.md).

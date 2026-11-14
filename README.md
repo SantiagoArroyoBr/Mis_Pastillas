@@ -1,6 +1,8 @@
 # Acompaña
 
-**Estado al 2026-11-14.** PREVIEW-M001 publicó PLAN-012 y MACRO-001 en `development` hasta `6896774`. MACRO-002 queda local para revisión con cambios de persistencia, respaldo y compatibilidad histórica. [Evidencia de publicación, matriz de riesgos y QA](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
+**Estado al 2026-11-14.** PREVIEW-M002 publicó MACRO-002 en `development` hasta `6ea578c`. MACRO-003 queda local con clasificación B, candidata condicionada. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
+
+PREVIEW-M001 publicó PLAN-012 y MACRO-001 en `development` hasta `6896774`. MACRO-002 incorporó cambios de persistencia, respaldo y compatibilidad histórica. [Evidencia de publicación, matriz de riesgos y QA](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
 
 **Estado al 2026-11-14.** MACRO-001 consolida la gestión de fichas, el acceso a historiales y las escrituras de los flujos existentes en `development` local. La versión de caché es v16. [Alcance de Acompaña 1.0 y resultados de revisión](docs/MACRO-001-finalizacion-funcional-visual.md).
 

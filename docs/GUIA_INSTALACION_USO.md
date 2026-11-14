@@ -2,6 +2,10 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## MACRO-003 local
+
+En Medicinas, **Otra hora** enfoca la hora nueva, y al quitar una hora el foco vuelve a una hora que siga disponible. Los controles de Calendar abren la vista de revisión antes de continuar al servicio. Al volver a una pestaña con datos desactualizados, conserva el borrador que necesites antes de cancelar y recargar. [Checklist de la candidata](MACRO-003-validacion-integral.md#checklist-del-propietario).
+
 ## MACRO-002 local
 
 Si el navegador rechaza un guardado, conserva el formulario abierto mientras revisas la cuota o los permisos. Cuando se resuelva el problema, vuelve a pulsar la acción de guardado. Si aparece un aviso de conflicto, conserva lo que necesites del borrador antes de cerrar y recargar. Para un resultado sin verificar, comprueba primero qué quedó guardado.
