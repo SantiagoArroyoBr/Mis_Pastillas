@@ -12,6 +12,8 @@
 
 La cobertura por fechas y el historial anterior se consultan por separado. [Reglas, respaldo y checklist de revisión](PLAN-010-turnos-pagos-abonos.md).
 
+En FIX-FECHA-002 local, si la fecha del abono falta o es imposible, el formulario enfoca el campo y conserva el importe y la nota para que puedas corregirla. En **Historial de abonos y cancelaciones**, **Fecha histórica inválida** acompaña el texto original de los movimientos que requieren revisión. Un abono activo conserva su efecto en el saldo y el respaldo JSON conserva sus datos. [Tratamiento de fechas históricas](FIX-FECHA-002-integridad-recibos.md).
+
 ## PREVIEW-008 y cambios locales de PLAN-009
 
 PREVIEW-008 incorpora PLAN-008 y se publicó en `development` hasta `8b49a7380a260a6475f8064e0ff5cc99f9b692cd`. La revisión funcional del propietario sigue pendiente. [Abrir Preview](https://pastillas-1-git-development-dinamita20.vercel.app/) · [Despliegue de Vercel](https://vercel.com/dinamita20/pastillas-1/9QtkRsexr6VPaicvTJRartPc3aTq).

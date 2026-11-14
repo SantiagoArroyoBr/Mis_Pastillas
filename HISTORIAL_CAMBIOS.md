@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-13 — FIX-FECHA-002 / PREVIEW-011
+
+Se reforzó la fecha de abonos nuevos y cancelaciones. El historial muestra las fechas imposibles tal como se guardaron y conserva su efecto económico. El respaldo JSON mantiene el libro completo. La caché de la PWA pasa a v14. PREVIEW-011 queda pendiente de revisión y autorización del propietario. [Evidencia y checklist](docs/FIX-FECHA-002-integridad-recibos.md).
+
 ## 2026-11-11 — PLAN-011 / PREVIEW-010
 
 QA-019 validó el devengo y el crédito con fechas controladas. Se corrigió el conteo visible de enfermería, se alinearon importes y se separó el renderizado de Pagos. La regresión pasó 76/76 en Edge 157.0.4341.42 y la actualización local v12 a v13 conservó el respaldo y permitió guardar offline. PREVIEW-010 queda pendiente de revisión y autorización. [Evidencia, límites y checklist](docs/PLAN-011-validacion-estabilidad-financiera.md).

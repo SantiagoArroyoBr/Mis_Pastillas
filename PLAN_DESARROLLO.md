@@ -1,5 +1,9 @@
 # Plan de desarrollo — Acompaña
 
+## FIX-FECHA-002 — Integridad de recibos históricos
+
+La captura exige fechas de calendario. Pagos muestra la fecha original y una advertencia cuando un movimiento histórico tiene una fecha imposible. Su importe, estado y referencia siguen vigentes en el saldo y los respaldos. PREVIEW-011 queda pendiente de revisión y autorización. [Evidencia y checklist](docs/FIX-FECHA-002-integridad-recibos.md).
+
 ## PLAN-011 — Validación y estabilidad financiera
 
 QA-019 y QA-020 verificaron el corte por fecha, saldos, cancelaciones y respaldos. UX-016 ajustó la alineación y DATA-006 corrigió la atribución visual de jornadas. PWA-004 verificó el paso de v12 a v13 y PERF-003 conservó las tarjetas de enfermería al cambiar solo el saldo. DOC-015 registra la evidencia y los casos legados por decidir. PREVIEW-010 está en preparación local para revisión. [Informe y checklist](docs/PLAN-011-validacion-estabilidad-financiera.md).

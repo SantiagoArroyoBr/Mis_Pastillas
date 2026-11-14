@@ -2,6 +2,8 @@
 
 Implementación local en `development` del 6 de noviembre de 2026. Pendiente de validación manual del propietario y autorización de publicación.
 
+FIX-FECHA-002 refuerza la captura de fechas y conserva el cómputo de los abonos históricos activos con fecha imposible. La revisión del paquete conjunto se sigue en PREVIEW-011. [Evidencia y checklist actualizado](FIX-FECHA-002-integridad-recibos.md).
+
 ## Punto de partida
 
 El checkout comenzó en `6968fec78c6c2944d54cdc69e1569d92aab3c6fd`. Después de `git fetch origin`, `development` y `origin/development` coincidían. El cierre documental de PLAN-009 (`1901dd3`), sus cambios funcionales y UX-013 (`6968fec`) estaban en la rama remota. La referencia de `main` era `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Se excluyeron los cambios locales previos de COB-001, UX-004, PLAN-005 y QA-008.

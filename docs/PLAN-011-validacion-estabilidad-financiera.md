@@ -2,6 +2,8 @@
 
 Ciclo local del 11 de noviembre de 2026. Pendiente de revisión del propietario y de autorización para publicar PREVIEW-010.
 
+La decisión sobre DATA-006 se implementó en FIX-FECHA-002. Los recibos históricos conservan fecha original, importe, referencia y estado. PREVIEW-011 reúne la revisión pendiente de los tres ciclos. [Evidencia y checklist actualizado](FIX-FECHA-002-integridad-recibos.md).
+
 ## Punto de partida
 
 Se trabajó en `C:/Users/santi/Documents/Mis_Pastillas`, en `development` a partir de `c12be38351cf38768c6cb28abb9aa103c52bf966`. El fetch inicial confirmó `origin/development` en `6968fec78c6c2944d54cdc69e1569d92aab3c6fd` y una relación de 0 commits remotos pendientes y 4 locales. PLAN-010 comprende `fc2ff6f` (corte), `095fb1b` (interfaz y estado de cuenta), `d2c931b` (pruebas) y `c12be38` (documentación). La referencia de `main` era `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Los cuatro documentos locales de COB-001, UX-004, PLAN-005 y QA-008 quedaron fuera del ciclo.
