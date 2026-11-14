@@ -112,6 +112,13 @@ window.addEventListener('storage',e=>{
   }catch(error){storageFailure('write',error)}
 });
 
+function checkVisibleStorage(){
+  if(document.hidden||!persistenceReady)return;
+  try{
+    if(localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw)storageFailure('conflict');
+  }catch(error){storageFailure('write',error)}
+}
+
 document.addEventListener('click',e=>{
   if(persistenceReady)return;
   // Únicamente se permite el flujo explícito de recuperación.
@@ -372,20 +379,26 @@ function render(){
   updateHTML($('#tabs'),S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||(showArchived?'<p>Sin fichas archivadas.</p>':'<p>Sin fichas activas.</p>'));
   if(!hasSelection)return;
   const items=[];
-  S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
+  const calculations=new Map();
+  const now=Date.now();
+  S.p.forEach(p=>p.meds.forEach(m=>{
+    const c=calc(m,now);
+    calculations.set(m,c);
+    if(c.st!=='green')items.push({p:p.name,m,c});
+  }));
   items.sort((a,b)=>a.c.buy-b.c.buy);
   let h;
   if(!items.length){h=`<div class="soon ok">✓ Todo en orden: por ahora no hay que comprar nada.</div>`}
   else{
     const det=items.map(i=>`${i.m.name} (${i.p}): quedan ${num(i.c.rem)} ${un(i.m)}`).join('\n');
     h=`<div class="soon"><h2>🛒 Comprar pronto</h2><ul>${items.map(i=>`<li><b>${esc(i.m.name)}</b> (${esc(i.p)}): ${i.c.st==='red'?'urgente':'antes del '+fmt(i.c.buy)}</li>`).join('')}</ul>
-    <a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar medicinas',items[0].c.buy,det)}">📅 Avisarme en Calendario</a>
+    <button type="button" class="btn cal" data-calendar="${esc(calUrl('Comprar medicinas',items[0].c.buy,det))}">📅 Avisarme en Calendario</button>
     ${('Notification' in window&&Notification.permission==='default')?'<button class="btn ghost small" style="margin-top:8px" id="notif">🔔 Activar avisos en pantalla</button>':''}</div>`;
   }
   updateHTML($('#soon'),h);
   updateHTML($('#spend'),spendHTML());
   updateHTML($('#list'),P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
-    const c=calc(m);
+    const c=calculations.get(m);
     return `<article class="card inventory-card ${c.st}">
       <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${stockStatus(c)}</span></div>
       <p class="big">${num(c.rem)} <small>${un(m)}</small></p>
@@ -397,7 +410,7 @@ function render(){
       <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
       <button class="btn ghost small" data-a="fix" data-i="${i}">Corregir cantidad</button></div>
       <button class="btn ghost small" style="margin-top:8px" data-a="price" data-i="${i}">💲 Precios</button>
-      <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
+      <button type="button" class="btn cal small" data-calendar="${esc(calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').'))}">📅 Avisarme</button>
       <button class="link" data-a="del" data-i="${i}">${m.kind==='sup'?'Borrar este insumo':'Borrar esta medicina'}</button>
     </article>`}).join(''):`<p class="empty">Aún no hay medicinas ni insumos para ${esc(P.name)}.</p>`);
 }
@@ -571,10 +584,12 @@ document.addEventListener('click',e=>{
         if(!(q>0))return{field:'q',message:'Escribe cuántas '+un(m)+' trae cada caja.'};
         let pr=null;
         if(String(v.pcost).trim()!==''){pr=pos(v.pcost);if(!(pr>=0))return{field:'pcost',message:'El costo debe ser un número (o déjalo vacío).'}}
-        const updated={...m,base:calc(m).rem+boxes*q,t0:Date.now()};
+        const purchased=boxes*q,base=calc(m).rem+purchased;
+        if(!Number.isFinite(base))return{field:'q',message:'La cantidad total supera el rango que puede guardarse. Revisa las cantidades.'};
+        const updated={...m,base,t0:Date.now()};
         if(pr!==null){
           updated.buys=[...(m.buys||[])];
-          addBuy(updated,pr,boxes*q,v.pshop);
+          addBuy(updated,pr,purchased,v.pshop);
         }
         const error=replaceInventory(P,m,updated);
         if(error)return error;
@@ -739,5 +754,8 @@ function refreshAfterDayChange(){
 }
 dlg.addEventListener('close',refreshAfterDayChange);
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden)refreshAfterDayChange();
+  if(document.hidden)return;
+  checkVisibleStorage();
+  refreshAfterDayChange();
 });
+window.addEventListener('pageshow',event=>{if(event.persisted)checkVisibleStorage()});

@@ -65,9 +65,14 @@
     const used = evs(m, m.t0, now).reduce((sum, event) => sum + event.d, 0);
     const rem = Math.max(0, +(m.base - used).toFixed(2));
     let stock = rem, left = 0, end = null;
-    for (const event of evs(m, now, now + 1000 * 864e5)) {
-      if (stock + 1e-9 < event.d) break;
-      stock = +(stock - event.d).toFixed(2); left++; end = event.t;
+    const horizon = now + 1000 * 864e5;
+    const batch = 14 * 864e5;
+    projection: for (let start = now; start < horizon; start += batch) {
+      // Los rangos (inicio, fin] conservan el orden de las tomas y evitan duplicar sus límites.
+      for (const event of evs(m, start, Math.min(start + batch, horizon))) {
+        if (stock + 1e-9 < event.d) break projection;
+        stock = +(stock - event.d).toFixed(2); left++; end = event.t;
+      }
     }
     const warn = 2 * 864e5, urgent = 1 * 864e5;
     const buy = end ? Math.max(now, end - warn) : now;
@@ -99,8 +104,8 @@
     const stamp = x => x.getFullYear() + String(x.getMonth() + 1).padStart(2, '0') +
       String(x.getDate()).padStart(2, '0') + 'T' + String(x.getHours()).padStart(2, '0') +
       String(x.getMinutes()).padStart(2, '0') + '00';
-    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) +
-      '&dates=' + stamp(date) + '/' + stamp(end) + '&details=' + encodeURIComponent(details);
+    const params = new URLSearchParams({action:'TEMPLATE',text:title,dates:stamp(date)+'/'+stamp(end),details});
+    return 'https://calendar.google.com/calendar/render?' + params;
   }
 
   const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
