@@ -721,8 +721,11 @@ test('las citas identifican la ficha por índice aunque los nombres coincidan', 
 });
 
 test('la PWA abre y recarga offline, espera para actualizar y conserva los datos', async () => {
-  const raw=JSON.stringify(mixedNursesBackup());
+  const receiptDateUpdate = initialVersion==='v13'&&updatedVersion==='v14'&&PREVIOUS_ASSETS;
+  const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
+  const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
+  const originalFinances = receiptDateUpdate ? await evaluate(financialSnapshot) : null;
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
   const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-${initialVersion}');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
   assert.ok(cached.names.includes('acompanha-' + initialVersion));
@@ -770,7 +773,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
+    const updatedAssets = receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
+      : PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
       : "window.__updatedCareUI === true && getComputedStyle(document.documentElement).getPropertyValue('--updated-style').trim()==='1'";
     assert.equal(await evaluate(updatedAssets),false,'la pestaña activa mantiene sus recursos anteriores');
     const dataBeforeUpdate=await evaluate('__persistenceTest.read()');
@@ -781,7 +785,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
+    const newAssets = receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
+      : PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
     assert.equal(await evaluate(newAssets),true,'se aplican el JavaScript y CSS de la nueva versión');
     const connection = offline => cdp.send('Network.emulateNetworkConditions', {offline,latency:0,downloadThroughput:offline?0:-1,uploadThroughput:offline?0:-1});
     await connection(true);
@@ -790,6 +795,14 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       await navigate('?offline=updated');
       assert.equal(await evaluate(newAssets),true);
       assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+      if(receiptDateUpdate){
+        assert.deepEqual(await evaluate(financialSnapshot),originalFinances);
+        assert.deepEqual(originalFinances,{costCents:5000,receivedCents:93125,balanceCents:-88125,movements:4,historic:3});
+        assert.match(await evaluate("$('[data-panel=general-ledger]').textContent"),/9999-02-30.*Fecha histórica inválida/s);
+        await evaluate("generalPayForm();$('#adminDate').value='2024-02-29';$('#adminAmount').value='5.00';$('#f').requestSubmit()");
+        assert.equal((await evaluate('generalRows().at(-1)')).date,'2024-02-29');
+        assert.equal(await evaluate('generalSummary(allServiceRows(),generalRows()).balanceCents'),originalFinances.balanceCents-500);
+      }
       await evaluate("document.querySelector('[data-m=meds]').click();document.querySelector('#addPatient').click()");
       await submitPatientName('Ficha guardada sin conexión');
       savedOffline=await evaluate('__persistenceTest.read()');
@@ -1188,6 +1201,116 @@ test('fechas imposibles se rechazan como fechas nuevas y los valores históricos
   assert.equal(saved.p[0].meds[0].buys[0].d,'2030-99-99');
   assert.equal(saved.pay.cfg[0].base,'2030-99-99');
   assert.equal(await evaluate('monthCost(S.p[0].meds[0])'),null,'una compra con fecha imposible no alimenta una estimación temporal');
+});
+
+test('un abono nuevo exige una fecha de calendario y conserva el borrador ante errores', async () => {
+  await seed(JSON.stringify(validBackup()));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate("generalPayForm();$('#adminAmount').value='38.50';$('#adminConcept').value='Borrador ficticio'");
+  for(const date of ['2020-02-30','2023-02-29','2026-13-01','2026-04-31','2026-1-01','']){
+    await evaluate(`$('#adminDate').value=${JSON.stringify(date)};$('#f').requestSubmit()`);
+    assert.equal(await evaluate("document.activeElement.id"),'adminDate',date);
+    assert.equal(await evaluate("$('#adminDate').getAttribute('aria-describedby')"),'err');
+    assert.match(await evaluate("$('#err').textContent"),/fecha válida|no existe/);
+    assert.equal(await evaluate("$('#adminAmount').value+' '+$('#adminConcept').value"),'38.50 Borrador ficticio');
+    assert.equal(await evaluate('__persistenceTest.writes'),0);
+    assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  }
+  for(const date of ['2024-02-29','2026-04-30','2099-01-01']){
+    await evaluate(`$('#adminDate').value=${JSON.stringify(date)};$('#adminDate').dispatchEvent(new Event('input'));$('#f').requestSubmit()`);
+    assert.equal((await evaluate('generalRows().at(-1)')).date,date);
+    assert.equal(await evaluate("$('#dlg').open"),false);
+    await evaluate("generalPayForm();$('#adminAmount').value='38.50';$('#adminConcept').value='Borrador ficticio'");
+  }
+  const saved=await evaluate('__persistenceTest.read()');
+  await evaluate('__persistenceTest.failSet=true;$("#f").requestSubmit()');
+  assert.equal(await evaluate('__persistenceTest.read()'),saved);
+  assert.equal(await evaluate('generalRows().length'),3);
+  assert.equal(await evaluate("$('#dlg').open&&$('#adminConcept').value==='Borrador ficticio'"),true);
+  assert.match(await evaluate("$('#err').textContent"),/no se guardó/);
+});
+
+function legacyReceiptBackup(tomorrow){
+  const backup=mixedNursesBackup();
+  backup.pay.v[tomorrow]=JSON.parse(JSON.stringify(backup.pay.v['2020-01-31']));
+  const future=backup.pay.v[tomorrow][0][0].service;
+  future.id='future_for_legacy_receipts';
+  future.amountCents=40000;
+  backup.pay.generalLedger=[
+    {id:'valid',type:'receipt',date:'2020-02-02',amountCents:30000},
+    {id:'legacy',type:'receipt',date:'9999-02-30',amountCents:63125,concept:'Legado ficticio'},
+    {id:'inactive',type:'receipt',date:'2020-02-30',amountCents:70000},
+    {id:'reversal',type:'cancellation',date:'2020-02-31',amountCents:70000,originalId:'inactive'}
+  ];
+  return backup;
+}
+
+test('el libro conserva fechas imposibles, saldo, cancelaciones y respaldo de extremo a extremo',async()=>{
+  await navigate();
+  const tomorrow=await evaluate("(()=>{const d=new Date();d.setDate(d.getDate()+1);return ymd(d)})()");
+  const backup=legacyReceiptBackup(tomorrow),raw=JSON.stringify(backup);
+  await seed(raw);await navigate();
+  const snapshot=()=>evaluate(`(()=>{
+    const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());
+    return {costCents,receivedCents,balanceCents,movements:generalRows().length,
+      historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length,
+      prepaid:cover(0).total,individual:ledgerRows().length}
+  })()`);
+  const expected=await snapshot();
+  assert.equal(expected.receivedCents,93125);
+  assert.equal(expected.costCents,backup.pay.v['2020-01-31'][0][0].service.amountCents);
+  assert.equal(expected.balanceCents,expected.costCents-93125);
+  assert.ok(expected.balanceCents<0);
+  assert.equal(expected.movements,4);
+  assert.equal(expected.historic,3);
+  assert.equal(expected.prepaid,1);
+  assert.equal(expected.individual,backup.pay.ledger.length);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  await cdp.send('Page.bringToFront');
+  await evaluate("$('[data-m=pay]').click();$('[data-panel=general-ledger] summary').focus()");
+  assert.equal(await evaluate("document.activeElement.tagName"),'SUMMARY');
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  const history="$('[data-panel=general-ledger]')";
+  await waitFor(history+'.open','historial abierto con Espacio');
+  const rows=await evaluate(`[...${history}.querySelectorAll('.vrow')].map(row=>row.textContent)`);
+  assert.match(rows[0],/Abono general recibido/);
+  assert.match(rows[1],/9999-02-30.*Legado ficticio.*Abono general recibido.*Fecha histórica inválida/s);
+  assert.match(rows[2],/2020-02-30.*Cancelado.*Fecha histórica inválida/s);
+  assert.match(rows[3],/2020-02-31.*Cancelación de abono.*Referencia inactive/s);
+  assert.equal(await evaluate(`${history}.querySelectorAll('.ledger-date-warning').length`),3);
+  assert.match(rows[1],/Este registro conserva su importe original, pero la fecha necesita revisión/);
+  assert.equal(await evaluate(`${history}.outerHTML.includes(money(631.25))`),false);
+  const colors=await evaluate(`[getComputedStyle($('.ledger-date-warning')).color,getComputedStyle(${history}).backgroundColor]`);
+  assert.ok(contrastRatio(...colors)>=4.5);
+  try{
+    for(const width of [320,390,768,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:width<768});
+      assert.equal(await evaluate(`[... ${history}.querySelectorAll('.vrow,.ledger-date-warning')].every(el=>el.scrollWidth<=el.clientWidth+1) && document.documentElement.scrollWidth<=innerWidth`),true,`${width} px`);
+    }
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
+  await evaluate("$('#exp').click()");
+  const exported=await evaluate('__persistenceTest.exportBlob.text().then(JSON.parse)');
+  assert.deepEqual(exported.pay.generalLedger,backup.pay.generalLedger);
+  await uploadJson(exported);await continueRestore();
+  await evaluate("$('#restoreConfirm').click()");
+  await waitFor("!$('#dlg').open",'restauración del libro legado');
+  await navigate();
+  assert.deepEqual(await snapshot(),expected);
+  assert.deepEqual((await evaluate('JSON.parse(__persistenceTest.read())')).pay,exported.pay);
+  await evaluate("cancelGeneralPayForm('legacy')");
+  assert.match(await evaluate("$('#dlg').textContent"),/9999-02-30/);
+  assert.equal(await evaluate("$('#dlg').outerHTML.includes(money(631.25))"),false);
+  await evaluate("$('#f').requestSubmit()");
+  assert.equal(await evaluate("$('#dlg').open"),false);
+  await navigate();
+  assert.equal(await evaluate('persistenceReady'),true);
+  const cancelled=await snapshot();
+  assert.equal(cancelled.receivedCents,30000);
+  assert.equal(cancelled.movements,5);
+  assert.equal(cancelled.balanceCents,expected.costCents-30000);
+  assert.deepEqual((await evaluate('generalRows()')).slice(0,4),backup.pay.generalLedger);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
 });
 
 test('una pestaña con estado obsoleto detecta la escritura externa y no sobrescribe los datos guardados', async () => {
