@@ -15,14 +15,18 @@
   <h1>Acompaña</h1>
   <p class="tagline">Cuidar también es organizar.</p>
   <div class="modes" id="modes"></div>
-  <div class="tabs" role="group" aria-label="Fichas de pacientes" id="tabs"></div>
-  <div class="patient-actions" id="patientActions" hidden>
-    <button class="ren" id="addPatient">Añadir ficha</button>
-    <button class="ren" id="ren">Editar ficha activa</button>
-    <button class="ren" id="archivePatient">Archivar ficha activa</button>
-    <button class="ren" id="showArchived" aria-pressed="false">Consultar archivadas</button>
-    <details class="record-actions"><summary>Retirar ficha</summary><button class="btn ghost small danger" id="retirePatient">Revisar retiro de ficha</button></details>
-  </div>
+  <section class="patient-picker" id="patientPicker" aria-label="Gestión de fichas" hidden>
+    <div class="tabs" role="group" aria-label="Fichas de pacientes" id="tabs"></div>
+    <div class="patient-actions" id="patientActions">
+      <button class="patient-control" id="addPatient">Añadir ficha</button>
+      <button class="patient-control" id="showArchived" aria-pressed="false">Consultar archivadas</button>
+    </div>
+    <div class="patient-actions" id="activePatientActions" role="group" aria-label="Acciones de la ficha seleccionada">
+      <button class="patient-control" id="ren">Editar ficha activa</button>
+      <button class="patient-control" id="archivePatient">Archivar ficha activa</button>
+      <details class="patient-options"><summary>Retirar ficha</summary><button class="patient-control" id="retirePatient">Revisar retiro de ficha</button></details>
+    </div>
+  </section>
 </header>
 <main>
   <section id="persistenceWarning" class="soon warning" role="alert" hidden></section>

@@ -1,7 +1,7 @@
 
 {
-  "name": "Agenda de cuidados",
-  "short_name": "Cuidados",
+  "name": "Acompaña — Gestión del cuidado familiar",
+  "short_name": "Acompaña",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

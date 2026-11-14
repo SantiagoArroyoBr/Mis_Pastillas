@@ -86,6 +86,18 @@ function renderPay(){
   if(status.textContent!==heading)status.textContent=heading;
 }
 
+function savePay(pay,message){
+  if(!save({...getState(),pay}))return message;
+  S.pay=pay;
+  render();
+}
+
+function saveConfig(i,config){
+  const configs=S.pay.cfg.slice();
+  configs[i]=config;
+  return savePay({...S.pay,cfg:configs},'No se guardó el conteo. Revisa el aviso de almacenamiento.');
+}
+
 function payForm(i){
   const p=S.p[i],c=cfg(i);
   form((c.who?'Editar pago: ':'Configurar pago: ')+esc(p.name),[
@@ -101,8 +113,7 @@ function payForm(i){
     let rate=null;
     if(String(v.rt).trim()!==''){rate=pos(v.rt);if(!(rate>=0))return'El monto por día debe ser un número (o déjalo vacío).'}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
-    c.who=v.w.trim().slice(0,60);c.time=tm;c.rate=rate;c.base=v.fd;c.note=v.nt.trim().slice(0,100);
-    save();render();
+    return saveConfig(i,{...c,who:v.w.trim().slice(0,60),time:tm,rate,base:v.fd,note:v.nt.trim().slice(0,100)});
   },'Guardar');
   $('#tm').readOnly=true;
 }
@@ -121,12 +132,8 @@ function payRegForm(i){
     if(n>366)return'Revisa el número de días.';
     let a=null;
     if(String(v.a).trim()!==''){a=pos(v.a);if(!(a>=0))return'El monto debe ser un número (o déjalo vacío).'}
-    if(!c.base){
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
-      c.base=v.fd;
-    }
-    c.pays.push({d:ymd(new Date()),n,a,old:false});
-    save();render();
+    if(!c.base&&!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige la fecha desde la cual se cuentan los días.';
+    return saveConfig(i,{...c,base:c.base||v.fd,pays:[...c.pays,{d:ymd(new Date()),n,a,old:false}]});
   },'Guardar pago');
 }
 
@@ -138,8 +145,8 @@ function individualPayForm(i){
     if(!isValidDateOnly(v.date))return'Elige una fecha válida.';
     const cents=toCents(v.amount);if(!Number.isSafeInteger(cents)||cents<=0)return'Escribe un importe mayor que cero, con hasta dos decimales.';
     const allocations=allocatePayment(servicesForPatient,movements,v.nurse,cents,v.date);if(!allocations)return'El abono supera el saldo de servicios de esa persona hasta esa fecha o no hay servicios con saldo.';
-    movements.push({id:newId('pay'),patientIndex:i,nurseId:v.nurse,date:v.date,amountCents:cents,concept:v.concept.trim().slice(0,120),allocations});
-    save();render();
+    const movement={id:newId('pay'),patientIndex:i,nurseId:v.nurse,date:v.date,amountCents:cents,concept:v.concept.trim().slice(0,120),allocations};
+    return savePay({...S.pay,ledger:[...movements,movement]},'El abono no se guardó. Revisa el aviso de almacenamiento.');
   },'Guardar abono');
 }
 
@@ -158,10 +165,7 @@ function generalPayForm(){
 
 function saveGeneralMovement(movement){
   if(!isValidDateOnly(movement.date))return'Elige una fecha válida.';
-  const pay={...S.pay,generalLedger:[...generalLedger(),movement]};
-  if(!save({...getState(),pay}))return'El movimiento no se guardó. Revisa el aviso de almacenamiento.';
-  S.pay=pay;
-  render();
+  return savePay({...S.pay,generalLedger:[...generalLedger(),movement]},'El movimiento no se guardó. Revisa el aviso de almacenamiento.');
 }
 
 function cancelGeneralPayForm(id){
@@ -187,8 +191,7 @@ function resetForm(i){
     {id:'fd',l:'Contar los días desde',t:'date',v:ymd(new Date()),h:'Los pagos anteriores se quedan en el historial pero ya no se cuentan. Después registra el pago nuevo.'}
   ],v=>{
     if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fd))return'Elige una fecha.';
-    c.pays.forEach(x=>{x.old=true});c.base=v.fd;
-    save();render();
+    return saveConfig(i,{...c,base:v.fd,pays:c.pays.map(payment=>({...payment,old:true}))});
   },'Empezar de nuevo');
 }
 
@@ -242,7 +245,11 @@ function nurseForm(i,k){
       $('#'+id).insertAdjacentHTML('afterend',`<button type="button" class="link" id="removeRate-${type}">Retirar modalidad ${label}</button>`);
       $('#removeRate-'+type).onclick=()=>{
         if(rates[other]===null||rates[other]===undefined){form('Configura otra modalidad primero',[],()=>{},'Entendido');dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>El enfermero debe conservar al menos una modalidad con tarifa. Agrega la otra tarifa antes de retirar esta.</p>');return}
-        form('¿Retirar modalidad '+label+'?',[],()=>{cur.ratesCents={...rates,[type]:null};save();render()},'Retirar modalidad');
+        form('¿Retirar modalidad '+label+'?',[],()=>{
+          const nurses=S.pay.nurses.slice();
+          nurses[i]=nurList(i).map(entry=>entry===cur?{...cur,ratesCents:{...rates,[type]:null}}:entry);
+          return savePay({...S.pay,nurses},'No se retiró la modalidad. Revisa el aviso de almacenamiento.');
+        },'Retirar modalidad');
         dlg.querySelector('h2').insertAdjacentHTML('afterend','<p>Dejará de estar disponible para nuevas asignaciones. Los servicios existentes conservarán su jornada y costo.</p>');
       };
     });

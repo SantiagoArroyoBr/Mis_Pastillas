@@ -4,7 +4,8 @@
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
     const $=query,esc=escape,{ymd,pd,fmtD}=dates,dlg=dialog;// ---------- CITAS MÉDICAS ----------
 const apptList=()=>S.appts.filter(a=>S.p[a.i]).slice().sort((a,b)=>(a.d+(a.t||'99:99')).localeCompare(b.d+(b.t||'99:99')));
-const apptWhen=a=>fmtD(a.d)+(a.t?' · '+a.t:'');
+const {isValidDateOnly}=window.AcompanaCompatibility;
+const apptWhen=a=>(isValidDateOnly(a.d)?fmtD(a.d):a.d)+(a.t?' · '+a.t:'');
 const patientLabel=(patient,index)=>S.p.filter(p=>p.name===patient.name).length>1?patient.name+' (Ficha '+(index+1)+')':patient.name;
 function apptDue(){ // citas de hoy a 2 días
   const t0=new Date();t0.setHours(0,0,0,0);
@@ -25,18 +26,21 @@ function apptCalUrl(a){
 function apptsCard(){
   const today=ymd(new Date());
   const all=apptList();
-  const valid=all.filter(a=>window.AcompanaCompatibility.isValidDateOnly(a.d));
-  const up=valid.filter(a=>a.d>=today),past=valid.filter(a=>a.d<today).slice(-3).reverse(),invalid=all.filter(a=>!window.AcompanaCompatibility.isValidDateOnly(a.d));
+  const valid=all.filter(a=>isValidDateOnly(a.d));
+  const up=valid.filter(a=>a.d>=today);
+  const past=valid.filter(a=>a.d<today).reverse();
+  const invalid=all.filter(a=>!isValidDateOnly(a.d));
   const row=(a,cls)=>{
     const patient=esc(patientLabel(S.p[a.i],a.i));
     const when=esc(apptWhen(a));
-    return `<div class="vrow${cls}"><div>🩺 <b>${patient}</b> · ${when}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}" aria-label="Editar cita de ${patient}, ${when}">Editar</button>${Number.isFinite(pd(a.d).getTime())?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}" aria-label="Preparar cita de ${patient} en Google Calendar">📅</a>`:''}</div></div>`;
+    return `<div class="vrow${cls}"><div>🩺 <b>${patient}</b> · ${when}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}" aria-label="Editar cita de ${patient}, ${when}">Editar</button>${isValidDateOnly(a.d)?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}" aria-label="Preparar cita de ${patient} en Google Calendar">📅</a>`:''}</div></div>`;
   };
   return `<article class="card blue">
     <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>
     ${up.length?up.map(a=>row(a,'')).join(''):'<p class="hint">No hay citas próximas.</p>'}
-    ${past.length?'<p class="info" style="margin-top:12px"><b>Recientes</b></p>'+past.map(a=>row(a,' past')).join(''):''}
-    ${invalid.length?'<p class="info" style="margin-top:12px"><b>Fechas inválidas conservadas; revisa estas citas</b></p>'+invalid.map(a=>row(a,' past')).join(''):''}
+    ${past.length?'<p class="info"><b>Recientes</b></p>'+past.slice(0,3).map(a=>row(a,'')).join(''):''}
+    ${past.length>3?`<details class="history" data-panel="past-appointments"><summary>Citas anteriores · ${past.length-3}</summary>${past.slice(3).map(a=>row(a,'')).join('')}</details>`:''}
+    ${invalid.length?'<p class="info"><b>Fechas inválidas conservadas; revisa estas citas</b></p>'+invalid.map(a=>row(a,'')).join(''):''}
     <button class="btn" style="margin-top:10px" data-pa="aadd">+ Agregar cita</button>
   </article>`;
 }

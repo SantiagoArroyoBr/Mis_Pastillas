@@ -152,7 +152,7 @@ function renderHome(){
     [[t0,'hoy'],[t1,'mañana']].forEach(([d,lab])=>{
       const ds=ymd(d),es=ents(ds,i);
       if(es.length){if(lab==='hoy')rows.push({o:3,h:`<div class="vrow todo ok"><div>🧑‍⚕️ Asignación registrada hoy para <b>${esc(p.name)}</b>: ${es.map(e=>`<span class="dot" style="background:${nurColor(i,e.n)}"></span><b>${esc(e.n)}</b>`).join(', ')}</div></div>`})}
-      else if(d.getDay()!==0)rows.push({o:lab==='hoy'?1:2,h:`<div class="vrow todo amber"><div>🧑‍⚕️ Falta asignar enfermero/a a <b>${esc(p.name)}</b> ${lab}</div><button class="btn ghost small tbtn" data-pa="day" data-i="${i}" data-d="${ds}">Asignar</button></div>`});
+      else if(d.getDay()!==0&&nurList(i).some(n=>n.inactive!==true))rows.push({o:lab==='hoy'?1:2,h:`<div class="vrow todo amber"><div>🧑‍⚕️ Falta asignar enfermero/a a <b>${esc(p.name)}</b> ${lab}</div><button class="btn ghost small tbtn" data-pa="day" data-i="${i}" data-d="${ds}">Asignar</button></div>`});
     });
   });
   rows.sort((a,b)=>a.o-b.o);
@@ -211,17 +211,29 @@ function calHTML(i){
 function payAction(t){
   const pa=t.dataset.pa,i=+t.dataset.i,ds=t.dataset.d;
   if(pa==='prm'){
-    const m=S.p[i]&&S.p[i].meds[+t.dataset.m];
-    if(m&&Array.isArray(m.buys)){m.buys.splice(+t.dataset.k,1);if(!m.buys.length)delete m.buys;save();render();setTimeout(()=>priceForm(i,+t.dataset.m),30)}
+    const patient=S.p[i],m=patient?.meds[+t.dataset.m],k=+t.dataset.k;
+    if(!m?.buys?.[k])return;
+    const draft=dlg._collect();
+    const updated={...m,buys:m.buys.filter((_,index)=>index!==k)};
+    if(!updated.buys.length)delete updated.buys;
+    const error=replaceInventory(patient,m,updated);
+    if(error){$('#err').textContent=error;$('#err').focus();return}
+    priceForm(i,+t.dataset.m,draft);
+    dlg.querySelector('.history').open=true;
+    dlg.querySelector('.history summary').focus();
   }
   else if(pa==='aadd')apptForm(null);
   else if(pa==='aedit'){const a=S.appts.find(x=>x.id===t.dataset.id);if(a)apptForm(a)}
   else if(pa==='adel'){
     const a=S.appts.find(x=>x.id===t.dataset.id);if(!a)return;
-    form('¿Quitar esta cita?',[],()=>{S.appts=S.appts.filter(x=>x.id!==a.id);save();render()},'Sí, quitar');
+    form('¿Quitar esta cita?',[],()=>{
+      const appts=S.appts.filter(x=>x.id!==a.id);
+      if(!save({...S,appts}))return 'No se quitó la cita. Revisa el aviso de almacenamiento.';
+      S.appts=appts;render();
+    },'Sí, quitar');
   }
-  else if(pa==='gopay'){S.mode='pay';save();render();window.scrollTo(0,0)}
-  else if(pa==='gomed'){S.mode='meds';S.sel=Math.min(i,S.p.length-1);showArchived=S.p[S.sel].archived===true;save();render();window.scrollTo(0,0)}
+  else if(pa==='gopay')navigateTo('pay');
+  else if(pa==='gomed')navigateTo('meds',i);
   else if(pa==='hp'){homeP=i;render()}
   else if(pa==='cfg')payForm(i);
   else if(pa==='payreg')payRegForm(i);
@@ -231,7 +243,12 @@ function payAction(t){
   else if(pa==='creset')resetForm(i);
   else if(pa==='pdel'){
     const k=+t.dataset.k;if(!cfg(i).pays[k])return;
-    form('¿Quitar este pago del historial?',[],()=>{cfg(i).pays.splice(k,1);save();render()},'Sí, quitar');
+    form('¿Quitar este pago del historial?',[],()=>{
+      const config={...cfg(i),pays:cfg(i).pays.filter((_,index)=>index!==k)};
+      const pay={...S.pay,cfg:S.pay.cfg.map((entry,index)=>index===i?config:entry)};
+      if(!save({...S,pay}))return 'No se quitó el pago. Revisa el aviso de almacenamiento.';
+      S.pay=pay;render();
+    },'Sí, quitar');
   }
   else if(pa==='show'){
     if(amtOn())showT=0;
@@ -259,7 +276,8 @@ function payAction(t){
     if(Object.keys(updatedDay).length)visits[ds]=updatedDay;
     else delete visits[ds];
     const pay={...S.pay,v:visits};
-    if(save({...S,pay})){S.pay=pay;render();dayForm(i,ds)}
+    if(!save({...S,pay})){$('#err').textContent='No se quitó la asignación. Revisa el aviso de almacenamiento.';$('#err').focus();return}
+    S.pay=pay;render();dayForm(i,ds);
   }
 }
 
@@ -282,8 +300,17 @@ function notifyDaily(){
   if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)parts.push('Hay un importe pendiente en el saldo general con la administradora.');
   if(apptDue().length)parts.push('Hay citas próximas.');
   if(!parts.length)return;
-  S.last=k;save();
-  try{new Notification('Cuidados',{body:parts.join(' · ')})}catch(e){}
+  if(!save({...S,last:k}))return;
+  S.last=k;
+  try{new Notification('Acompaña',{body:parts.join(' · ')})}catch(e){}
+}
+
+function navigateTo(mode,index){
+  const next={...S,mode,sel:index===undefined?S.sel:Math.min(index,S.p.length-1)};
+  if(!save(next))return;
+  S=next;
+  if(index!==undefined)showArchived=S.p[S.sel].archived===true;
+  render();window.scrollTo(0,0);
 }
 
 let renderedDay;
@@ -295,15 +322,19 @@ function render(){
   notifyDaily();
   $('#modes').setAttribute('role','group');$('#modes').setAttribute('aria-label','Sección de la aplicación');
   updateHTML($('#modes'),[['home','Inicio','house'],['meds','Medicinas','pill'],['pay','Pagos','wallet']].map(([m,l,icon])=>`<button class="mbtn" aria-pressed="${md===m}" data-m="${m}"><img class="nav-icon" src="icons/${icon}.svg" alt="">${l}</button>`).join(''));
-  $('#tabs').hidden=md!=='meds';$('#patientActions').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
+  $('#patientPicker').hidden=md!=='meds';$('#medsView').hidden=md!=='meds';
   $('#homeView').hidden=md!=='home';$('#payView').hidden=md!=='pay';
   updateHTML($('#paysoon'),md==='meds'?payNotice():'');
   if(md==='pay'){renderPay();return}
   if(md==='home'){renderHome();return}
   $('#showArchived').setAttribute('aria-pressed',String(showArchived));
   $('#showArchived').textContent=showArchived?'Ver fichas activas':'Consultar archivadas';
+  const hasSelection=(P.archived===true)===showArchived;
+  $('#activePatientActions').hidden=!hasSelection;
+  $('#medsView').hidden=!hasSelection;
   $('#archivePatient').textContent=P.archived===true?'Reactivar ficha activa':'Archivar ficha activa';
-  updateHTML($('#tabs'),S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||'<p>Sin fichas archivadas.</p>');
+  updateHTML($('#tabs'),S.p.map((p,i)=>(p.archived===true)===showArchived?`<button class="tab" aria-pressed="${i===S.sel}" data-i="${i}">${patientLabel(p,i)}</button>`:'').join('')||(showArchived?'<p>Sin fichas archivadas.</p>':'<p>Sin fichas activas.</p>'));
+  if(!hasSelection)return;
   const items=[];
   S.p.forEach(p=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')items.push({p:p.name,m,c})}));
   items.sort((a,b)=>a.c.buy-b.c.buy);
@@ -332,7 +363,7 @@ function render(){
       <button class="btn ghost small" style="margin-top:8px" data-a="price" data-i="${i}">💲 Precios</button>
       <a class="btn cal small" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+' ('+P.name+').')}">📅 Avisarme</a>
       <button class="link" data-a="del" data-i="${i}">${m.kind==='sup'?'Borrar este insumo':'Borrar esta medicina'}</button>
-    </article>`}).join(''):`<p class="empty">Aún no hay medicinas para ${esc(P.name)}.<br>Toca “Agregar medicina”.</p>`);
+    </article>`}).join(''):`<p class="empty">Aún no hay medicinas ni insumos para ${esc(P.name)}.</p>`);
 }
 
 const dlg=$('#dlg');
@@ -445,7 +476,7 @@ document.addEventListener('click',e=>{
     render();
     $('#tabs [aria-pressed="true"]').focus();
   }
-  else if(t.classList.contains('mbtn')){S.mode=['home','meds','pay'].includes(t.dataset.m)?t.dataset.m:'home';save();render();window.scrollTo(0,0)}
+  else if(t.classList.contains('mbtn'))navigateTo(t.dataset.m);
   else if(t.id==='notif'){Notification.requestPermission().then(render)}
   else if(t.id==='ren')patientForm(S.sel);
   else if(t.id==='addPatient')patientForm();
@@ -519,7 +550,7 @@ document.addEventListener('click',e=>{
         setTimeout(()=>result(updated),50);
       },'Corregir');
     }else if(t.dataset.a==='price'){priceForm(S.sel,+t.dataset.i)}else if(t.dataset.a==='del'){
-      form('¿Borrar '+esc(m.name)+'?',[],()=>{P.meds.splice(+t.dataset.i,1);save();render()},'Sí, borrar');
+      form('¿Borrar '+esc(m.name)+'?',[],()=>saveInventory(P,P.meds.filter(entry=>entry!==m)),'Sí, borrar');
     }
   }
 });

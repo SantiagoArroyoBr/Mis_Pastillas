@@ -40,7 +40,6 @@ function addBuy(m,p,n,shop,d){
   if(!Array.isArray(m.buys))m.buys=[];
   m.buys.push({d:d||ymd(new Date()),p,n,w:String(shop||'').trim().slice(0,40)});
   m.buys.sort((a,b)=>a.d.localeCompare(b.d));
-  if(m.buys.length>40)m.buys=m.buys.slice(-40);
 }
 const buyList=m=>(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&b.n>0&&isFinite(b.p));
 const validBuyList=m=>buyList(m).filter(b=>window.AcompanaCompatibility.isValidDateOnly(b.d));
@@ -82,16 +81,15 @@ function spendHTML(){
     <p class="hint">Medicinas e insumos, con el último precio anotado y el consumo de los próximos 30 días.${missing?' Faltan precios de '+missing+'.':''}</p>
     <button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></article>`;
 }
-function priceForm(pi,mi){
+function priceForm(pi,mi,draft={}){
   const m=S.p[pi]&&S.p[pi].meds[mi];if(!m)return;
   const rows=(m.buys||[]).map((b,k)=>({b,k})).filter(x=>x.b&&x.b.n>0&&isFinite(x.b.p)).reverse();
   form('Precios: '+esc(m.name),[
-    {id:'pcost',l:'Precio total',ph:'Ej. 180'},
-    {id:'pun',l:'¿Para cuántas '+un(m)+'?',ph:'Ej. 30'},
-    {id:'pshop',l:'¿Dónde? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets()},
-    {id:'pdate',l:'Fecha',t:'date',v:ymd(new Date())}
+    {id:'pcost',l:'Precio total',ph:'Ej. 180',v:draft.pcost},
+    {id:'pun',l:'¿Para cuántas '+un(m)+'?',ph:'Ej. 30',v:draft.pun},
+    {id:'pshop',l:'¿Dónde? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets(),v:draft.pshop},
+    {id:'pdate',l:'Fecha',t:'date',v:draft.pdate??ymd(new Date())}
   ],v=>{
-    if(String(v.pcost).trim()===''&&String(v.pun).trim()==='')return;
     const pr=pos(v.pcost),n=pos(v.pun);
     if(String(v.pcost).trim()===''||!(pr>=0))return{field:'pcost',message:'Escribe el precio total.'};
     if(!(n>0))return{field:'pun',message:'Escribe para cuántas '+un(m)+' es ese precio.'};
