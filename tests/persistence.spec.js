@@ -7,7 +7,9 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const PREVIOUS_ASSETS = process.env.ACOMPANHA_PREVIOUS_ASSETS;
+const PREVIOUS_ASSETS = process.env.ACOMPANHA_PREVIOUS_ASSETS
+  ? path.resolve(process.env.ACOMPANHA_PREVIOUS_ASSETS)
+  : undefined;
 const versionOf = root => fs.readFileSync(path.join(root, 'sw.js'), 'utf8').match(/APP_CACHE_PREFIX \+ '(v\d+)'/)[1];
 const initialVersion = versionOf(PREVIOUS_ASSETS || ROOT);
 const updatedVersion = PREVIOUS_ASSETS ? versionOf(ROOT) : 'v' + (Number(initialVersion.slice(1)) + 1);
@@ -785,13 +787,14 @@ test('WhatsApp muestra y permite editar el mensaje antes de abrir el servicio', 
   assert.equal(new URL(opened).searchParams.get('text'), 'Resumen genérico ficticio');
 });
 
-test('Calendar intercepta el enlace real, permite editar y cancelar sin abrirlo', async () => {
+test('Calendar requiere abrir la vista previa, permite editar y cancelar sin compartir', async () => {
   const backup = validBackup('Paciente ficticio para Calendar');
   backup.appts = [{ id: 'cita-ficticia', i: 0, d: '2030-11-15', t: '10:00', w: 'Centro ficticio', n: 'Nota ficticia' }];
   await seed(JSON.stringify(backup)); await navigate();
   await evaluate("window.__openedExternal=[]; window.open=(url,target,features)=>{window.__openedExternal.push({url,target,features});return null}");
 
-  await evaluate("document.querySelector('#homeView a.btn.cal[href*=' + JSON.stringify('calendar.google.com') + ']').click()");
+  assert.equal(await evaluate("document.querySelector('a[href*=calendar]')"),null);
+  await evaluate("document.querySelector('#homeView button[data-calendar]').click()");
   await waitFor("document.querySelector('#externalTitle')", 'previsualización desde el enlace Calendar renderizado');
   const preview = await evaluate("({title:document.querySelector('#externalTitle').value,details:document.querySelector('#externalDetails').value})");
   assert.match(preview.title, /Cita médica \(Paciente ficticio para Calendar\)/);
@@ -801,7 +804,7 @@ test('Calendar intercepta el enlace real, permite editar y cancelar sin abrirlo'
   await waitFor("!document.querySelector('#dlg').open", 'cancelación de Calendar');
   assert.equal(await evaluate('__openedExternal.length'), 0);
 
-  await evaluate("document.querySelector('#homeView a.btn.cal[href*=' + JSON.stringify('calendar.google.com') + ']').click()");
+  await evaluate("document.querySelector('#homeView button[data-calendar]').click()");
   await waitFor("document.querySelector('#externalTitle')", 'segunda previsualización de Calendar');
   await evaluate("document.querySelector('#externalTitle').value='Evento revisado ficticio'; document.querySelector('#externalDetails').value='Detalle revisado ficticio'; document.querySelector('#externalContinue').click()");
   assert.equal(await evaluate('__openedExternal.length'), 1);
@@ -886,11 +889,14 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const inventoryUpdate = initialVersion==='v14'&&updatedVersion==='v15'&&PREVIOUS_ASSETS;
   const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
   const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
+  const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
   const originalFinances = receiptDateUpdate ? await evaluate(financialSnapshot) : null;
   await waitFor("navigator.serviceWorker.controller !== null", 'control activo del service worker');
+  const {installabilityErrors}=await cdp.send('Page.getInstallabilityErrors');
+  assert.deepEqual(installabilityErrors,[]);
   const cached = await evaluate(`(async()=>{const names=await caches.keys();const cache=await caches.open('acompanha-${initialVersion}');return {names,keys:(await cache.keys()).map(r=>new URL(r.url).pathname)}})()`);
   assert.ok(cached.names.includes('acompanha-' + initialVersion));
   for (const asset of ['/', '/index.html', '/app.js', '/compatibility.js', '/domain.js', '/sharing.js', '/payments.js', '/inventory.js', '/care-ui.js', '/forms.js', '/appointments.js', '/styles.css', '/manifest.json', '/icon-192.png', '/icon-512.png', '/fonts/NunitoSans.ttf', '/fonts/Nunito[wght].ttf', '/icons/house.svg', '/icons/pill.svg', '/icons/wallet.svg']) {
@@ -937,7 +943,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
+    const updatedAssets = candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
+      : storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
       : patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
       : inventoryUpdate ? "typeof stockStatus==='function'"
       : receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
@@ -952,7 +959,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = storageUpdate ? updatedAssets
+    const newAssets = candidateUpdate||storageUpdate ? updatedAssets
       : patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
       : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
@@ -1368,7 +1375,7 @@ test('fechas imposibles se rechazan como fechas nuevas y los valores históricos
   assert.equal(migrated.pay.cfg[0].base, '2030-99-99');
   await seed(JSON.stringify(legacy));await navigate();
   assert.equal(await evaluate('persistenceReady'), true, 'una fecha histórica malformada no bloquea la lectura del respaldo');
-  assert.equal(await evaluate("(()=>{const card=[...document.querySelectorAll('#homeView .card')].find(x=>x.querySelector('h3')?.textContent.includes('Citas médicas'));return card?.textContent.includes('Fechas inválidas conservadas')&&card?.textContent.includes('2030-99-99')&&!card?.querySelector('a[href*=calendar]')})()"),true,'la cita histórica inválida muestra su valor original y no se enlaza a Calendar');
+  assert.equal(await evaluate("(()=>{const card=[...document.querySelectorAll('#homeView .card')].find(x=>x.querySelector('h3')?.textContent.includes('Citas médicas'));return card?.textContent.includes('Fechas inválidas conservadas')&&card?.textContent.includes('2030-99-99')&&!card?.querySelector('[data-calendar]')})()"),true,'la cita histórica inválida muestra su valor original y no ofrece Calendar');
   await evaluate('save()');
   const saved=JSON.parse(await evaluate('__persistenceTest.read()'));
   assert.equal(saved.appts[0].d,'2030-99-99');
@@ -1549,6 +1556,243 @@ function patientBackup(){
   return backup;
 }
 
+function scaleBackup(medicineCount, purchasesPerMedicine){
+  const backup=patientBackup();
+  backup.mode='meds';
+  backup.p[1].archived=true;
+  const start=Date.now()-30*864e5;
+  backup.p[0].meds=Array.from({length:medicineCount},(_,i)=>({
+    name:'Producto ficticio '+i,base:120,t0:start,
+    cons:[
+      {dose:1,times:['08:00','20:00'],schedule:{type:'daily'}},
+      {dose:0.5,times:['12:00'],schedule:{type:'weekdays',days:[1,3,5]}}
+    ],
+    buys:Array.from({length:purchasesPerMedicine},(_,j)=>({
+      d:'2020-01-'+String(j%28+1).padStart(2,'0'),p:30+j,n:30,w:'Tienda ficticia '+(j%4)
+    }))
+  }));
+  backup.appts.push(...Array.from({length:medicineCount},(_,i)=>({
+    id:'escala_cita_'+i,i:i%2,d:'2020-01-'+String(i%28+1).padStart(2,'0'),t:'09:00',w:'Lugar ficticio',n:'Nota ficticia'
+  })));
+  for(let i=1;i<=medicineCount*2;i++){
+    const day=new Date(Date.UTC(2021,0,i)).toISOString().slice(0,10);
+    backup.pay.v[day]={0:[{n:'Enfermera ficticia A',service:{id:'escala_jornada_'+i,nurseId:'staff_a',type:i%2?'full':'half',amountCents:5000}}]};
+  }
+  return backup;
+}
+
+test('mide escala de inventario, calendario, pagos y respaldo en tres volúmenes',async t=>{
+  const sizes=[[4,4],[24,24],[96,200]];
+  for(const [medicines,prices] of sizes){
+    const backup=scaleBackup(medicines,prices),raw=JSON.stringify(backup);
+    await seed(raw);await navigate();
+    const measures=await evaluate(`(()=>{
+      const time=fn=>{const start=performance.now();fn();return +(performance.now()-start).toFixed(1)};
+      const median=fn=>Array.from({length:5},()=>time(fn)).sort((a,b)=>a-b)[2];
+      const nav=performance.getEntriesByType('navigation')[0];
+      const measures={readyMs:+nav.domContentLoadedEventEnd.toFixed(1)};
+      for(const mode of ['meds','home','pay']){
+        S.mode=mode;render();
+        measures[mode]=median(()=>{render();void document.body.offsetHeight});
+      }
+      const baseline=localStorage.getItem('pastillas-v1');
+      measures.serializeMs=median(()=>JSON.stringify(S));
+      measures.saveMs=time(()=>{if(!save())throw new Error('No se guardó el conjunto de escala')});
+      const serialized=localStorage.getItem('pastillas-v1');
+      measures.validateMs=median(()=>prepareMigratedState(JSON.parse(serialized)));
+      measures.nodes=document.getElementsByTagName('*').length;
+      measures.heapBytes=performance.memory?.usedJSHeapSize??null;
+      return measures;
+    })()`);
+    const restored=await evaluate('__persistenceTest.read()');
+    const start=performance.now();
+    await uploadJson(restored,'escala-ficticia.json');
+    await continueRestore();
+    await evaluate("$('#restoreConfirm').click()");
+    await waitFor("!$('#dlg').open && persistenceReady");
+    const restoreMs=Math.round(performance.now()-start);
+    assert.equal(await evaluate("S.p[0].meds.length"),medicines);
+    assert.equal(await evaluate("S.p[0].meds.at(-1).buys.length"),prices);
+    assert.equal(await evaluate("S.p[1].archived"),true);
+    await evaluate("$('#exp').click()");
+    assert.deepEqual(JSON.parse(await evaluate('__persistenceTest.exportBlob.text()')),JSON.parse(restored));
+    assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+    t.diagnostic(JSON.stringify({medicines,purchases:medicines*prices,bytes:Buffer.byteLength(restored),restoreMs,...measures}));
+  }
+});
+
+test('la cuota real del perfil aislado conserva el valor anterior y permite guardar después',async t=>{
+  const raw=JSON.stringify(validBackup('Ficha ficticia estable'));
+  await seed(raw);await navigate();
+  const result=await evaluate(`(()=>{
+    const thresholds=[];
+    for(const mib of [4,5,6]){
+      const candidate={...S,qaPadding:'x'.repeat(mib*1024*1024)};
+      const ok=save(candidate);
+      thresholds.push({mib,ok,error:storageErrorName});
+      if(!ok)break;
+    }
+    return thresholds;
+  })()`);
+  assert.equal(result.at(-1).error,'QuotaExceededError');
+  const saved=JSON.parse(await evaluate('__persistenceTest.read()'));
+  assert.equal(saved.p[0].name,'Ficha ficticia estable');
+  assert.equal(saved.qaPadding?.length??0,(result.filter(x=>x.ok).at(-1)?.mib??0)*1024*1024);
+  await evaluate("$('#exportStored').click()");
+  assert.deepEqual(JSON.parse(await evaluate('__persistenceTest.exportBlob.text()')),saved);
+  await evaluate("$('#retryStorage').click()");
+  assert.equal(await evaluate('save()'),true);
+  assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).qaPadding"),undefined);
+  t.diagnostic(JSON.stringify(result));
+});
+
+test('una instalación nueva recorre ficha, inventario, enfermería, cita y respaldo offline',async()=>{
+  await seed(null);await navigate();
+  await evaluate(`
+    $('[data-m=meds]').click();$('#addPatient').click();$('#patientName').value='Ficha integral ficticia';$('#f').requestSubmit();
+    $('#add').click();$('#n').value='Producto de prueba';$('#q').value='20';$('#addc').click();$('#d1').value='2';$('#f').requestSubmit();
+    $('[data-a=box]').click();$('#boxes').value='2';$('#q').value='5';$('#pcost').value='60';$('#pshop').value='Tienda ficticia';$('#f').requestSubmit();
+  `);
+  await waitFor("$('#cl')");
+  await evaluate(`
+    $('#cl').click();$('[data-m=pay]').click();$('[data-pa=nadd][data-i="2"]').click();
+    $('#nn').value='Persona de enfermería ficticia';$('#rateFull').value='120';$('#rateHalf').value='65';$('#f').requestSubmit();
+    $('[data-m=home]').click();$('[data-pa=aadd]').click();$('#ap_p').value='2';$('#ap_w').value='Centro ficticio';$('#f').requestSubmit();
+  `);
+  await waitFor("navigator.serviceWorker.controller");
+  await evaluate("$('#exp').click()");
+  const exported=JSON.parse(await evaluate('__persistenceTest.exportBlob.text()'));
+  assert.equal(exported.p[2].name,'Ficha integral ficticia');
+  assert.equal(exported.p[2].meds[0].cons.length,2);
+  assert.deepEqual(exported.p[2].meds[0].buys.map(({p,n})=>({p,n})),[{p:60,n:10}]);
+  assert.deepEqual(exported.pay.nurses[2][0].ratesCents,{full:12000,half:6500});
+  assert.equal(exported.appts[0].i,2);
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  try{
+    await navigate('?offline=integral');
+    assert.deepEqual(JSON.parse(await evaluate('__persistenceTest.read()')),exported);
+  }finally{
+    await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+  }
+  await uploadJson(exported);await continueRestore();
+  await evaluate("$('#restoreConfirm').click()");
+  assert.deepEqual(JSON.parse(await evaluate('__persistenceTest.read()')),exported);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+});
+
+test('un total de compra no representable deja intacto el inventario y el formulario',async()=>{
+  const backup=patientBackup(),raw=JSON.stringify(backup);
+  await seed(raw);await navigate();
+  await evaluate("$('[data-a=box]').click();$('#boxes').value='1e200';$('#q').value='1e200';$('#pcost').value='15';$('#f').requestSubmit()");
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  assert.equal(await evaluate("$('#dlg').open && document.activeElement===$('#q') && $('#pcost').value==='15'"),true);
+  assert.match(await evaluate("$('#err').textContent"),/supera el rango/);
+});
+
+test('el retorno de una pestaña revisa el almacenamiento y mantiene el borrador abierto',async()=>{
+  const backup=patientBackup();
+  await seed(JSON.stringify(backup));await navigate();await cdp.send('Page.bringToFront');
+  await evaluate("$('#addPatient').click();$('#patientName').value='Borrador ficticio';__persistenceTest.seed(JSON.stringify({...S,last:'Cambio externo'}));document.dispatchEvent(new Event('visibilitychange'))");
+  assert.equal(await evaluate("persistenceFailure==='conflict' && $('#dlg').open && $('#patientName').value==='Borrador ficticio'"),true);
+  await evaluate("$('#f').requestSubmit()");
+  assert.equal(await evaluate('__persistenceTest.writes'),0);
+  assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last,'Cambio externo');
+});
+
+test('los nombres y notas ficticios se muestran como texto y Calendar tolera Unicode incompleto',async()=>{
+  const backup=patientBackup(),literal='<em data-qa-marker="literal">Texto ficticio</em>';
+  backup.p[0].name=literal;
+  backup.p[0].meds[0].name=literal;
+  backup.p[0].meds[0].buys=[{d:'2020-01-01',p:20,n:10,w:literal}];
+  backup.pay.nurses[0][0].n=literal;
+  backup.pay.generalLedger[0].concept=literal;
+  backup.appts[1].d='2099-01-01';
+  backup.appts[1].w=literal+'\uD800';
+  backup.appts[1].n=literal;
+  await seed(JSON.stringify(backup));await navigate();
+  await evaluate("$('[data-a=price]').click()");
+  assert.match(await evaluate("$('.history').textContent"),/Texto ficticio/);
+  await evaluate("$('#no').click();$('[data-m=pay]').click();$('[data-m=home]').click()");
+  assert.equal(await evaluate("Boolean(document.querySelector('[data-qa-marker]'))"),false);
+  await evaluate("$('[data-id=cita_b]').closest('.vrow').querySelector('[data-calendar]').click()");
+  assert.equal(await evaluate("$('#dlg').getAttribute('aria-labelledby')==='formTitle' && document.activeElement===$('#formTitle')"),true);
+  assert.match(await evaluate("$('#externalTitle').value"),/Texto ficticio.*\uFFFD/);
+  assert.equal(await evaluate("$('#externalDetails').value"),literal);
+  assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
+});
+
+test('el formulario identifica los días completos y mantiene foco al cambiar horas',async()=>{
+  const backup=patientBackup();
+  await seed(JSON.stringify(backup));await navigate();
+  await evaluate("$('#add').click();$('#sch0-tabs [data-v=weekdays]').click()");
+  await cdp.send('Accessibility.enable');
+  try{
+    const {nodes}=await cdp.send('Accessibility.getFullAXTree');
+    assert.ok(nodes.some(node=>node.role?.value==='group'&&node.name?.value==='Días de consumo'));
+    for(const day of ['Martes','Miércoles']){
+      assert.ok(nodes.some(node=>node.role?.value==='button'&&node.name?.value===day));
+    }
+    await evaluate("$('#addt-h0').focus()");
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    assert.equal(await evaluate("document.activeElement===$('#h0 .trow:last-child input')"),true);
+    await evaluate("$('#h0 .trow:last-child button').click()");
+    assert.equal(await evaluate("document.activeElement===$('#h0 input') && $('#h0 button').disabled"),true);
+    assert.equal(await evaluate("$('#h0').getAttribute('aria-labelledby')==='h0-label'"),true);
+  }finally{
+    await cdp.send('Accessibility.disable');
+  }
+});
+
+test('la proyección por rangos mantiene el resultado original en límites y horarios coincidentes',async()=>{
+  assert.equal(await evaluate(`(()=>{
+    const {evs,calc}=AcompanaDomain;
+    const now=new Date(2026,9,18,0,0).getTime();
+    const daily={type:'daily'};
+    const regimens=[
+      [{dose:1,times:['00:00','08:00'],schedule:daily},{dose:0.333,times:['08:00'],schedule:daily}],
+      [{dose:1,times:['00:00'],schedule:{type:'interval',n:14,start:now}}],
+      [{dose:0.0000000001,times:['08:00'],schedule:daily}],
+      []
+    ];
+    return regimens.every(cons=>[0,0.5,28,2500].every(base=>{
+      const m={base,cons,t0:now-5*864e5};
+      const rem=Math.max(0,+(base-evs(m,m.t0,now).reduce((sum,event)=>sum+event.d,0)).toFixed(2));
+      let stock=rem,left=0,end=null;
+      for(const event of evs(m,now,now+1000*864e5)){
+        if(stock+1e-9<event.d)break;
+        stock=+(stock-event.d).toFixed(2);left++;end=event.t;
+      }
+      const actual=calc(m,now);
+      return actual.rem===rem&&actual.left===left&&actual.end===end;
+    }));
+  })()`),true);
+});
+
+test('reflujo equivalente a zoom de 200 y 400 por ciento y diagnóstico de zoom del navegador',async t=>{
+  const backup=patientBackup();
+  await seed(JSON.stringify(backup));await navigate();await cdp.send('Page.bringToFront');
+  const dpr=await evaluate('devicePixelRatio');
+  const keys=(type,key,code,windowsVirtualKeyCode,modifiers)=>cdp.send('Input.dispatchKeyEvent',{type,key,code,windowsVirtualKeyCode,modifiers});
+  await keys('rawKeyDown','+','Equal',187,10);
+  await keys('keyUp','+','Equal',187,10);
+  const browserZoom=await evaluate('devicePixelRatio')!==dpr;
+  if(browserZoom){await keys('rawKeyDown','0','Digit0',48,2);await keys('keyUp','0','Digit0',48,2)}
+  t.diagnostic('Zoom efectivo con atajo en Edge headless: '+browserZoom);
+  try{
+    for(const width of [640,320]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+      for(const mode of ['home','meds','pay']){
+        await evaluate(`$('[data-m=${mode}]').click()`);
+        assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,`${mode} a ${width} px`);
+      }
+    }
+  }finally{
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+  }
+});
+
 test('las citas antiguas son consultables y una fecha imposible no genera avisos ni exportación',async()=>{
   const backup=patientBackup();
   backup.mode='home';
@@ -1557,7 +1801,7 @@ test('las citas antiguas son consultables y una fecha imposible no genera avisos
   const raw=JSON.stringify(backup);
   await seed(raw);await navigate();
   assert.match(await evaluate("$('[data-id=imposible]').closest('.vrow').textContent"),/2030-02-30/);
-  assert.equal(await evaluate("$('[data-id=imposible]').closest('.vrow').querySelector('a')"),null);
+  assert.equal(await evaluate("$('[data-id=imposible]').closest('.vrow').querySelector('[data-calendar]')"),null);
   assert.equal(await evaluate("apptDue().some(({a})=>a.id==='imposible')"),false);
   await evaluate("$('[data-panel=past-appointments] summary').click();render()");
   assert.equal(await evaluate("$('[data-panel=past-appointments]').open && $('[data-id=anterior_0]').getClientRects().length>0"),true);
