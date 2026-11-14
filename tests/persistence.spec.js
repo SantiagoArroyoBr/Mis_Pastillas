@@ -787,6 +787,7 @@ test('las citas identifican la ficha por índice aunque los nombres coincidan', 
 test('la PWA abre y recarga offline, espera para actualizar y conserva los datos', async () => {
   const receiptDateUpdate = initialVersion==='v13'&&updatedVersion==='v14'&&PREVIOUS_ASSETS;
   const inventoryUpdate = initialVersion==='v14'&&updatedVersion==='v15'&&PREVIOUS_ASSETS;
+  const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -838,7 +839,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = inventoryUpdate ? "typeof stockStatus==='function'"
+    const updatedAssets = patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
+      : inventoryUpdate ? "typeof stockStatus==='function'"
       : receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
       : PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
       : "window.__updatedCareUI === true && getComputedStyle(document.documentElement).getPropertyValue('--updated-style').trim()==='1'";
@@ -851,7 +853,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
+    const newAssets = patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
+      : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
       : PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
     assert.equal(await evaluate(newAssets),true,'se aplican el JavaScript y CSS de la nueva versión');
@@ -1262,7 +1265,7 @@ test('fechas imposibles se rechazan como fechas nuevas y los valores históricos
   assert.equal(migrated.pay.cfg[0].base, '2030-99-99');
   await seed(JSON.stringify(legacy));await navigate();
   assert.equal(await evaluate('persistenceReady'), true, 'una fecha histórica malformada no bloquea la lectura del respaldo');
-  assert.equal(await evaluate("(()=>{const card=[...document.querySelectorAll('#homeView .card')].find(x=>x.querySelector('h3')?.textContent.includes('Citas médicas'));return card?.textContent.includes('Fechas inválidas conservadas')&&card?.textContent.includes('Fecha inválida (dato conservado)')&&!card?.querySelector('a[href*=calendar]')})()"),true,'la cita histórica inválida se conserva visible pero no se trata como próxima ni se enlaza a Calendar');
+  assert.equal(await evaluate("(()=>{const card=[...document.querySelectorAll('#homeView .card')].find(x=>x.querySelector('h3')?.textContent.includes('Citas médicas'));return card?.textContent.includes('Fechas inválidas conservadas')&&card?.textContent.includes('2030-99-99')&&!card?.querySelector('a[href*=calendar]')})()"),true,'la cita histórica inválida muestra su valor original y no se enlaza a Calendar');
   await evaluate('save()');
   const saved=JSON.parse(await evaluate('__persistenceTest.read()'));
   assert.equal(saved.appts[0].d,'2030-99-99');
@@ -1437,6 +1440,76 @@ function patientBackup(){
   };
   return backup;
 }
+
+test('las citas antiguas son consultables y una fecha imposible no genera avisos ni exportación',async()=>{
+  const backup=patientBackup();
+  backup.mode='home';
+  backup.appts=Array.from({length:4},(_,i)=>({id:'anterior_'+i,i:0,d:'2020-01-0'+(i+1),t:'',w:'Lugar ficticio',n:''}));
+  backup.appts.push({id:'imposible',i:0,d:'2030-02-30',t:'',w:'Lugar ficticio',n:''});
+  const raw=JSON.stringify(backup);
+  await seed(raw);await navigate();
+  assert.match(await evaluate("$('[data-id=imposible]').closest('.vrow').textContent"),/2030-02-30/);
+  assert.equal(await evaluate("$('[data-id=imposible]').closest('.vrow').querySelector('a')"),null);
+  assert.equal(await evaluate("apptDue().some(({a})=>a.id==='imposible')"),false);
+  await evaluate("$('[data-panel=past-appointments] summary').click();render()");
+  assert.equal(await evaluate("$('[data-panel=past-appointments]').open && $('[data-id=anterior_0]').getClientRects().length>0"),true);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
+
+test('el selector separa grupos vacíos y mantiene controles usables con nombres largos',async()=>{
+  const backup=patientBackup();
+  backup.p[0].name='Nombre'.repeat(13);
+  backup.p.push({name:'Tercera ficha ficticia',meds:[]},{name:'Cuarta ficha ficticia',meds:[]});
+  await seed(JSON.stringify(backup));await navigate();
+  try{
+    for(const width of [320,360,390,430,768,1024,1280]){
+      await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
+      assert.equal(await evaluate("document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('#patientPicker button, #patientPicker summary')].filter(el=>el.getClientRects().length).every(el=>el.offsetHeight>=44 && el.scrollWidth<=el.clientWidth+1)"),true,`${width} px`);
+    }
+    await evaluate("$('#showArchived').focus()");
+    await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+    assert.equal(await evaluate("$('#tabs').textContent==='Sin fichas archivadas.' && $('#medsView').hidden && $('#activePatientActions').hidden && document.activeElement===$('#showArchived')"),true);
+    await evaluate("$('#showArchived').click()");
+    assert.equal(await evaluate("!$('#medsView').hidden && !$('#activePatientActions').hidden && $('#tabs [aria-pressed=true]').dataset.i==='0'"),true);
+  }finally{
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+  }
+});
+
+test('el historial conserva más de 40 precios y quitar un precio conserva el borrador',async()=>{
+  const backup=patientBackup();
+  backup.p[0].meds[0].buys=Array.from({length:40},(_,i)=>({d:'2020-01-01',p:i,n:5,w:'Tienda ficticia'}));
+  await seed(JSON.stringify(backup));await navigate();
+  await evaluate("$('[data-a=price]').click();$('#f').requestSubmit()");
+  assert.match(await evaluate("$('#err').textContent"),/precio total/);
+  await evaluate("$('#pcost').value='50';$('#pun').value='10';$('#f').requestSubmit()");
+  assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].meds[0].buys.length"),41);
+  assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].meds[0].buys[0].p"),0);
+  await evaluate("$('[data-a=price]').click();$('#pcost').value='23';$('#pun').value='10';$('.history').open=true;$('[data-pa=prm]').click()");
+  assert.equal(await evaluate("$('.history').open && $('#pcost').value==='23' && $('#pun').value==='10' && S.p[0].meds[0].buys.length===40"),true);
+});
+
+test('una escritura fallida conserva citas, existencias, precios, tarifas y conteos en memoria',async()=>{
+  const backup=patientBackup();
+  backup.p[0].meds[0].buys=[{d:'2020-01-01',p:10,n:5,w:'Tienda ficticia'}];
+  const raw=JSON.stringify(backup);
+  const actions=[
+    "$('[data-a=del]').click();__persistenceTest.failSet=true;$('#f').requestSubmit()",
+    "$('[data-a=price]').click();__persistenceTest.failSet=true;$('[data-pa=prm]').click()",
+    "payAction({dataset:{pa:'adel',id:'cita_b'}});__persistenceTest.failSet=true;$('#f').requestSubmit()",
+    "nurseForm(0,0);$('#removeRate-full').click();__persistenceTest.failSet=true;$('#f').requestSubmit()",
+    "resetForm(0);__persistenceTest.failSet=true;$('#f').requestSubmit()"
+  ];
+  for(const action of actions){
+    await seed(raw);await navigate();
+    const before=await evaluate('JSON.stringify(S)');
+    await evaluate(action);
+    assert.equal(await evaluate('JSON.stringify(S)'),before,action);
+    assert.equal(await evaluate('__persistenceTest.read()'),raw,action);
+    assert.equal(await evaluate("$('#dlg').open && document.activeElement===$('#err')"),true,action);
+  }
+});
 
 function mixedNursesBackup(){
   const backup=patientBackup();backup.mode='pay';
