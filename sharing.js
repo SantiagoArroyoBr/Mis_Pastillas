@@ -3,7 +3,7 @@
   function create({ dialog, query, escape, openWindow }) {
     function preview(title, url, options = {}) {
       const target = new URL(url);
-      dialog.innerHTML = '<h2>' + escape(title) + '</h2><p>Revisa la información que se abrirá en un servicio externo. Solo se compartirá si eliges continuar.</p>' +
+      dialog.innerHTML = '<h2 id="formTitle" tabindex="-1">' + escape(title) + '</h2><p>Revisa la información que se abrirá en un servicio externo. Solo se compartirá si eliges continuar.</p>' +
         (options.kind === 'whatsapp'
           ? '<label for="externalText">Mensaje</label><textarea id="externalText" rows="8"></textarea>'
           : '<label for="externalTitle">Título del evento</label><input id="externalTitle" type="text"><label for="externalDetails">Detalles del evento</label><textarea id="externalDetails" rows="6"></textarea>') +
@@ -24,13 +24,13 @@
         openWindow(target.toString());
       };
       if (!dialog.open) dialog.showModal();
+      query('#formTitle').focus();
     }
 
     document.addEventListener('click', event => {
-      const link = event.target.closest('a.btn.cal');
-      if (!link) return;
-      event.preventDefault();
-      preview('Revisar evento de Google Calendar', link.href);
+      const button = event.target.closest('button[data-calendar]');
+      if (!button) return;
+      preview('Revisar evento de Google Calendar', button.dataset.calendar);
     });
     return preview;
   }

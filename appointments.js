@@ -21,7 +21,8 @@ function apptCalUrl(a){
     const g=x=>f2(x)+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
     dates=g(s0)+'/'+g(e0);
   }else{const nx=new Date(day);nx.setDate(nx.getDate()+1);dates=f2(day)+'/'+f2(nx)}
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Cita médica ('+p.name+')'+(a.w?': '+a.w:''))+'&dates='+dates+'&details='+encodeURIComponent(a.n||'');
+  const params=new URLSearchParams({action:'TEMPLATE',text:'Cita médica ('+p.name+')'+(a.w?': '+a.w:''),dates,details:a.n||''});
+  return 'https://calendar.google.com/calendar/render?'+params;
 }
 function apptsCard(){
   const today=ymd(new Date());
@@ -33,7 +34,7 @@ function apptsCard(){
   const row=(a,cls)=>{
     const patient=esc(patientLabel(S.p[a.i],a.i));
     const when=esc(apptWhen(a));
-    return `<div class="vrow${cls}"><div>🩺 <b>${patient}</b> · ${when}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}" aria-label="Editar cita de ${patient}, ${when}">Editar</button>${isValidDateOnly(a.d)?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}" aria-label="Preparar cita de ${patient} en Google Calendar">📅</a>`:''}</div></div>`;
+    return `<div class="vrow${cls}"><div>🩺 <b>${patient}</b> · ${when}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}" aria-label="Editar cita de ${patient}, ${when}">Editar</button>${isValidDateOnly(a.d)?`<button type="button" class="btn cal small" data-calendar="${esc(apptCalUrl(a))}" aria-label="Preparar cita de ${patient} en Google Calendar">📅</button>`:''}</div></div>`;
   };
   return `<article class="card blue">
     <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>

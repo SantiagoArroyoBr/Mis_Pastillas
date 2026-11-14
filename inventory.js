@@ -108,7 +108,7 @@ function priceForm(pi,mi,draft={}){
 function result(m){
   const c=calc(m);
   dlg.innerHTML=`<h2 id="formTitle">¡Listo!</h2><p>${esc(m.name)}: ahora hay <b>${num(c.rem)} ${un(m)}</b>.<br>Conviene comprar de nuevo <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
-  <div class="stack"><a class="btn cal" target="_blank" rel="noopener" href="${calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.')}">📅 Avisarme en Calendario</a><button class="btn ghost" id="cl">Cerrar</button></div>`;
+  <div class="stack"><button type="button" class="btn cal" data-calendar="${esc(calUrl('Comprar '+m.name+' (aprox.)',c.buy,'Quedan '+num(c.rem)+' '+un(m)+' de '+m.name+'.'))}">📅 Avisarme en Calendario</button><button class="btn ghost" id="cl">Cerrar</button></div>`;
   $('#cl').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
 }
 const pos=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
@@ -150,8 +150,18 @@ function medForm(title,D,onSave,btn){
     return{name:v.n,q:v.q,cons:D.cons.map((_,k)=>({dose:v['d'+k],schedule:v['sch'+k],times:[...$('#h'+k).querySelectorAll('input')].map(input=>input.value)}))};
   };
   $('#err').insertAdjacentHTML('beforebegin','<button type="button" class="btn ghost" id="addc" style="margin-top:16px">+ Agregar otro consumo</button>');
-  $('#addc').onclick=()=>{const r=read();r.cons.push(newCons());medForm(title,r,onSave,btn)};
-  dlg.querySelectorAll('.rmc').forEach(b=>b.onclick=()=>{const r=read();r.cons.splice(+b.dataset.k,1);medForm(title,r,onSave,btn)});
+  $('#addc').onclick=()=>{
+    const r=read();
+    r.cons.push(newCons());
+    medForm(title,r,onSave,btn);
+    $('#d'+(r.cons.length-1)).focus();
+  };
+  dlg.querySelectorAll('.rmc').forEach(b=>b.onclick=()=>{
+    const r=read(),index=+b.dataset.k;
+    r.cons.splice(index,1);
+    medForm(title,r,onSave,btn);
+    $('#d'+Math.min(index,r.cons.length-1)).focus();
+  });
 }
 
 

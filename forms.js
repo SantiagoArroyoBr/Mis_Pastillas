@@ -2,13 +2,13 @@
 (() => {
   function create({dialog,query,escape,parseTimes,weekDays,palette,paletteNames}) {
     const dlg=dialog,$=query,esc=escape,WD_SHORT=weekDays,NPAL=palette,NPALN=paletteNames;
+    const weekdayNames=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 function fieldHTML(f){
   if(f.t==='head')return `<div class="chead"><h3>Consumo ${f.k+1}</h3>${f.multi?`<button type="button" class="link rmc" data-k="${f.k}">Quitar</button>`:''}</div>`;
-  if(f.t==='wday')return `<label>${f.l}</label><div class="wdays" id="${f.id}" data-v="${f.v===undefined||f.v===null?'':f.v}"></div>`;
-  if(f.t==='color')return `<label>${f.l}</label><div class="swatches" id="${f.id}" data-v="${f.v||''}"></div>`;
+  if(f.t==='wday'||f.t==='color')return `<label id="${f.id}-label">${esc(f.l)}</label><div role="group" aria-labelledby="${f.id}-label" class="${f.t==='wday'?'wdays':'swatches'}" id="${f.id}" data-v="${esc(f.v??'')}"></div>`;
   if(f.t==='select')return `<label for="${f.id}">${esc(f.l)}</label><select id="${f.id}">${(f.options||[]).map(o=>`<option value="${esc(o.v)}"${String(o.v)===String(f.v)?' selected':''}>${esc(o.l)}</option>`).join('')}</select>${f.h?`<p class="hint">${f.h}</p>`:''}`;
   if(f.t==='date'||f.t==='time')return `<label for="${f.id}">${f.l}</label><input id="${f.id}" type="${f.t}" value="${esc(f.v||'')}">${f.h?`<p class="hint">${f.h}</p>`:''}`;
-  if(f.t==='times')return `<label>${f.l}</label><div id="${f.id}"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
+  if(f.t==='times')return `<label id="${f.id}-label">${esc(f.l)}</label><div id="${f.id}" role="group" aria-labelledby="${f.id}-label"></div><button type="button" class="btn ghost small" id="addt-${f.id}" style="margin-top:6px">+ Otra hora</button>`;
   if(f.t==='schedule')return `<label>${f.l}</label>
     <div class="schtabs" role="group" aria-label="${esc(f.l)}" id="${f.id}-tabs">
       <button type="button" class="stab" aria-pressed="false" data-v="daily">Diario</button>
@@ -16,7 +16,7 @@ function fieldHTML(f){
       <button type="button" class="stab" aria-pressed="false" data-v="interval">Cada X días</button>
     </div>
     <div class="schpane" id="${f.id}-daily"><p class="hint">Se toma todos los días.</p></div>
-    <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" id="${f.id}-wdbtns"></div></div>
+    <div class="schpane" id="${f.id}-weekdays" hidden><div class="wdays" role="group" aria-label="Días de consumo" id="${f.id}-wdbtns"></div></div>
     <div class="schpane" id="${f.id}-interval" hidden>
       <label for="${f.id}-n">¿Cada cuántos días? (1 = diario, 2 = un día sí y uno no...)</label>
       <input id="${f.id}-n" type="number" min="1" step="1" value="${(f.v&&f.v.n)||2}">
@@ -58,9 +58,30 @@ function form(title,fields,ok,btn='Guardar'){
 
   fields.filter(f=>f.t==='times').forEach(tf=>{
     const box=$('#'+tf.id);
-    const addRow=(v='')=>{const d=document.createElement('div');d.className='trow';d.innerHTML='<input type="time" aria-label="Hora de la toma"><button type="button" aria-label="Quitar hora">×</button>';d.querySelector('input').value=v;d.querySelector('button').onclick=()=>{if(box.children.length>1)d.remove()};box.appendChild(d)};
+    const updateRemoveButtons=()=>box.querySelectorAll('button').forEach(button=>{button.disabled=box.children.length===1});
+    const addRow=(v='')=>{
+      const row=document.createElement('div');
+      row.className='trow';
+      row.innerHTML='<input type="time" aria-label="Hora de la toma"><button type="button" aria-label="Quitar hora">×</button>';
+      const input=row.querySelector('input');
+      input.value=v;
+      row.querySelector('button').onclick=()=>{
+        const next=row.nextElementSibling||row.previousElementSibling;
+        if(!next)return;
+        row.remove();
+        updateRemoveButtons();
+        next.querySelector('input').focus();
+      };
+      box.appendChild(row);
+      return input;
+    };
     (tf.v||['08:00']).forEach(addRow);
-    $('#addt-'+tf.id).onclick=()=>addRow('');
+    updateRemoveButtons();
+    $('#addt-'+tf.id).onclick=()=>{
+      const input=addRow();
+      updateRemoveButtons();
+      input.focus();
+    };
   });
 
   fields.filter(f=>f.t==='schedule').forEach(sf=>{
@@ -74,6 +95,7 @@ function form(title,fields,ok,btn='Guardar'){
     const selDays=new Set(init.days||[]);
     WD_SHORT.forEach((lbl,i)=>{
       const b=document.createElement('button');b.type='button';b.className='wdaybtn';b.textContent=lbl[0].toUpperCase();b.setAttribute('aria-pressed',String(selDays.has(i)));
+      b.setAttribute('aria-label',weekdayNames[i]);
       b.onclick=()=>{if(selDays.has(i))selDays.delete(i);else selDays.add(i);b.setAttribute('aria-pressed',String(selDays.has(i)))};
       wdbox.appendChild(b);
     });
@@ -85,6 +107,7 @@ function form(title,fields,ok,btn='Guardar'){
     const box=$('#'+wf.id);const cur=box.dataset.v;
     [1,2,3,4,5,6,0].forEach(i=>{
       const b=document.createElement('button');b.type='button';b.className='wdaybtn w';b.dataset.i=String(i);b.textContent=WD_SHORT[i];
+      b.setAttribute('aria-label',weekdayNames[i]);
       b.setAttribute('aria-pressed',String(String(i)===cur));
       b.onclick=()=>{box.dataset.v=String(i);[...box.children].forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.i===String(i))))};
       box.appendChild(b);
