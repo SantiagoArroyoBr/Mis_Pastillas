@@ -23,9 +23,10 @@ function migrate(d){
   });
   if(!d.pay||typeof d.pay!=='object'||Array.isArray(d.pay))d.pay={};
   const z=d.pay;
+  let legacyWho=z.who,legacyNote=z.note;
   if(Array.isArray(z.w)){ // formato anterior: un pago por paciente
     const w0=z.w.find(x=>x&&x.who);
-    if(w0&&!z.who){z.who=w0.who;z.day=w0.day;z.note=w0.note||'';z.paid=w0.paid||''}
+    if(w0&&!legacyWho){legacyWho=w0.who;legacyNote=w0.note}
     if(!Array.isArray(z.nurses))z.nurses=[];
     if(!z.v||typeof z.v!=='object'||Array.isArray(z.v))z.v={};
     z.w.forEach((w,i)=>{
@@ -39,12 +40,6 @@ function migrate(d){
     });
     delete z.w;
   }
-  if(typeof z.who!=='string')z.who='';
-  z.day=+z.day;if(!(z.day>=0&&z.day<=6))z.day=5;
-  if(typeof z.note!=='string')z.note='';
-  if(typeof z.paid!=='string')z.paid='';
-  if(Array.isArray(z.shifts))z.shifts=z.shifts.filter(x=>x&&x.id!==undefined&&x.id!=='').map(x=>({id:String(x.id),n:String(x.n||'Turno'),a:(x.a===null||x.a===undefined||x.a===''||!isFinite(+x.a))?null:+x.a}));
-  if(!Array.isArray(z.shifts)||!z.shifts.length)z.shifts=[{id:'full',n:'Turno completo',a:null},{id:'half',n:'Medio turno',a:null}];
   if(!Array.isArray(z.nurses))z.nurses=[];
   z.nurses=z.nurses.map(a=>Array.isArray(a)?a.map((x,k)=>{
     if(typeof x==='string'&&x)return{n:x,c:NPAL[k%NPAL.length]};
@@ -57,7 +52,7 @@ function migrate(d){
   if(!Array.isArray(z.ledger))z.ledger=[];
   if(!Array.isArray(z.generalLedger))z.generalLedger=[];
   if(!Array.isArray(z.cfg)){ // formato anterior: un solo pago para todos; se copia a cada paciente
-    z.cfg=(d.p||[]).map(()=>({who:z.who,note:z.note}));
+    z.cfg=(d.p||[]).map(()=>({who:legacyWho,note:legacyNote}));
   }
   z.cfg=(d.p||[]).map((_,i)=>{
     const c=(z.cfg[i]&&typeof z.cfg[i]==='object')?z.cfg[i]:{};
@@ -75,11 +70,10 @@ function migrate(d){
       rate:rt
     };
   });
-  delete z.who;delete z.day;delete z.note;delete z.paid;delete z.shifts;
-  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({...a,id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w.slice(0,80):'',n:typeof a.n==='string'?a.n.slice(0,200):''}));
+  d.appts=(Array.isArray(d.appts)?d.appts:[]).filter(a=>a&&typeof a.d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.d)&&Number.isInteger(+a.i)&&+a.i>=0&&+a.i<(d.p||[]).length).map(a=>({...a,id:String(a.id||('a'+Math.random().toString(36).slice(2,8))),i:+a.i,d:a.d,t:/^\d{2}:\d{2}$/.test(a.t||'')?a.t:'',w:typeof a.w==='string'?a.w:'',n:typeof a.n==='string'?a.n:''}));
   (d.p||[]).forEach(p=>p.meds.forEach(m=>{
     if(m.kind!=='sup')delete m.kind;
-    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({...b,d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w.slice(0,40):''}));
+    m.buys=(Array.isArray(m.buys)?m.buys:[]).filter(b=>b&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||'')&&isFinite(+b.p)&&+b.p>=0&&+b.n>0).map(b=>({...b,d:b.d,p:+b.p,n:+b.n,w:typeof b.w==='string'?b.w:''}));
     if(!m.buys.length)delete m.buys;
   }));
   if(!['home','meds','pay'].includes(d.mode))d.mode='home';
@@ -257,12 +251,23 @@ function validateMigrationInput(d){
   }
   if(Array.isArray(z.w)){
     const seen=new Set();
+    const representative=z.w.find(w=>w?.who);
+    const legacyWho=z.who||representative?.who||'';
+    const legacyNote=(!z.who&&representative?representative.note:z.note)||'';
     z.w.forEach((w,i)=>{
       if(!w||typeof w!=='object'||!w.v||typeof w.v!=='object'||Array.isArray(w.v))fail('el registro histórico de pagos '+(i+1)+' no puede convertirse íntegramente.');
       if(own(w,'who')&&typeof w.who!=='string')fail('el responsable del registro histórico '+(i+1)+' no se puede conservar.');
       if(own(w,'day')&&(!Number.isInteger(+w.day)||+w.day<0||+w.day>6))fail('el día del registro histórico '+(i+1)+' no es válido.');
       if(own(w,'note')&&typeof w.note!=='string')fail('la nota del registro histórico '+(i+1)+' no se puede conservar.');
       if(own(w,'paid')&&typeof w.paid!=='string')fail('la fecha pagada del registro histórico '+(i+1)+' no se puede conservar.');
+      const config=z.cfg?.[i];
+      if(Object.keys(w).some(key=>!['who','day','note','paid','v'].includes(key))
+        ||(w.who&&w.who!==(config?config.who:legacyWho))
+        ||(w.note&&w.note!==(config?config.note:legacyNote))
+        ||(own(w,'day')&&+w.day!==5&&(!own(z,'day')||+w.day!==+z.day))
+        ||(w.paid&&w.paid!==z.paid)){
+        fail('el registro histórico de pagos '+(i+1)+' contiene datos que requieren revisión manual.');
+      }
       Object.entries(w.v).forEach(([day,name])=>{
         if(typeof name!=='string'||!name.trim())fail('hay una asignación histórica sin nombre que sería descartada.');
         const key=day+':'+i;
@@ -297,7 +302,7 @@ function assertMigrationIntegrity(before,after){
     const migrated=newPay.v[day]&&newPay.v[day][i];if(!Array.isArray(migrated)||migrated.length!==list.length)fail('cambió la cantidad de asignaciones del '+day+'.');
     list.forEach((e,j)=>{if(e&&e.service&&JSON.stringify(e.service)!==JSON.stringify(migrated[j]&&migrated[j].service))fail('cambió el detalle de un servicio guardado.')});
   }));
-  if(Array.isArray(oldPay.shifts)&&oldPay.shifts.length&&oldPay.shifts.length!==newPay.shifts.length)fail('cambió la cantidad de turnos.');
+  if(Array.isArray(oldPay.shifts)&&JSON.stringify(oldPay.shifts)!==JSON.stringify(newPay.shifts))fail('cambiaron los turnos históricos.');
   if(Array.isArray(oldPay.cfg))oldPay.cfg.forEach((c,i)=>{
     const a=Array.isArray(c.pays)?c.pays.length:0;
     const b=Array.isArray(newPay.cfg[i]&&newPay.cfg[i].pays)?newPay.cfg[i].pays.length:0;

@@ -57,7 +57,9 @@ function apptForm(a){
     const i=Number(v.ap_p);
     if(!Number.isInteger(i)||i<0||i>=S.p.length)return{field:'ap_p',message:'Elige a una persona de la lista.'};
     if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return{field:'ap_t',message:'Revisa la hora.'};
-    const o={i,d:v.ap_d,t:v.ap_t||'',w:v.ap_w.trim().slice(0,80),n:v.ap_n.trim().slice(0,200)};
+    const o={i,d:v.ap_d,t:v.ap_t||'',
+      w:v.ap_w===cur?.w?cur.w:v.ap_w.trim().slice(0,80),
+      n:v.ap_n===cur?.n?cur.n:v.ap_n.trim().slice(0,200)};
     const appts=cur?S.appts.map(entry=>entry===cur?{...entry,...o}:entry)
       :[...S.appts,{id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o}];
     if(!save({...getState(),appts}))return'No se guardó la cita. Revisa el aviso de almacenamiento.';
