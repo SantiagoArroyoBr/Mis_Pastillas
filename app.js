@@ -27,27 +27,33 @@ const MAX_IMPORT_BYTES=10*1024*1024;
 let persistenceReady=false;
 let persistenceFailure='';
 let lastPersistedRaw=null;
+let hasStorageBaseline=false;
+let hasUsableState=false;
+let storageErrorName='';
 function showPersistenceWarning(){
   const box=document.getElementById('persistenceWarning');
   if(!box)return;
   box.hidden=false;
-  updateHTML(box,persistenceFailure==='write'
-    ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Las modificaciones normales permanecen bloqueadas. Puedes reintentar la recuperación con un respaldo JSON válido.</p>'
+  const markup=persistenceFailure==='unverified'
+    ?'<h2>No se pudo verificar el resultado del guardado</h2><p>Descarga el valor guardado si está disponible o recarga para comprobar qué datos quedaron.</p><button type="button" class="btn" id="reloadFreshState">Recargar datos guardados</button>'
+    :persistenceFailure==='write'
+    ?'<h2>No se pudieron guardar los cambios</h2><p>'+(storageErrorName==='QuotaExceededError'?'Se alcanzó la cuota de almacenamiento del navegador. Conserva una copia antes de liberar espacio.':storageErrorName==='SecurityError'?'El navegador bloqueó el acceso al almacenamiento. Revisa los permisos del sitio.':'El navegador rechazó la operación de almacenamiento.')+' Puedes reintentar el guardado desde el formulario abierto.</p>'+(hasUsableState?'<button type="button" class="btn ghost small" id="retryStorage">Comprobar acceso al almacenamiento</button>':'')
     :persistenceFailure==='conflict'
     ?'<h2>Los datos cambiaron en otra pestaña</h2><p>Para conservar la versión guardada más recientemente, no se guardarán cambios desde esta pestaña. Recarga para continuar con los datos actuales.</p><button type="button" class="btn" id="reloadFreshState">Recargar datos guardados</button>'
-    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>Utiliza “Restaurar respaldo” para recuperar la aplicación con una copia JSON válida.</p>');
+    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. La vista actual es temporal y no se guardarán modificaciones.</p><p>Descarga una copia del valor guardado si está accesible. Para restaurar, el navegador debe poder leer el almacenamiento.</p>';
+  updateHTML(box,markup+'<button type="button" class="btn ghost small" id="exportStored">Descargar valor guardado</button>');
   const reload=box.querySelector('#reloadFreshState');if(reload)reload.onclick=()=>location.reload();
 }
 
 let S=(()=>{
   let raw;
-  try{raw=localStorage.getItem(STORAGE_KEY);lastPersistedRaw=raw}
+  try{raw=localStorage.getItem(STORAGE_KEY);lastPersistedRaw=raw;hasStorageBaseline=true}
   catch(e){persistenceFailure='read';return defaultState()}
-  if(raw===null){persistenceReady=true;return defaultState()}
+  if(raw===null){persistenceReady=hasUsableState=true;return defaultState()}
   try{
     const parsed=JSON.parse(raw);
     const migrated=prepareMigratedState(parsed);
-    persistenceReady=true;
+    persistenceReady=hasUsableState=true;
     return migrated;
   }catch(e){
     persistenceFailure='load';
@@ -55,31 +61,61 @@ let S=(()=>{
   }
 })();
 
-const save=(state=S)=>{
-  if(!persistenceReady){showPersistenceWarning();return false}
+function storageFailure(kind,error){
+  persistenceReady=false;
+  persistenceFailure=kind;
+  storageErrorName=error?.name||'';
+  showPersistenceWarning();
+  return false;
+}
+
+function markStorageReady(raw){
+  persistenceReady=hasUsableState=true;
+  persistenceFailure='';
+  storageErrorName='';
+  hasStorageBaseline=true;
+  lastPersistedRaw=raw;
+  $('#persistenceWarning').hidden=true;
+}
+
+function writeState(state,expected){
+  let serialized;
+  let storage;
   try{
-    if(localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();return false}
-    const serialized=JSON.stringify(state);
-    localStorage.setItem(STORAGE_KEY,serialized);
-    lastPersistedRaw=serialized;
+    serialized=JSON.stringify(state);
+    storage=localStorage;
+    if(storage.getItem(STORAGE_KEY)!==expected)return storageFailure('conflict');
+    storage.setItem(STORAGE_KEY,serialized);
+  }catch(e){
+    return storageFailure('write',e);
+  }
+  try{
+    if(storage.getItem(STORAGE_KEY)!==serialized)return storageFailure('conflict');
+    markStorageReady(serialized);
     return true;
   }catch(e){
-    persistenceReady=false;
-    persistenceFailure='write';
-    showPersistenceWarning();
-    return false;
+    return storageFailure('unverified',e);
   }
+}
+
+const save=(state=S)=>{
+  if(!persistenceReady&&!(persistenceFailure==='write'&&hasUsableState&&dlg.open)){showPersistenceWarning();return false}
+  return writeState(state,lastPersistedRaw);
 };
 
 window.addEventListener('storage',e=>{
-  if(e.storageArea!==localStorage||(e.key!==STORAGE_KEY&&e.key!==null)||e.newValue===lastPersistedRaw)return;
-  persistenceReady=false;persistenceFailure='conflict';showPersistenceWarning();
+  if(e.key!==STORAGE_KEY&&e.key!==null)return;
+  try{
+    const storage=localStorage;
+    if(e.storageArea!==storage)return;
+    if(!hasStorageBaseline||storage.getItem(STORAGE_KEY)!==lastPersistedRaw)storageFailure('conflict');
+  }catch(error){storageFailure('write',error)}
 });
 
 document.addEventListener('click',e=>{
   if(persistenceReady)return;
   // Únicamente se permite el flujo explícito de recuperación.
-  if(e.target.closest('#imp')||e.target.closest('#impFile')||e.target.closest('#dlg')||e.target.closest('#reloadFreshState'))return;
+  if(e.target.closest('#imp,#impFile,#dlg,#reloadFreshState,#retryStorage,#exportStored'))return;
   e.preventDefault();
   e.stopImmediatePropagation();
   showPersistenceWarning();
@@ -292,7 +328,7 @@ function summaryText(P){
 
 // Aviso del navegador diario y genérico, si está autorizado. Sin nombres ni montos.
 function notifyDaily(){
-  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  if(!persistenceReady||!('Notification' in window)||Notification.permission!=='granted')return;
   const k=new Date().toDateString();
   if(S.last===k)return;
   const parts=[];
@@ -499,13 +535,20 @@ document.addEventListener('click',e=>{
   }
   else if(t.id==='exp'){
     try{
-      const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=url;a.download='cuidados-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
-      document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      downloadBackup(JSON.stringify(S),'cuidados-respaldo','json');
       setBackupStatus('Descarga iniciada. Es una copia privada; los datos de esta instalación siguen guardados.');
     }catch(err){setBackupStatus('El navegador no pudo preparar la descarga. Tus datos guardados no se modificaron.');}
+  }
+  else if(t.id==='exportStored')exportStoredValue();
+  else if(t.id==='retryStorage'){
+    if(!hasUsableState||persistenceFailure!=='write')return;
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!hasStorageBaseline||raw!==lastPersistedRaw){storageFailure('conflict');return}
+      markStorageReady(raw);
+      $('#exp').focus();
+      setBackupStatus('El almacenamiento se puede leer. Puedes reintentar la operación pendiente.');
+    }catch(error){storageFailure('write',error)}
   }
   else if(t.id==='imp'){$('#impFile').click()}
   else if(t.id==='add'){
@@ -555,6 +598,29 @@ document.addEventListener('click',e=>{
   }
 });
 
+function downloadBackup(raw,prefix,extension){
+  const blob=new Blob([raw],{type:extension==='json'?'application/json':'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=prefix+'-'+ymd(new Date())+'.'+extension;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+function exportStoredValue(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw===null){setBackupStatus('Esta instalación todavía no tiene un valor guardado.');return}
+    let extension='json';
+    try{JSON.parse(raw)}catch{extension='txt'}
+    downloadBackup(raw,'acompanha-valor-guardado',extension);
+    setBackupStatus('Descarga iniciada. Es una copia privada del valor guardado en el navegador.');
+  }catch{
+    setBackupStatus('El navegador no permitió leer o descargar el valor guardado.');
+  }
+}
+
 function focusBackupDialog(){
   if(!dlg.open)dlg.showModal();
   $('#formTitle').focus();
@@ -572,6 +638,18 @@ function setBackupStatus(message){
 }
 
 function confirmRestore(candidate){
+  let expected;
+  try{expected=localStorage.getItem(STORAGE_KEY)}
+  catch(error){
+    if(hasStorageBaseline)storageFailure('write',error);
+    importMessage('Almacenamiento inaccesible','El navegador debe permitir leer los datos actuales antes de restaurar. Revisa los permisos y vuelve a seleccionar el archivo.');
+    return;
+  }
+  if(hasStorageBaseline&&expected!==lastPersistedRaw){
+    storageFailure('conflict');
+    importMessage('Los datos guardados cambiaron','Recarga para revisar los datos actuales antes de volver a seleccionar el respaldo.');
+    return;
+  }
   const meds=candidate.p.reduce((n,p)=>n+p.meds.length,0);
   const appts=candidate.appts.length;
   const nurses=(candidate.pay.nurses||[]).reduce((n,list)=>n+list.length,0);
@@ -582,40 +660,36 @@ function confirmRestore(candidate){
   const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
   const backupDate=dateValid&&(rawDate===datePart||timestampValid)
     ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
-  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(persistenceReady?'':'disabled')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(expected===null&&!persistenceReady?'disabled':'')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
-  $('#exportBeforeRestore').onclick=()=>document.querySelector('#exp').click();
-  $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate);
+  $('#exportBeforeRestore').onclick=()=>expected===null?$('#exp').click():exportStoredValue();
+  $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate,expected);
   focusBackupDialog();
 }
 
-function showRestoreConfirmation(candidate){
-  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+function showRestoreConfirmation(candidate,expected){
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><p class="err" id="restoreError" role="alert" tabindex="-1"></p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   const confirm=$('#restoreConfirm');
   confirm.onclick=()=>{
     if(!dlg.open||confirm.disabled)return;
     confirm.disabled=true;
-    let serialized;
-    try{
-      if(persistenceFailure!=='read'&&localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';dlg.close();showPersistenceWarning();setBackupStatus('Los datos cambiaron en otra pestaña. Recarga y revisa el respaldo antes de volver a restaurarlo.');return}
-      serialized=JSON.stringify(candidate);
-      localStorage.setItem(STORAGE_KEY,serialized);
-    }catch(err){
+    if(!writeState(candidate,expected)){
+      if(persistenceFailure==='write'){
+        const error=$('#restoreError');
+        error.textContent=storageErrorName==='QuotaExceededError'?'El respaldo supera el espacio disponible. Puedes reintentar cuando haya espacio.':'El navegador rechazó la restauración. Revisa el acceso al almacenamiento y vuelve a intentar.';
+        confirm.disabled=false;
+        error.focus();
+        return;
+      }
       dlg.close();
-      persistenceReady=false;
-      persistenceFailure='write';
-      showPersistenceWarning();
-      setBackupStatus('El navegador no pudo guardar el respaldo restaurado. El estado anterior se conserva; revisa el aviso de almacenamiento.');
+      setBackupStatus('No se confirmó la restauración. Recarga para revisar el valor guardado antes de volver a restaurar.');
       return;
     }
     // El estado en memoria solo cambia después de confirmar la escritura.
     S=candidate;
     showArchived=S.p[S.sel].archived===true;
     homeP=S.sel;
-    lastPersistedRaw=serialized;
-    persistenceReady=true;
-    persistenceFailure='';
     dlg.close();
     render();
     setBackupStatus('Restauración completada. Los datos del respaldo ya están guardados en esta instalación.');
@@ -627,8 +701,10 @@ $('#dlg').addEventListener('cancel',()=>{
   if($('#dlg #cancelRestore'))setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');
 });
 
+let importSelection=0;
 $('#impFile').addEventListener('change',e=>{
   const file=e.target.files[0];if(!file)return;
+  const selection=++importSelection;
   setBackupStatus('Archivo seleccionado. Se comprobará antes de cualquier cambio en los datos actuales.');
   if(file.size>MAX_IMPORT_BYTES){
     e.target.value='';
@@ -637,6 +713,7 @@ $('#impFile').addEventListener('change',e=>{
   }
   const reader=new FileReader();
   reader.onload=()=>{
+    if(selection!==importSelection)return;
     let candidate;
     try{
       candidate=prepareMigratedState(JSON.parse(reader.result));
@@ -647,7 +724,9 @@ $('#impFile').addEventListener('change',e=>{
     setBackupStatus('Archivo validado. Revisa su contenido; los datos actuales siguen sin cambios.');
     confirmRestore(candidate);
   };
-  reader.onerror=()=>importMessage('No se pudo leer el archivo','El navegador no pudo leer el archivo seleccionado. No se modificó el almacenamiento actual.');
+  reader.onerror=()=>{
+    if(selection===importSelection)importMessage('No se pudo leer el archivo','El navegador no pudo leer el archivo seleccionado. No se modificó el almacenamiento actual.');
+  };
   try{reader.readAsText(file)}
   catch(err){importMessage('No se pudo leer el archivo','El navegador rechazó la lectura del archivo. No se modificó el almacenamiento actual.')}
   e.target.value='';
