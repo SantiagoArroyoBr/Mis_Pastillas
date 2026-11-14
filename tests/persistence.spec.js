@@ -798,6 +798,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       if(receiptDateUpdate){
         assert.deepEqual(await evaluate(financialSnapshot),originalFinances);
         assert.deepEqual(originalFinances,{costCents:5000,receivedCents:93125,balanceCents:-88125,movements:4,historic:3});
+        await evaluate("$('[data-m=pay]').click()");
         assert.match(await evaluate("$('[data-panel=general-ledger]').textContent"),/9999-02-30.*Fecha histórica inválida/s);
         await evaluate("generalPayForm();$('#adminDate').value='2024-02-29';$('#adminAmount').value='5.00';$('#f').requestSubmit()");
         assert.equal((await evaluate('generalRows().at(-1)')).date,'2024-02-29');
