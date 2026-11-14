@@ -1,5 +1,11 @@
 # Plan de desarrollo — Acompaña
 
+## MACRO-001 — Finalización funcional y visual
+
+Entrega local para revisión del propietario. SYNC-003 confirmó el paquete anterior en `development`. [Auditoría, compatibilidad y QA-023](docs/MACRO-001-finalizacion-funcional-visual.md).
+
+MACRO-002 queda pendiente de autorización. El alcance propuesto cubre conflictos entre pestañas, recuperación de respaldos y conciliación técnica de registros legados.
+
 ## PLAN-012 — Consolidación funcional
 
 PREVIEW-011 se publicó con los doce commits autorizados. PLAN-012 queda local con mejoras verificadas de captura, inventario, calendario, Inicio y respaldos. [Matriz, QA-022 y checklist](docs/PLAN-012-consolidacion-funcional.md).

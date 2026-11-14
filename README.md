@@ -1,5 +1,7 @@
 # Acompaña
 
+**Estado al 2026-11-14.** MACRO-001 consolida la gestión de fichas, el acceso a historiales y las escrituras de los flujos existentes en `development` local. La versión de caché es v16. [Alcance de Acompaña 1.0 y resultados de revisión](docs/MACRO-001-finalizacion-funcional-visual.md).
+
 **Estado al 2026-11-13.** PREVIEW-011 está publicado en `origin/development` hasta `f151111`. PLAN-012 queda local y mejora validaciones, inventario, calendario, Inicio y respaldos. [Informe y checklist de PLAN-012](docs/PLAN-012-consolidacion-funcional.md).
 
 **Estado al 2026-11-06.** PLAN-009 y UX-013 están en `origin/development` hasta `6968fec`. PLAN-010 está implementado localmente en `development` y queda pendiente de revisión del propietario. [Informe de PLAN-009](docs/PLAN-009-calidad-integral.md) · [Reglas y checklist de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).

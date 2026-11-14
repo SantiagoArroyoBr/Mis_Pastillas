@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-14 — MACRO-001 local
+
+Se compactaron los controles de fichas, se corrigió la vista vacía de los filtros y se extendió la protección ante escrituras fallidas. Los historiales conservan más de 40 precios y permiten consultar citas anteriores. La PWA se identifica como Acompaña y usa la caché v16. [Informe de la entrega](docs/MACRO-001-finalizacion-funcional-visual.md).
+
 ## 2026-11-13 — Publicación de PREVIEW-011 y PLAN-012 local
 
 Se publicaron los 12 commits autorizados hasta `f151111` en `development`. El check de Vercel pasó. PLAN-012 mejora diagnóstico de existencias, foco en formularios, acceso a citas, prioridades de Inicio y revisión de respaldos. [Estado, evidencia y checklist](docs/PLAN-012-consolidacion-funcional.md).

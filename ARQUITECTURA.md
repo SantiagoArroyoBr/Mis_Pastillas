@@ -1,5 +1,9 @@
 # Arquitectura de Acompaña
 
+## MACRO-001 — Estado de los formularios e historiales
+
+Los flujos corregidos preparan estados candidatos y esperan el resultado de `save` antes de actualizar los datos en memoria. El chequeo de concurrencia sigue siendo preventivo. El historial de precios conserva las entradas cargadas al añadir compras. El historial de citas muestra fechas legadas inválidas con su valor original y permite acceder a la edición. Los recursos de la entrega se sirven desde `acompanha-v16`. [Hallazgos, cobertura y riesgos](docs/MACRO-001-finalizacion-funcional-visual.md).
+
 ## PLAN-010 — Jornadas devengadas y saldo general
 
 `payments.js` aplica un corte inclusivo por fecha local validada al costo monetario de cada servicio. El libro general sigue separado de la cobertura de `cover()` y de las aplicaciones de PAG-001. `compatibility.js` valida la precisión del total de abonos activos de forma independiente del costo registrado, para admitir anticipos generales con la misma estructura de datos.

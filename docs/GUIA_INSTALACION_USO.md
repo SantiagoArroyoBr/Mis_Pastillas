@@ -2,6 +2,14 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## MACRO-001 local
+
+En **Medicinas**, elige una ficha y usa los controles de edición, archivo o retiro de la ficha seleccionada. **Consultar archivadas** cambia de grupo. Si el grupo está vacío, puedes volver al otro grupo o usar **Añadir ficha**.
+
+En **Inicio**, abre **Citas anteriores** para consultar citas que ya salieron de Recientes. Si una fecha antigua es inválida, la lista muestra el valor original y puedes corregirlo mediante **Editar**. Una cita con fecha válida puede prepararse para Google Calendar.
+
+En **Precios**, **Anotar precio** requiere importe y cantidad. El historial conserva las anotaciones al registrar nuevos precios y mantiene la captura en curso si quitas otra anotación. Si el almacenamiento falla, el formulario indica qué operación quedó sin guardar.
+
 ## PLAN-012 local
 
 En Medicinas, **Agotado** indica cero existencias y **Existencias insuficientes** indica que lo disponible no cubre el siguiente consumo completo. Abre **Pautas de consumo** o **Uso del insumo** para revisar el detalle. Desde una fecha del calendario con cita, pulsa **Editar cita**. Si un formulario señala un campo, corrige ahí el valor y vuelve a guardar con el resto del borrador.
