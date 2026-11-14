@@ -204,6 +204,70 @@ after(async () => {
   if (browserProfile) fs.rmSync(browserProfile, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 });
 
+test('inventario conserva horarios del borrador y evita cambios parciales ante fallo de escritura',async()=>{
+  const backup=validBackup();backup.mode='meds';
+  await seed(JSON.stringify(backup));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  await evaluate("$('#add').click();$('#n').value='Producto ficticio';$('#q').value='15';$('#h0 input').value='';$('#addc').click();$('#f').requestSubmit()");
+  assert.equal(await evaluate("$('#h0 input').value"),'');
+  assert.equal(await evaluate("document.activeElement===$('#h0 input') && $('#h0').nextElementSibling===$('#err')"),true);
+  assert.equal(await evaluate("$('#n').value"),'Producto ficticio');
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  await evaluate("$('#h0 input').value='09:07';$('#h0 input').dispatchEvent(new Event('input',{bubbles:true}));$('#d1').value='2';$('#f').requestSubmit()");
+  assert.equal(await evaluate("S.p[0].meds[0].cons.length"),2);
+  assert.equal(await evaluate("S.p[0].meds[0].cons[0].times[0]"),'09:07');
+  await evaluate("$('[data-a=edit]').click();$('#n').value='Cambio ficticio';$('#f').requestSubmit()");
+  assert.equal(await evaluate("S.p[0].meds[0].name"),'Cambio ficticio');
+  const saved=await evaluate('__persistenceTest.read()');
+  await evaluate("$('[data-a=box]').click();$('#q').value='12';$('#pcost').value='25';__persistenceTest.failSet=true;$('#f').requestSubmit()");
+  assert.equal(await evaluate('__persistenceTest.read()'),saved);
+  assert.deepEqual(await evaluate('S.p[0].meds[0]'),JSON.parse(saved).p[0].meds[0]);
+  assert.equal(await evaluate("$('#dlg').open&&$('#q').value==='12'&&$('#pcost').value==='25'"),true);
+  assert.match(await evaluate("$('#err').textContent"),/No se guardó/);
+});
+
+test('Inicio y Medicinas distinguen el agotamiento y mantienen abiertas las pautas',async()=>{
+  const backup=validBackup();
+  backup.p[0].meds=[0,0.5,100].map((base,i)=>({name:'Producto ficticio '+i,base,t0:Date.now(),cons:[{dose:1,times:['08:00'],schedule:{type:'daily'}}]}));
+  await seed(JSON.stringify(backup));await navigate();
+  assert.match(await evaluate("$('#homeView').textContent"),/Producto ficticio 0.*Agotado.*Producto ficticio 1.*Existencias insuficientes/s);
+  await evaluate("$('[data-m=meds]').click();$('[data-panel=consumption-0-0]').open=true;$('[data-panel=consumption-0-0] summary').focus()");
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.inventory-card .badge')].map(el=>el.textContent)"),['Agotado','Existencias insuficientes','Bien']);
+  await evaluate("S.p[0].meds[0].name='Nombre ficticio actualizado';__persistenceTest.refresh()");
+  assert.equal(await evaluate("document.activeElement.parentElement.dataset.panel==='consumption-0-0'&&document.activeElement.parentElement.open"),true);
+});
+
+test('calendario identifica hoy, permite editar una cita y conserva foco al llegar al límite mensual',async()=>{
+  const backup=validBackup();
+  await navigate();
+  const today=await evaluate('ymd(new Date())');
+  backup.appts=[{id:'appt_plan012',i:0,d:today,t:'10:00',w:'Lugar ficticio',n:''}];
+  await seed(JSON.stringify(backup));await navigate();
+  await evaluate("$('[data-pa=day][aria-current=date]').click();$('#dlg [data-pa=aedit]').click()");
+  assert.equal(await evaluate("$('#ap_w').value"),'Lugar ficticio');
+  await evaluate("$('#ap_d').value='';$('#f').requestSubmit()");
+  assert.equal(await evaluate("document.activeElement.id"),'ap_d');
+  await evaluate("$('#no').click();calM=5;render();$('[data-pa=cm][data-s=\"1\"]').click()");
+  assert.equal(await evaluate('document.activeElement.id'),'calendarMonth');
+  assert.equal(await evaluate('__persistenceTest.read()'),JSON.stringify(backup));
+});
+
+test('restaurar anuncia la cancelación con Escape y consume la confirmación una vez',async()=>{
+  const raw=JSON.stringify(validBackup('Ficha original ficticia'));
+  await seed(raw);await navigate();
+  const backup=validBackup('Ficha restaurada ficticia');
+  await uploadJson(backup);await continueRestore();await cdp.send('Page.bringToFront');
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await waitFor("!$('#dlg').open && $('#backupStatus').textContent.includes('Restauración cancelada')");
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  assert.equal(await evaluate('__persistenceTest.writes'),0);
+  await uploadJson(backup);await continueRestore();
+  await evaluate("(()=>{const confirm=$('#restoreConfirm');confirm.click();confirm.click()})()");
+  assert.equal(await evaluate('__persistenceTest.writes'),1);
+  assert.equal(await evaluate('S.p[0].name'),backup.p[0].name);
+});
+
 test('instalación nueva habilita persistencia y operaciones normales', async () => {
   await seed(null); await navigate();
   assert.equal(await evaluate('persistenceReady'), true);
@@ -722,6 +786,7 @@ test('las citas identifican la ficha por índice aunque los nombres coincidan', 
 
 test('la PWA abre y recarga offline, espera para actualizar y conserva los datos', async () => {
   const receiptDateUpdate = initialVersion==='v13'&&updatedVersion==='v14'&&PREVIOUS_ASSETS;
+  const inventoryUpdate = initialVersion==='v14'&&updatedVersion==='v15'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -773,7 +838,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
+    const updatedAssets = inventoryUpdate ? "typeof stockStatus==='function'"
+      : receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
       : PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
       : "window.__updatedCareUI === true && getComputedStyle(document.documentElement).getPropertyValue('--updated-style').trim()==='1'";
     assert.equal(await evaluate(updatedAssets),false,'la pestaña activa mantiene sus recursos anteriores');
@@ -785,7 +851,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
+    const newAssets = inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
+      : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
       : PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
     assert.equal(await evaluate(newAssets),true,'se aplican el JavaScript y CSS de la nueva versión');
     const connection = offline => cdp.send('Network.emulateNetworkConditions', {offline,latency:0,downloadThroughput:offline?0:-1,uploadThroughput:offline?0:-1});
