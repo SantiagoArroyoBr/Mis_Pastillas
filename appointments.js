@@ -27,7 +27,11 @@ function apptsCard(){
   const all=apptList();
   const valid=all.filter(a=>window.AcompanaCompatibility.isValidDateOnly(a.d));
   const up=valid.filter(a=>a.d>=today),past=valid.filter(a=>a.d<today).slice(-3).reverse(),invalid=all.filter(a=>!window.AcompanaCompatibility.isValidDateOnly(a.d));
-  const row=(a,cls)=>`<div class="vrow${cls}"><div>🩺 <b>${esc(S.p[a.i].name)}</b> · ${esc(apptWhen(a))}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}">Editar</button>${Number.isFinite(pd(a.d).getTime())?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}">📅</a>`:''}</div></div>`;
+  const row=(a,cls)=>{
+    const patient=esc(patientLabel(S.p[a.i],a.i));
+    const when=esc(apptWhen(a));
+    return `<div class="vrow${cls}"><div>🩺 <b>${patient}</b> · ${when}${a.w?'<br>'+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</div><div class="sidebtns"><button class="btn ghost small" data-pa="aedit" data-id="${esc(a.id)}" aria-label="Editar cita de ${patient}, ${when}">Editar</button>${Number.isFinite(pd(a.d).getTime())?`<a class="btn cal small" target="_blank" rel="noopener" href="${apptCalUrl(a)}" aria-label="Preparar cita de ${patient} en Google Calendar">📅</a>`:''}</div></div>`;
+  };
   return `<article class="card blue">
     <div class="top"><h3 class="name">🩺 Citas médicas</h3></div>
     ${up.length?up.map(a=>row(a,'')).join(''):'<p class="hint">No hay citas próximas.</p>'}
@@ -41,19 +45,20 @@ function apptForm(a){
   const pi=cur?cur.i:Math.min(Math.max(getHomePatient(),0),S.p.length-1);
   form(cur?'Editar cita':'Agregar cita médica',[
     {id:'ap_p',l:'¿De quién es la cita?',t:'select',v:String(pi),options:S.p.map((patient,index)=>({v:String(index),l:patientLabel(patient,index)}))},
-    {id:'ap_d',l:'Fecha',t:'date',v:cur?cur.d:ymd(new Date())},
+    {id:'ap_d',l:'Fecha',t:'date',requireDate:true,v:cur?cur.d:ymd(new Date())},
     {id:'ap_t',l:'Hora (opcional)',t:'time',v:cur?cur.t:''},
     {id:'ap_w',l:'Médico o lugar',t:'text',ph:'Ej. Dr. Pérez, Hospital General',v:cur?cur.w:''},
     {id:'ap_n',l:'Qué preguntar o llevar (opcional)',t:'text',ph:'Ej. llevar estudios y recetas',v:cur?cur.n:''}
   ],v=>{
     const i=Number(v.ap_p);
-    if(!Number.isInteger(i)||i<0||i>=S.p.length)return'Elige a una persona de la lista.';
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.ap_d))return'Elige la fecha de la cita.';
-    if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return'Revisa la hora.';
+    if(!Number.isInteger(i)||i<0||i>=S.p.length)return{field:'ap_p',message:'Elige a una persona de la lista.'};
+    if(v.ap_t&&!/^\d{2}:\d{2}$/.test(v.ap_t))return{field:'ap_t',message:'Revisa la hora.'};
     const o={i,d:v.ap_d,t:v.ap_t||'',w:v.ap_w.trim().slice(0,80),n:v.ap_n.trim().slice(0,200)};
-    if(cur)Object.assign(cur,o);
-    else S.appts.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o});
-    save();render();
+    const appts=cur?S.appts.map(entry=>entry===cur?{...entry,...o}:entry)
+      :[...S.appts,{id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...o}];
+    if(!save({...getState(),appts}))return'No se guardó la cita. Revisa el aviso de almacenamiento.';
+    S.appts=appts;
+    render();
   },cur?'Guardar':'Agregar');
   if(cur)$('#ap_n').insertAdjacentHTML('afterend',`<button type="button" class="link" data-pa="adel" data-id="${esc(cur.id)}">Quitar esta cita</button>`);
 }

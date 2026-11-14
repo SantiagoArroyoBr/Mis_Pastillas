@@ -31,11 +31,11 @@ function showPersistenceWarning(){
   const box=document.getElementById('persistenceWarning');
   if(!box)return;
   box.hidden=false;
-  box.innerHTML=persistenceFailure==='write'
+  updateHTML(box,persistenceFailure==='write'
     ?'<h2>No se pudieron guardar los cambios</h2><p>El almacenamiento rechazó la escritura. Las modificaciones normales permanecen bloqueadas. Puedes reintentar la recuperación con un respaldo JSON válido.</p>'
     :persistenceFailure==='conflict'
     ?'<h2>Los datos cambiaron en otra pestaña</h2><p>Para conservar la versión guardada más recientemente, no se guardarán cambios desde esta pestaña. Recarga para continuar con los datos actuales.</p><button type="button" class="btn" id="reloadFreshState">Recargar datos guardados</button>'
-    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>Utiliza “Restaurar respaldo” para recuperar la aplicación con una copia JSON válida.</p>';
+    :'<h2>Almacenamiento en modo protegido</h2><p>No fue posible leer, interpretar o validar los datos guardados. El contenido original de <code>pastillas-v1</code> no se ha sobrescrito. La vista actual es temporal y no se guardarán modificaciones.</p><p>Utiliza “Restaurar respaldo” para recuperar la aplicación con una copia JSON válida.</p>');
   const reload=box.querySelector('#reloadFreshState');if(reload)reload.onclick=()=>location.reload();
 }
 
@@ -91,7 +91,8 @@ document.addEventListener('submit',e=>{
   showPersistenceWarning();
 },true);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const LBL={green:['✓','Bien'],amber:['!','Comprar pronto'],red:['✕','Urgente']};
+const stockLabels={green:'Bien',amber:'Comprar pronto',red:'Urgente'};
+const stockStatus=c=>c.rem===0?'Agotado':!c.left?'Existencias insuficientes':stockLabels[c.st];
 
 // ================= PAGOS E INICIO (solo recordatorios; no se paga desde la app) =================
 // Se paga por adelantado un número de días que varía. Un día cuenta como día pagado cuando tiene un enfermero registrado.
@@ -140,11 +141,11 @@ function renderHome(){
   const buys=[];
   S.p.forEach((p,i)=>p.meds.forEach(m=>{const c=calc(m);if(c.st!=='green')buys.push({p,i,m,c})}));
   buys.sort((a,b)=>a.c.buy-b.c.buy);
-  buys.forEach(x=>rows.push({o:x.c.st==='red'?0:1,h:`<div class="vrow todo ${x.c.st}"><div>🛒 Comprar <b>${esc(x.m.name)}</b> (${esc(x.p.name)}): ${x.c.st==='red'?'urgente':'antes del '+fmt(x.c.buy)}</div><button class="btn ghost small tbtn" data-pa="gomed" data-i="${x.i}">Ver</button></div>`}));
+  buys.forEach(x=>rows.push({o:x.c.st==='red'?0:2,h:`<div class="vrow todo ${x.c.st}"><div>🛒 <b>${esc(x.m.name)}</b> (${esc(x.p.name)}) · ${stockStatus(x.c)}${x.c.st==='amber'?' antes del '+fmt(x.c.buy):''}</div><button class="btn ghost small tbtn" data-pa="gomed" data-i="${x.i}">Ver</button></div>`}));
   // El saldo administrativo se muestra de forma general, sin atribución a personas.
-  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)rows.push({o:0,h:'<div class="vrow todo amber"><div>💵 Los costos registrados de jornadas superan los abonos generales recibidos.</div><button class="btn ghost small tbtn" data-pa="adminPay">Registrar abono</button></div>'});
+  if(generalSummary(allServiceRows(),generalRows()).balanceCents>0)rows.push({o:2,h:'<div class="vrow todo amber"><div>💵 Saldo general pendiente</div><button class="btn ghost small tbtn" data-pa="adminPay">Registrar abono</button></div>'});
   // citas médicas de hoy y de los próximos 2 días
-  apptDue().forEach(x=>rows.push({o:x.k===0?0:1,h:`<div class="vrow todo ${x.k===0?'red':'amber'}"><div>🩺 Cita de <b>${esc(S.p[x.a.i].name)}</b>: ${x.k===0?'hoy':x.k===1?'mañana':'en 2 días'}${x.a.t?' · '+esc(x.a.t):''}${x.a.w?' — '+esc(x.a.w):''}</div><button class="btn ghost small tbtn" data-pa="aedit" data-id="${esc(x.a.id)}">Detalle</button></div>`}));
+  apptDue().forEach(x=>rows.push({o:x.k===0?0:2,h:`<div class="vrow todo ${x.k===0?'red':'amber'}"><div>🩺 Cita de <b>${patientLabel(S.p[x.a.i],x.a.i)}</b> · ${x.k===0?'hoy':x.k===1?'mañana':'en 2 días'}${x.a.t?' · '+esc(x.a.t):''}</div><button class="btn ghost small tbtn" data-pa="aedit" data-id="${esc(x.a.id)}">Detalle</button></div>`}));
   // enfermeros de hoy y mañana (los domingos no se avisa que falta: es normal que no venga nadie)
   S.p.forEach((p,i)=>{
     if(!nurList(i).length)return;
@@ -197,9 +198,9 @@ function calHTML(i){
     }).join('')+(es.length>3?`<span class="hint">+${es.length-3}</span>`:'');
     const notes=[coveredLegacy?'atención registrada, fecha imputada al prepago':es.length?'atención registrada':'',firstUnp?'fecha pendiente en el conteo administrativo':'',ev&&ev.buy.length?'comprar medicinas o insumos':'',ev&&ev.end.length?'se acaban medicinas o insumos':'',hasA?'cita médica':''].filter(Boolean);
     const lab=dn+' de '+title+(notes.length?' ('+notes.join(', ')+')':'')+(es.length?': '+es.length+' asignaciones · '+es.map(e=>e.n+' · '+window.AcompanaCareUI.assignmentLabel(e,nurList(i))).join(', '):'');
-    cells+=`<button class="cell${ds===todayS?' today':''}${coveredLegacy?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
+    cells+=`<button class="cell${ds===todayS?' today':''}${coveredLegacy?' paid':''}${ev&&ev.end.length?' end':ev&&ev.buy.length?' buy':''}" data-pa="day" data-i="${i}" data-d="${ds}" aria-label="${esc(lab)}"${ds===todayS?' aria-current="date"':''}><span class="dn">${dn}</span>${mk?`<span class="mk">${mk}</span>`:''}${chips}</button>`;
   }
-  return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b>${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
+  return `<div class="calhead"><button class="btn ghost small" data-pa="cm" data-s="-1" aria-label="Mes anterior"${calM<=-12?' disabled':''}>◀</button><b id="calendarMonth" tabindex="-1">${title}</b><button class="btn ghost small" data-pa="cm" data-s="1" aria-label="Mes siguiente"${calM>=6?' disabled':''}>▶</button></div>
     <div class="calgrid">${cells}</div>
     <p class="hint">C · Jornada completa · M · Media jornada · ? · Modalidad sin confirmar. Abre una fecha para consultar todas sus asignaciones y el estado del personal.</p>
     ${cv.has?`<p class="hint"><b>Fechas con atención registrada: ${cv.dates.length}</b> · Desde ${esc(fmtD(c.base))}, incluidas las asignaciones futuras.</p>`:''}
@@ -237,7 +238,10 @@ function payAction(t){
     else{showT=Date.now()+8000;setTimeout(()=>{if(Date.now()>=showT-50){showT=0;render()}},8100)}
     render();
   }
-  else if(pa==='cm'){calM=Math.max(-12,Math.min(6,calM+(+t.dataset.s)));render()}
+  else if(pa==='cm'){
+    calM=Math.max(-12,Math.min(6,calM+(+t.dataset.s)));render();
+    if($(`[data-pa=cm][data-s="${t.dataset.s}"]`)?.disabled)$('#calendarMonth').focus({preventScroll:true});
+  }
   else if(pa==='day')dayForm(i,ds);
   else if(pa==='nadd')nurseForm(i);
   else if(pa==='nedit')nurseForm(i,+t.dataset.k);
@@ -314,12 +318,13 @@ function render(){
   updateHTML($('#soon'),h);
   updateHTML($('#spend'),spendHTML());
   updateHTML($('#list'),P.meds.length?P.meds.map((m,i)=>({m,i})).sort((a,b)=>(a.m.kind==='sup')-(b.m.kind==='sup')).map(({m,i})=>{
-    const c=calc(m),[ic,tx]=LBL[c.st];
-    return `<article class="card ${c.st}">
-      <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${ic} ${tx}</span></div>
+    const c=calc(m);
+    return `<article class="card inventory-card ${c.st}">
+      <div class="top"><h3 class="name">${m.kind==='sup'?'🧴 ':''}${esc(m.name)}</h3><span class="badge">${stockStatus(c)}</span></div>
       <p class="big">${num(c.rem)} <small>${un(m)}</small></p>
       ${m.kind==='sup'?'':`<p class="hint" role="note">Este saldo pertenece a un solo inventario compartido por ${m.cons.length} ${m.cons.length===1?'pauta de consumo':'pautas de consumo'}. El saldo y el aviso de reposición consideran todas las pautas.</p>`}
-      <p class="info">Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b>${m.kind==='sup'?'':` (${c.left} tomas)`}.${c.end?`<br>${m.kind==='sup'?'Alcanza hasta el':'Última toma completa:'} <b>${fmt(c.end)}</b>.`:'<br><b>Ya no alcanza para '+(m.kind==='sup'?'un día de uso':'una toma')+'.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.<br><br>${consText(m)}</p>
+      <p class="info">${c.end?`Alcanzan para <b>${c.days} ${c.days===1?'día':'días'}</b>${m.kind==='sup'?'':` (${c.left} tomas)`}.<br>${m.kind==='sup'?'Alcanza hasta el':'Última toma completa:'} <b>${fmt(c.end)}</b>.`:'<b>Ya no alcanza para '+(m.kind==='sup'?'un día de uso':'una toma')+'.</b>'}<br>Comprar: <b>${c.now?'hoy':'antes del '+fmt(c.buy)}</b>.</p>
+      <details data-panel="consumption-${S.sel}-${i}"><summary>${m.kind==='sup'?'Uso del insumo':'Pautas de consumo'}</summary><p class="info">${consText(m)}</p></details>
       ${priceLine(m)}
       <button class="btn" data-a="box" data-i="${i}">Compré más</button>
       <div class="row"><button class="btn ghost small" data-a="edit" data-i="${i}">Editar</button>
@@ -427,7 +432,7 @@ dlg.addEventListener('click',e=>{
 const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes,weekDays:window.AcompanaDomain.WD_SHORT,palette:NPAL,paletteNames:NPALN});
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
-const {supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
+const {saveInventory,replaceInventory,supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
 const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId,assignmentRemovalBlock});
 
 document.addEventListener('click',e=>{
@@ -473,9 +478,8 @@ document.addEventListener('click',e=>{
   }
   else if(t.id==='imp'){$('#impFile').click()}
   else if(t.id==='add'){
-    medForm('Agregar medicina',{name:'',q:'',cons:[newCons()]},(name,q,cons)=>{
-      P.meds.push({name,base:q,cons,t0:Date.now()});save();render();
-    },'Agregar');
+    medForm('Agregar medicina',{name:'',q:'',cons:[newCons()]},(name,q,cons)=>
+      saveInventory(P,[...P.meds,{name,base:q,cons,t0:Date.now()}]),'Agregar');
   }
   else if(t.id==='addsup'){supAdd(P)}
   else if(t.dataset.pa){payAction(t)}
@@ -489,23 +493,30 @@ document.addEventListener('click',e=>{
         {id:'pshop',l:'¿Dónde la compraste? (opcional)',t:'text',ph:'Ej. Farmacia del Ahorro',presets:shopPresets()}
       ],v=>{
         const boxes=pos(v.boxes),q=pos(v.q);
-        if(!(boxes>0))return'Escribe cuántas cajas compraste.';
-        if(!(q>0))return'Escribe cuántas '+un(m)+' trae cada caja.';
+        if(!(boxes>0))return{field:'boxes',message:'Escribe cuántas cajas compraste.'};
+        if(!(q>0))return{field:'q',message:'Escribe cuántas '+un(m)+' trae cada caja.'};
         let pr=null;
-        if(String(v.pcost).trim()!==''){pr=pos(v.pcost);if(!(pr>=0))return'El costo debe ser un número (o déjalo vacío).'}
-        const c=calc(m);m.base=c.rem+boxes*q;m.t0=Date.now();
-        if(pr!==null)addBuy(m,pr,boxes*q,v.pshop);
-        save();render();setTimeout(()=>result(m),50);
+        if(String(v.pcost).trim()!==''){pr=pos(v.pcost);if(!(pr>=0))return{field:'pcost',message:'El costo debe ser un número (o déjalo vacío).'}}
+        const updated={...m,base:calc(m).rem+boxes*q,t0:Date.now()};
+        if(pr!==null){
+          updated.buys=[...(m.buys||[])];
+          addBuy(updated,pr,boxes*q,v.pshop);
+        }
+        const error=replaceInventory(P,m,updated);
+        if(error)return error;
+        setTimeout(()=>result(updated),50);
       },'Sumar '+un(m));
     }else if(t.dataset.a==='edit'&&m.kind==='sup'){supEdit(m)}else if(t.dataset.a==='edit'){
       const c=calc(m);
-      medForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,cons:JSON.parse(JSON.stringify(m.cons))},(name,q,cons)=>{
-        m.name=name;m.base=q;m.cons=cons;m.t0=Date.now();save();render();
-      },'Guardar cambios');
+      medForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,cons:JSON.parse(JSON.stringify(m.cons))},(name,q,cons)=>
+        replaceInventory(P,m,{...m,name,base:q,cons,t0:Date.now()}),'Guardar cambios');
     }else if(t.dataset.a==='fix'){
       form('Corregir cantidad: '+esc(m.name),[{id:'q',l:'Cuente las '+un(m)+' que hay y escriba el número',v:calc(m).rem}],v=>{
-        const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe un número.';
-        m.base=q;m.t0=Date.now();save();render();setTimeout(()=>result(m),50);
+        const q=pos(v.q);if(!(q>=0)||v.q==='')return{field:'q',message:'Escribe un número.'};
+        const updated={...m,base:q,t0:Date.now()};
+        const error=replaceInventory(P,m,updated);
+        if(error)return error;
+        setTimeout(()=>result(updated),50);
       },'Corregir');
     }else if(t.dataset.a==='price'){priceForm(S.sel,+t.dataset.i)}else if(t.dataset.a==='del'){
       form('¿Borrar '+esc(m.name)+'?',[],()=>{P.meds.splice(+t.dataset.i,1);save();render()},'Sí, borrar');
@@ -550,7 +561,10 @@ function confirmRestore(candidate){
 function showRestoreConfirmation(candidate){
   dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
-  $('#restoreConfirm').onclick=()=>{
+  const confirm=$('#restoreConfirm');
+  confirm.onclick=()=>{
+    if(!dlg.open||confirm.disabled)return;
+    confirm.disabled=true;
     let serialized;
     try{
       if(persistenceFailure!=='read'&&localStorage.getItem(STORAGE_KEY)!==lastPersistedRaw){persistenceReady=false;persistenceFailure='conflict';dlg.close();showPersistenceWarning();setBackupStatus('Los datos cambiaron en otra pestaña. Recarga y revisa el respaldo antes de volver a restaurarlo.');return}
@@ -577,6 +591,10 @@ function showRestoreConfirmation(candidate){
   };
   focusBackupDialog();
 }
+
+$('#dlg').addEventListener('cancel',()=>{
+  if($('#dlg #cancelRestore'))setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');
+});
 
 $('#impFile').addEventListener('change',e=>{
   const file=e.target.files[0];if(!file)return;

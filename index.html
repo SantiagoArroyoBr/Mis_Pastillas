@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Cuidados</title>
+<title>Acompaña</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#315B50">
 <link rel="manifest" href="manifest.json">
@@ -43,9 +43,10 @@
   <p id="accountStatus" class="account-status" role="status"></p>
   <div class="row backup">
     <button class="btn ghost small" id="exp" aria-describedby="backupHelp">⬇️ Exportar respaldo</button>
-    <button class="btn ghost small" id="imp">⬆️ Restaurar respaldo</button>
+    <button class="btn ghost small" id="imp" aria-describedby="restoreHelp">⬆️ Restaurar respaldo</button>
   </div>
-  <p class="hint" id="backupHelp">El respaldo descarga una copia privada de tus datos; no borra lo guardado. Conserva el archivo en un lugar seguro.</p>
+  <p class="hint" id="backupHelp">La descarga crea una copia privada JSON y no borra lo guardado. Incluye fichas, medicinas, citas, turnos y pagos.</p>
+  <p class="hint" id="restoreHelp">Puedes revisar el archivo antes de confirmar el reemplazo de los datos guardados en este navegador.</p>
   <p class="hint" id="backupStatus" role="status" aria-live="polite" hidden></p>
   <input type="file" id="impFile" accept="application/json" hidden>
 </main>

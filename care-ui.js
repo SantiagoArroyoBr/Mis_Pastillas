@@ -149,7 +149,7 @@ function generalPayForm(){
     {id:'adminAmount',l:'Importe recibido (MXN)',v:'',h:'El abono reduce el saldo general. El excedente queda a favor para jornadas posteriores.'},
     {id:'adminConcept',l:'Concepto o nota (opcional)',t:'text',ph:'Ej. transferencia',v:''}
   ],v=>{
-    const cents=toCents(v.adminAmount);if(!Number.isSafeInteger(cents)||cents<=0)return'Escribe un importe mayor que cero, con hasta dos decimales.';
+    const cents=toCents(v.adminAmount);if(!Number.isSafeInteger(cents)||cents<=0)return{field:'adminAmount',message:'Escribe un importe mayor que cero, con hasta dos decimales.'};
     const movements=generalLedger(),current=generalSummary([],movements);
     if(!Number.isSafeInteger(current.receivedCents+cents))return'El total de abonos excede la precisión monetaria segura.';
     return saveGeneralMovement({id:newId('admin_receipt'),type:'receipt',date:v.adminDate,amountCents:cents,concept:v.adminConcept.trim().slice(0,120)});
@@ -173,7 +173,7 @@ function cancelGeneralPayForm(id){
     {id:'cancelDate',l:'Fecha de cancelación',t:'date',requireDate:true,v:ymd(new Date())},
     {id:'cancelReason',l:'Motivo (opcional)',t:'text',ph:'Ej. importe capturado incorrectamente',v:''}
   ],v=>{
-    if(validReceiptDate&&v.cancelDate<receipt.date)return'La cancelación no puede tener una fecha anterior al abono.';
+    if(validReceiptDate&&v.cancelDate<receipt.date)return{field:'cancelDate',message:'La cancelación no puede tener una fecha anterior al abono.'};
     const latest=generalSummary([],generalLedger());
     if(latest.cancelledIds.has(id))return'Este abono ya fue cancelado.';
     return saveGeneralMovement({id:newId('admin_cancel'),type:'cancellation',originalId:id,date:v.cancelDate,amountCents:receipt.amountCents,concept:v.cancelReason.trim().slice(0,120)});
@@ -204,30 +204,35 @@ function nurseForm(i,k){
     {id:'rateHalf',l:'Tarifa de media jornada (MXN; vacío si no la ofrece)',v:dollars(rates.half),h:'Importe independiente. No se calcula a partir de la otra modalidad.'}
   ],v=>{
     const n=v.nn.trim().slice(0,40);
-    if(!n)return'Escribe el nombre.';
+    if(!n)return{field:'nn',message:'Escribe el nombre.'};
     if(!NPAL.includes(v.nc))return'Elige un color.';
-    if(nurList(i).some((x,j)=>j!==k&&x.n.toLowerCase()===n.toLowerCase()))return'Ya hay un enfermero/a con ese nombre.';
+    if(nurList(i).some((x,j)=>j!==k&&x.n.toLowerCase()===n.toLowerCase()))return{field:'nn',message:'Ya hay un enfermero/a con ese nombre.'};
     const parseRate=(raw,label)=>{
       if(String(raw).trim()==='')return null;
       const cents=toCents(raw);return Number.isSafeInteger(cents)&&cents>=0?cents:label;
     };
-    const full=parseRate(v.rateFull,'La tarifa de jornada completa no es válida.');if(typeof full==='string')return full;
-    const half=parseRate(v.rateHalf,'La tarifa de media jornada no es válida.');if(typeof half==='string')return half;
+    const full=parseRate(v.rateFull,'La tarifa de jornada completa no es válida.');if(typeof full==='string')return{field:'rateFull',message:full};
+    const half=parseRate(v.rateHalf,'La tarifa de media jornada no es válida.');if(typeof half==='string')return{field:'rateHalf',message:half};
     if(full===null&&half===null&&(!cur||cur.ratesCents))return'Configura al menos una modalidad con tarifa. Una tarifa de $0 sí cuenta como configurada.';
     if(cur&&cur.ratesCents){
       if((cur.ratesCents.full!==null&&full===null)||(cur.ratesCents.half!==null&&half===null))return'Para retirar una modalidad usa su acción de retiro, que solicita confirmación.';
     }
-    if(cur){
-      if(cur.n!==n){
-        Object.keys(S.pay.v).forEach(dk=>{const a=S.pay.v[dk][i];if(Array.isArray(a))a.forEach(e=>{if(e.n===cur.n)e.n=n})});
-        cur.n=n;
-      }
-      cur.c=v.nc;cur.id=cur.id||newId('nurse');if(full!==null||half!==null)cur.ratesCents={full,half};
-    }else{
-      const L=(S.pay.nurses[i]=Array.isArray(S.pay.nurses[i])?S.pay.nurses[i]:[]);
-      L.push({id:newId('nurse'),n,c:v.nc,ratesCents:{full,half}});
+    const updated={...cur,id:cur?.id||newId('nurse'),n,c:v.nc};
+    if(full!==null||half!==null)updated.ratesCents={full,half};
+    const nurses=S.pay.nurses.slice();
+    nurses[i]=cur?nurList(i).map(entry=>entry===cur?updated:entry):[...nurList(i),updated];
+    const visits={...S.pay.v};
+    if(cur&&cur.n!==n){
+      Object.entries(visits).forEach(([date,day])=>{
+        if(day[i]?.some(entry=>entry.n===cur.n)){
+          visits[date]={...day,[i]:day[i].map(entry=>entry.n===cur.n?{...entry,n}:entry)};
+        }
+      });
     }
-    save();render();
+    const pay={...S.pay,nurses,v:visits};
+    if(!save({...getState(),pay}))return'No se guardaron los datos de enfermería. Revisa el aviso de almacenamiento.';
+    S.pay=pay;
+    render();
   },'Guardar');
   if(cur){
     $('#f .stack').insertAdjacentHTML('afterend',`<div class="record-actions"><button type="button" class="btn ghost small danger" data-pa="nrm" data-i="${i}" data-k="${k}">${cur.inactive===true?'Reactivar enfermero/a':'Retirar enfermero/a'}</button></div>`);
@@ -255,7 +260,7 @@ function dayForm(i,ds){
   let info='';
   if(cv.covered.has(ds))info+='<p class="info">Fecha con atención registrada e imputada al prepago de la ficha.</p>';
   else if(cv.has&&cv.unpaid.includes(ds))info+='<p class="info">Fecha con atención registrada, pendiente en el conteo administrativo de la ficha. Consulta el saldo monetario en Pagos.</p>';
-  S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}</p>`});
+  S.appts.filter(a=>a.i===i&&a.d===ds).forEach(a=>{info+=`<p class="info">🩺 <b>Cita médica</b>${a.t?' a las '+esc(a.t):''}${a.w?': '+esc(a.w):''}${a.n?'<br><span class="hint">'+esc(a.n)+'</span>':''}<br><button type="button" class="link neutral" data-pa="aedit" data-id="${esc(a.id)}">Editar cita</button></p>`});
   if(dt.getDay()===0)info+='<p class="hint">Los domingos solo cuentan como día si hay un enfermero registrado.</p>';
   if(ev&&ev.buy.length)info+=`<p class="info">🛒 Comprar: <b>${ev.buy.map(x=>esc(x)).join(', ')}</b></p>`;
   if(ev&&ev.end.length)info+=`<p class="info">⚠️ Se acaban: <b>${ev.end.map(x=>esc(x)).join(', ')}</b> (última toma completa ese día)</p>`;

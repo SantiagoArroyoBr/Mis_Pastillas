@@ -3,24 +3,34 @@
   function create({getState,save,render,form,query,escape,dates,calc,events,parseTimes,calendarUrl,amount,amountVisible,unit,dialog}) {
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
     const $=query,esc=escape,dlg=dialog,{ymd,pd,fmt}=dates,evs=events,calUrl=calendarUrl,A=amount,amtOn=amountVisible,un=unit;const supCons=u=>[{dose:u,times:['08:00'],schedule:{type:'daily'}}];
+function saveInventory(patient,meds){
+  const state=getState();
+  const p=state.p.map(entry=>entry===patient?{...entry,meds}:entry);
+  if(!save({...state,p}))return'No se guardó el cambio. Revisa el aviso de almacenamiento.';
+  S.p=p;
+  render();
+}
+function replaceInventory(patient,medicine,updated){
+  return saveInventory(patient,patient.meds.map(entry=>entry===medicine?updated:entry));
+}
 function supForm(title,D,onSave,btn){
   form(title,[
     {id:'n',l:'Nombre del insumo',t:'text',ph:'Ej. Pañales',v:D.name},
     {id:'q',l:'Piezas que hay ahora',ph:'Ej. 30',v:D.q},
     {id:'u',l:'Piezas que se usan al día',ph:'Ej. 3',v:D.use,h:'Puede ser decimal: ½ equivale a una pieza cada dos días.'}
   ],v=>{
-    if(!v.n.trim())return'Escribe el nombre del insumo.';
-    const q=pos(v.q);if(!(q>=0)||v.q==='')return'Escribe cuántas piezas hay.';
-    const u=pos(v.u);if(!(u>0))return'Escribe cuántas piezas se usan al día.';
-    onSave(v.n.trim().slice(0,40),q,u);
+    if(!v.n.trim())return{field:'n',message:'Escribe el nombre del insumo.'};
+    const q=pos(v.q);if(!(q>=0)||v.q==='')return{field:'q',message:'Escribe cuántas piezas hay.'};
+    const u=pos(v.u);if(!(u>0))return{field:'u',message:'Escribe cuántas piezas se usan al día.'};
+    return onSave(v.n.trim().slice(0,40),q,u);
   },btn);
 }
 function supAdd(P){
-  supForm('Agregar insumo',{name:'',q:'',use:''},(name,q,u)=>{P.meds.push({name,base:q,cons:supCons(u),t0:Date.now(),kind:'sup'});save();render()},'Agregar');
+  supForm('Agregar insumo',{name:'',q:'',use:''},(name,q,u)=>saveInventory(P,[...P.meds,{name,base:q,cons:supCons(u),t0:Date.now(),kind:'sup'}]),'Agregar');
 }
 function supEdit(m){
   const c=calc(m);
-  supForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,use:(m.cons[0]||{}).dose||'1'},(name,q,u)=>{m.name=name;m.base=q;m.cons=supCons(u);m.t0=Date.now();save();render()},'Guardar cambios');
+  supForm('Editar: '+esc(m.name),{name:m.name,q:c.rem,use:(m.cons[0]||{}).dose||'1'},(name,q,u)=>replaceInventory(S.p[S.sel],m,{...m,name,base:q,cons:supCons(u),t0:Date.now()}),'Guardar cambios');
 }
 
 
@@ -83,10 +93,12 @@ function priceForm(pi,mi){
   ],v=>{
     if(String(v.pcost).trim()===''&&String(v.pun).trim()==='')return;
     const pr=pos(v.pcost),n=pos(v.pun);
-    if(String(v.pcost).trim()===''||!(pr>=0))return'Escribe el precio total.';
-    if(!(n>0))return'Escribe para cuántas '+un(m)+' es ese precio.';
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.pdate))return'Elige la fecha.';
-    addBuy(m,pr,n,v.pshop,v.pdate);save();render();
+    if(String(v.pcost).trim()===''||!(pr>=0))return{field:'pcost',message:'Escribe el precio total.'};
+    if(!(n>0))return{field:'pun',message:'Escribe para cuántas '+un(m)+' es ese precio.'};
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.pdate))return{field:'pdate',message:'Elige la fecha.'};
+    const updated={...m,buys:[...(m.buys||[])]};
+    addBuy(updated,pr,n,v.pshop,v.pdate);
+    return replaceInventory(S.p[pi],m,updated);
   },'Anotar precio');
   const list=rows.length
     ? '<div>'+rows.map(({b,k})=>`<div class="vrow"><div><b>${esc(fmtD(b.d))}</b>${b.w?' · '+esc(b.w):''}<br><span class="hint">${money(b.p)} por ${num(b.n)} ${un(m)} · ${money(unitPrice(b))} por ${unit1(m)}</span></div><button type="button" class="link" data-pa="prm" data-i="${pi}" data-m="${mi}" data-k="${k}">Quitar</button></div>`).join('')+'</div>'
@@ -120,24 +132,24 @@ function medForm(title,D,onSave,btn){
       {id:'h'+k,l:'Horas de las tomas',t:'times',v:c.times});
   });
   form(title,f,v=>{
-    if(!v.n.trim())return'Escribe el nombre de la medicina.';
+    if(!v.n.trim())return{field:'n',message:'Escribe el nombre de la medicina.'};
     const q=pos(v.q);
-    if(!(q>=0)||v.q==='')return'Escribe cuántas pastillas hay.';
+    if(!(q>=0)||v.q==='')return{field:'q',message:'Escribe cuántas pastillas hay.'};
     const cons=[];
     for(let k=0;k<D.cons.length;k++){
       const d=pos(v['d'+k]),h=parseTimes(v['h'+k]),s=v['sch'+k],tag='Consumo '+(k+1)+': ';
-      if(!(d>0))return tag+'escribe cuántas pastillas se toman cada vez (puede ser ½, ¼, etc.).';
-      if(s.type==='weekdays'&&(!s.days||!s.days.length))return tag+'elige al menos un día de la semana.';
-      if(!h||!h.length)return tag+(h===null?'revisa el formato de las horas (ej. 08:00).':'agrega al menos una hora.');
+      if(!(d>0))return{field:'d'+k,message:tag+'escribe cuántas pastillas se toman cada vez (puede ser ½, ¼, etc.).'};
+      if(s.type==='weekdays'&&(!s.days||!s.days.length))return{field:'sch'+k+'-wdbtns',message:tag+'elige al menos un día de la semana.'};
+      if(!h||!h.length)return{field:'h'+k,message:tag+(h===null?'revisa el formato de las horas (ej. 08:00).':'agrega al menos una hora.')};
       cons.push({dose:d,times:h,schedule:s});
     }
-    onSave(v.n.trim(),q,cons);
+    return onSave(v.n.trim(),q,cons);
   },btn);
 
   // Lee lo que ya escribió el usuario para no perderlo al agregar/quitar consumos
   const read=()=>{
     const v=dlg._collect();
-    return{name:v.n,q:v.q,cons:D.cons.map((_,k)=>({dose:v['d'+k],schedule:v['sch'+k],times:parseTimes(v['h'+k])||['08:00']}))};
+    return{name:v.n,q:v.q,cons:D.cons.map((_,k)=>({dose:v['d'+k],schedule:v['sch'+k],times:[...$('#h'+k).querySelectorAll('input')].map(input=>input.value)}))};
   };
   $('#err').insertAdjacentHTML('beforebegin','<button type="button" class="btn ghost" id="addc" style="margin-top:16px">+ Agregar otro consumo</button>');
   $('#addc').onclick=()=>{const r=read();r.cons.push(newCons());medForm(title,r,onSave,btn)};
@@ -145,7 +157,7 @@ function medForm(title,D,onSave,btn){
 }
 
 
-    return Object.freeze({supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm});
+    return Object.freeze({saveInventory,replaceInventory,supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm});
   }
   window.AcompanaInventory=Object.freeze({create});
 })();

@@ -28,6 +28,33 @@ function form(title,fields,ok,btn='Guardar'){
   dlg.innerHTML=`<form method="dialog" id="f" aria-labelledby="formTitle"><h2 id="formTitle">${title}</h2>${fields.map(fieldHTML).join('')}<p class="err" id="err" role="alert" aria-live="polite" tabindex="-1"></p>
   <div class="stack"><button class="btn" type="submit">${btn}</button><button class="btn ghost" type="button" id="no">Cancelar</button></div></form>`;
   $('#no').onclick=()=>dlg.close();
+  const error=$('#err');
+  const errorPosition=document.createComment('form error');
+  error.before(errorPosition);
+  let invalidInput=null;
+  const clearError=()=>{
+    invalidInput?.removeAttribute('aria-invalid');
+    invalidInput?.removeAttribute('aria-describedby');
+    invalidInput=null;
+    error.textContent='';
+    errorPosition.after(error);
+  };
+  const showError=(message,field)=>{
+    clearError();
+    const control=field&&document.getElementById(field);
+    invalidInput=control?.matches('input,select')?control:control?.querySelector('input,button');
+    if(invalidInput){
+      control.after(error);
+      invalidInput.setAttribute('aria-invalid','true');
+      invalidInput.setAttribute('aria-describedby',error.id);
+    }
+    error.textContent=message;
+    (invalidInput||error).focus();
+  };
+  const clearFieldError=e=>{if(e.target===invalidInput)clearError()};
+  const currentForm=$('#f');
+  currentForm.addEventListener('input',clearFieldError);
+  currentForm.addEventListener('change',clearFieldError);
 
   fields.filter(f=>f.t==='times').forEach(tf=>{
     const box=$('#'+tf.id);
@@ -93,24 +120,18 @@ function form(title,fields,ok,btn='Guardar'){
   };
   dlg._collect=collect;
 
-  $('#f').onsubmit=e=>{
+  currentForm.onsubmit=e=>{
     e.preventDefault();
+    if(!dlg.open||!currentForm.isConnected)return;
     const values=collect();
     const invalidDate=fields.find(f=>f.t==='date'&&(f.requireDate||values[f.id])&&!window.AcompanaCompatibility.isValidDateOnly(values[f.id]));
     if(invalidDate){
-      $('#err').textContent=values[invalidDate.id]?'La fecha no existe en el calendario. Revísala antes de guardar.':'Elige una fecha válida.';
-      const input=$('#'+invalidDate.id);
-      input.setAttribute('aria-invalid','true');
-      input.setAttribute('aria-describedby','err');
-      input.addEventListener('input',()=>{
-        input.removeAttribute('aria-invalid');
-        input.removeAttribute('aria-describedby');
-      },{once:true});
-      input.focus();
+      showError(values[invalidDate.id]?'La fecha no existe en el calendario. Revísala antes de guardar.':'Elige una fecha válida.',invalidDate.id);
       return;
     }
     const r=ok(values);
-    if(r){$('#err').textContent=r;$('#err').focus()}else dlg.close();
+    if(r)showError(r.message||r,r.field);
+    else dlg.close();
   };
   if(!dlg.open)dlg.showModal();
   else dlg.querySelector('input,select,textarea,button')?.focus();
