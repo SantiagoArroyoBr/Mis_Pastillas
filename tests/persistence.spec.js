@@ -76,7 +76,7 @@ const initScript = String.raw`(() => {
   Storage.prototype.setItem = function (name, value) {
     if (name === key) {
       state.writes++;
-      if (state.failSet) throw new DOMException('Fallo de escritura simulado', 'QuotaExceededError');
+      if (state.failSet) throw new DOMException('Fallo de escritura simulado', typeof state.failSet === 'string' ? state.failSet : 'QuotaExceededError');
     }
     return nativeSet.call(this, name, value);
   };
@@ -529,14 +529,111 @@ test('fallo de escritura durante restauración conserva almacenamiento y estado 
   assert.equal(await evaluate('persistenceReady'), false);
   assert.equal(await evaluate('S.p[0].name'), 'Persona 1');
 });
-test('la restauración también recupera un fallo de lectura de localStorage', async () => {
-  await seed(null); await navigate('?failGet=1');
+test('la restauración exige recuperar la lectura antes de reemplazar el valor', async () => {
+  const original=JSON.stringify(validBackup('Instalación ficticia inaccesible'));
+  await seed(original); await navigate('?failGet=1');
   assert.equal(await evaluate('persistenceReady'), false);
+  await uploadJson(validBackup('Recuperado tras fallo de lectura'));
+  await waitFor("document.querySelector('#closeImportMessage')");
+  assert.match(await evaluate("$('#formTitle').textContent"),/inaccesible/);
+  assert.equal(await evaluate('__persistenceTest.read()'),original);
+  assert.equal(await evaluate('__persistenceTest.writes'),0);
+  await evaluate("$('#closeImportMessage').click();__persistenceTest.failGet=false");
   await uploadJson(validBackup('Recuperado tras fallo de lectura'));
   await continueRestore();
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Recuperado tras fallo de lectura'", 'recuperación tras fallo de lectura');
   assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p[0].name"), 'Recuperado tras fallo de lectura');
+});
+
+test('cuota y SecurityError preservan el borrador y permiten reintentar el guardado',async()=>{
+  const raw=JSON.stringify(validBackup('Ficha inicial ficticia'));
+  for(const error of ['QuotaExceededError','SecurityError','UnknownError']){
+    await seed(raw);await navigate();
+    await evaluate(`$('[data-m=meds]').click();$('#addPatient').click();$('#patientName').value='Borrador ficticio';__persistenceTest.failSet=${JSON.stringify(error)};$('#f').requestSubmit()`);
+    const previous=await evaluate('__persistenceTest.read()');
+    assert.equal(await evaluate("$('#dlg').open && $('#patientName').value==='Borrador ficticio' && S.p.length===1"),true);
+    assert.equal(await evaluate('storageErrorName'),error);
+    assert.equal(JSON.parse(previous).p.length,1);
+    await evaluate("__persistenceTest.failSet=false;$('#f').requestSubmit()");
+    assert.equal(await evaluate("persistenceReady && $('#persistenceWarning').hidden && !$('#dlg').open"),true);
+    assert.equal(await evaluate("JSON.parse(__persistenceTest.read()).p.at(-1).name"),'Borrador ficticio');
+  }
+});
+
+test('un respaldo que supera la cuota se puede reintentar y el valor corrupto se puede descargar',async()=>{
+  const original='{"p":';
+  await seed(original);await navigate();
+  await evaluate("$('#exportStored').click()");
+  assert.equal(await evaluate('__persistenceTest.exportBlob.text()'),original);
+  await uploadJson(validBackup('Restauración ficticia'));
+  await continueRestore();
+  await evaluate("__persistenceTest.failSet=true;$('#restoreConfirm').click()");
+  assert.equal(await evaluate('__persistenceTest.read()'),original);
+  assert.equal(await evaluate("$('#dlg').open && !$('#restoreConfirm').disabled && !$('#retryStorage')"),true);
+  await evaluate("__persistenceTest.failSet=false;$('#restoreConfirm').click()");
+  assert.equal(await evaluate("persistenceReady && !$('#dlg').open && S.p[0].name==='Restauración ficticia'"),true);
+});
+
+test('revalida después de serializar y comprueba el resultado sin repetir una escritura incierta',async()=>{
+  const raw=JSON.stringify(validBackup('Base ficticia'));
+  const newer=JSON.stringify(validBackup('Cambio simultáneo ficticio'));
+  await seed(raw);await navigate();
+  assert.equal(await evaluate(`save({toJSON(){__persistenceTest.seed(${JSON.stringify(newer)});return S}})`),false);
+  assert.equal(await evaluate('__persistenceTest.writes'),0);
+  assert.equal(await evaluate('__persistenceTest.read()'),newer);
+  await navigate();
+  assert.equal(await evaluate(`(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(...args){set.apply(this,args);__persistenceTest.seed(${JSON.stringify(raw)})};return save()})()`),false);
+  assert.equal(await evaluate('persistenceFailure'),'conflict');
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+  await navigate();
+  assert.equal(await evaluate("(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(...args){set.apply(this,args);__persistenceTest.failGet=true};return save({...S,last:'Guardado sin confirmación'})})()"),false);
+  assert.equal(await evaluate('persistenceFailure'),'unverified');
+  assert.equal(await evaluate('save()'),false);
+  assert.equal(await evaluate('__persistenceTest.writes'),1);
+  assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last,'Guardado sin confirmación');
+});
+
+test('los turnos y textos legados sobreviven restauración, escritura y exportación',async()=>{
+  const legacy=validBackup('Ficha ficticia histórica');
+  const note='Nota ficticia de una cita. '.repeat(12);
+  legacy.appts=[{id:'legada',i:0,d:'2030-02-30',w:'Lugar ficticio',t:'',n:note}];
+  legacy.pay={who:'Responsable ficticio',day:3,paid:'2010-02-30',shifts:[{id:37,n:'Turno histórico ficticio',a:'125.50',context:{origen:'ficticio'}}]};
+  await seed(null);await navigate();await uploadJson(legacy);await continueRestore();
+  await evaluate("$('#restoreConfirm').click();apptForm(S.appts[0]);$('#ap_d').value='2030-02-28';$('#f').requestSubmit();$('#exp').click()");
+  const exported=JSON.parse(await evaluate('__persistenceTest.exportBlob.text()'));
+  assert.deepEqual(exported.pay.shifts,legacy.pay.shifts);
+  assert.equal(exported.pay.paid,legacy.pay.paid);
+  assert.equal(exported.appts[0].n,note);
+  assert.equal(exported.appts[0].d,'2030-02-28');
+  await navigate();
+  assert.deepEqual(await evaluate('S.pay.shifts'),legacy.pay.shifts);
+});
+
+test('una copia vacía o con metadatos históricos ambiguos no puede reemplazar la instalación',async()=>{
+  const original=JSON.stringify(validBackup('Instalación ficticia'));
+  const ambiguous=validBackup('Copia antigua ficticia');
+  ambiguous.pay={w:[{who:'Responsable anterior',paid:'2020-02-30',v:{'2020-01-01':'Enfermero anterior'}}]};
+  for(const copy of ['',ambiguous]){
+    await seed(original);await navigate();await uploadJson(copy);
+    await waitFor("document.querySelector('#closeImportMessage')");
+    assert.equal(await evaluate('__persistenceTest.read()'),original);
+    assert.equal(await evaluate('__persistenceTest.writes'),0);
+    assert.equal(await evaluate("$('#continueRestore')"),null);
+  }
+});
+
+test('una lectura de respaldo atrasada no desplaza la selección más reciente',async()=>{
+  await seed(null);await navigate();
+  await evaluate("window.pendingReads=[];window.FileReader=class {readAsText(){pendingReads.push(this)}}");
+  await uploadJson(validBackup('Primera copia ficticia'),'primera-copia.json');
+  await uploadJson(validBackup('Segunda copia ficticia'),'segunda-copia.json');
+  const copies=[validBackup('Primera copia ficticia'),validBackup('Segunda copia ficticia')];
+  await evaluate(`[1,0].forEach(i=>{const reader=pendingReads[i];reader.result=JSON.stringify(${JSON.stringify(copies)}[i]);reader.onload()})`);
+  await continueRestore();
+  await evaluate("$('#restoreConfirm').click()");
+  assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).p[0].name,'Segunda copia ficticia');
+  assert.equal(await evaluate('__persistenceTest.writes'),1);
 });
 
 test('el respaldo con fecha imposible se puede revisar y cancelar por teclado', async () => {
@@ -788,6 +885,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const receiptDateUpdate = initialVersion==='v13'&&updatedVersion==='v14'&&PREVIOUS_ASSETS;
   const inventoryUpdate = initialVersion==='v14'&&updatedVersion==='v15'&&PREVIOUS_ASSETS;
   const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
+  const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -839,7 +937,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
+    const updatedAssets = storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
+      : patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
       : inventoryUpdate ? "typeof stockStatus==='function'"
       : receiptDateUpdate ? "typeof generalPayForm==='function' && generalPayForm.toString().includes('requireDate')"
       : PREVIOUS_ASSETS ? "document.querySelector('#accountView') !== null"
@@ -853,7 +952,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
+    const newAssets = storageUpdate ? updatedAssets
+      : patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
       : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
       : PREVIOUS_ASSETS ? "renderPay.toString().includes('#accountView') && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText?.includes('.account-balance .big') && r.style.fontVariantNumeric==='tabular-nums'))" : updatedAssets;
@@ -883,6 +983,9 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     } finally { await connection(false); }
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),savedOffline);
+    await evaluate("document.querySelector('#exp').click()");
+    const exported=JSON.parse(await evaluate('__persistenceTest.exportBlob.text()'));
+    assert.deepEqual(exported,JSON.parse(savedOffline));
     assert.deepEqual(await evaluate('__persistenceTest.errors'),[]);
   } finally {
     cdp.ws.removeEventListener('message',observeVersions);
@@ -1405,16 +1508,21 @@ test('una pestaña con estado obsoleto detecta la escritura externa y no sobresc
     const started = Date.now();
     while (Date.now() - started < 5000 && !(await evalSecond("typeof persistenceReady !== 'undefined'"))) await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(await evalSecond('persistenceReady'), true);
+    await evalSecond("patientForm();$('#patientName').value='Borrador de segunda pestaña'");
     await evaluate("S.last='versión más reciente ficticia';save()");
     const eventStarted = Date.now();
     while (Date.now() - eventStarted < 3000 && await evalSecond('persistenceReady')) await new Promise(resolve => setTimeout(resolve, 25));
     assert.equal(await evalSecond('persistenceFailure'), 'conflict');
+    await evalSecond("$('#f').requestSubmit()");
+    assert.equal(await evalSecond("$('#dlg').open && $('#patientName').value==='Borrador de segunda pestaña'"),true);
     assert.equal(await evalSecond('save()'), false);
     assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last, 'versión más reciente ficticia');
-    await evalSecond("document.querySelector('#reloadFreshState').click()");
+    await evalSecond("$('#no').click();document.querySelector('#reloadFreshState').click()");
     const reloadStarted=Date.now();
     while(Date.now()-reloadStarted<5000){try{if(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"))break}catch{};await new Promise(resolve=>setTimeout(resolve,50))}
     assert.equal(await evalSecond("typeof persistenceReady!=='undefined'&&persistenceReady&&S.last==='versión más reciente ficticia'"),true,'el botón permitido recarga la versión guardada más reciente');
+    assert.equal(await evalSecond("save({...S,last:'Escritura posterior a recarga'})"),true);
+    assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).last,'Escritura posterior a recarga');
     await evaluate('localStorage.clear()');
     const clearStarted=Date.now();
     while(Date.now()-clearStarted<3000&&await evalSecond('persistenceReady'))await new Promise(resolve=>setTimeout(resolve,25));
