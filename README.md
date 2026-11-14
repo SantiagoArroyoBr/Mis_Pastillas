@@ -1,6 +1,6 @@
 # Acompaña
 
-**Estado al 2026-11-13.** PLAN-010, PLAN-011 y FIX-FECHA-002 están en `development` local. Los nuevos abonos requieren una fecha válida y los movimientos históricos con fechas imposibles conservan su efecto en el saldo. PREVIEW-011 espera revisión del propietario y autorización explícita para publicar. [Informe y checklist](docs/FIX-FECHA-002-integridad-recibos.md).
+**Estado al 2026-11-13.** PREVIEW-011 está publicado en `origin/development` hasta `f151111`. PLAN-012 queda local y mejora validaciones, inventario, calendario, Inicio y respaldos. [Informe y checklist de PLAN-012](docs/PLAN-012-consolidacion-funcional.md).
 
 **Estado al 2026-11-06.** PLAN-009 y UX-013 están en `origin/development` hasta `6968fec`. PLAN-010 está implementado localmente en `development` y queda pendiente de revisión del propietario. [Informe de PLAN-009](docs/PLAN-009-calidad-integral.md) · [Reglas y checklist de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).
 

@@ -1,8 +1,12 @@
 # Plan de desarrollo — Acompaña
 
+## PLAN-012 — Consolidación funcional
+
+PREVIEW-011 se publicó con los doce commits autorizados. PLAN-012 queda local con mejoras verificadas de captura, inventario, calendario, Inicio y respaldos. [Matriz, QA-022 y checklist](docs/PLAN-012-consolidacion-funcional.md).
+
 ## FIX-FECHA-002 — Integridad de recibos históricos
 
-La captura exige fechas de calendario. Pagos muestra la fecha original y una advertencia cuando un movimiento histórico tiene una fecha imposible. Su importe, estado y referencia siguen vigentes en el saldo y los respaldos. PREVIEW-011 queda pendiente de revisión y autorización. [Evidencia y checklist](docs/FIX-FECHA-002-integridad-recibos.md).
+La captura exige fechas de calendario. Pagos muestra la fecha original y una advertencia cuando un movimiento histórico tiene una fecha imposible. Su importe, estado y referencia siguen vigentes en el saldo y los respaldos. [Evidencia de FIX-FECHA-002](docs/FIX-FECHA-002-integridad-recibos.md).
 
 ## PLAN-011 — Validación y estabilidad financiera
 

@@ -2,6 +2,12 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## PLAN-012 local
+
+En Medicinas, **Agotado** indica cero existencias y **Existencias insuficientes** indica que lo disponible no cubre el siguiente consumo completo. Abre **Pautas de consumo** o **Uso del insumo** para revisar el detalle. Desde una fecha del calendario con cita, pulsa **Editar cita**. Si un formulario señala un campo, corrige ahí el valor y vuelve a guardar con el resto del borrador.
+
+La exportación crea un JSON privado con fichas, medicinas, citas, turnos y pagos. **Restaurar respaldo** permite revisar el archivo antes de confirmar el reemplazo local. Puedes cancelar con Escape. [Revisión del ciclo](PLAN-012-consolidacion-funcional.md).
+
 ## Asignaciones y estado de cuenta en PLAN-010
 
 1. En el calendario abre la fecha y comprueba la ficha debajo de **Asignar enfermero/a**. El panel **Asignaciones registradas** muestra las jornadas existentes y sus costos guardados cuando se conocen.

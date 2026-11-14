@@ -1,6 +1,10 @@
 # Historial de cambios
 
-## 2026-11-13 — FIX-FECHA-002 / PREVIEW-011
+## 2026-11-13 — Publicación de PREVIEW-011 y PLAN-012 local
+
+Se publicaron los 12 commits autorizados hasta `f151111` en `development`. El check de Vercel pasó. PLAN-012 mejora diagnóstico de existencias, foco en formularios, acceso a citas, prioridades de Inicio y revisión de respaldos. [Estado, evidencia y checklist](docs/PLAN-012-consolidacion-funcional.md).
+
+## 2026-11-13 — FIX-FECHA-002 / Preparación de PREVIEW-011
 
 Se reforzó la fecha de abonos nuevos y cancelaciones. El historial muestra las fechas imposibles tal como se guardaron y conserva su efecto económico. El respaldo JSON mantiene el libro completo. La caché de la PWA pasa a v14. PREVIEW-011 queda pendiente de revisión y autorización del propietario. [Evidencia y checklist](docs/FIX-FECHA-002-integridad-recibos.md).
 
