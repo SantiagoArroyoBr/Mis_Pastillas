@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-14 — PREVIEW-M001 y MACRO-002 local
+
+Se publicaron PLAN-012 y MACRO-001 hasta `6896774` en `development`. Vercel registró `success`. MACRO-002 refuerza el control de escrituras y la recuperación, conserva turnos y textos legados y sube la caché local a v17. [Informe de estabilización](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
+
 ## 2026-11-14 — MACRO-001 local
 
 Se compactaron los controles de fichas, se corrigió la vista vacía de los filtros y se extendió la protección ante escrituras fallidas. Los historiales conservan más de 40 precios y permiten consultar citas anteriores. La PWA se identifica como Acompaña y usa la caché v16. [Informe de la entrega](docs/MACRO-001-finalizacion-funcional-visual.md).

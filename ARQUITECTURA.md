@@ -1,5 +1,9 @@
 # Arquitectura de Acompaña
 
+## MACRO-002 — Persistencia y recuperación
+
+`app.js` serializa el estado candidato, compara el valor esperado de `pastillas-v1`, escribe y comprueba el resultado. Si falla esa última lectura, el resultado queda sin confirmar y exige revisar los datos persistidos. La comprobación entre pestañas es preventiva y deja una ventana entre la comparación y `setItem`. La restauración utiliza la misma ruta con el valor leído al revisar el respaldo. `compatibility.js` conserva los campos históricos existentes sin añadir un esquema. Los recursos de la entrega usan `acompanha-v17`. [Limitaciones y pruebas de resiliencia](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
+
 ## MACRO-001 — Estado de los formularios e historiales
 
 Los flujos corregidos preparan estados candidatos y esperan el resultado de `save` antes de actualizar los datos en memoria. El chequeo de concurrencia sigue siendo preventivo. El historial de precios conserva las entradas cargadas al añadir compras. El historial de citas muestra fechas legadas inválidas con su valor original y permite acceder a la edición. Los recursos de la entrega se sirven desde `acompanha-v16`. [Hallazgos, cobertura y riesgos](docs/MACRO-001-finalizacion-funcional-visual.md).

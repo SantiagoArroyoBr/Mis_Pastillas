@@ -2,6 +2,12 @@
 
 **Alcance:** guía inicial basada en la interfaz y el código revisados en `development`; no sustituye una prueba guiada con usuarios. No contiene datos médicos de ejemplo.
 
+## MACRO-002 local
+
+Si el navegador rechaza un guardado, conserva el formulario abierto mientras revisas la cuota o los permisos. Cuando se resuelva el problema, vuelve a pulsar la acción de guardado. Si aparece un aviso de conflicto, conserva lo que necesites del borrador antes de cerrar y recargar. Para un resultado sin verificar, comprueba primero qué quedó guardado.
+
+**Descargar valor guardado** ofrece una copia privada exacta cuando el navegador permite leerla. Un valor corrupto se descarga como TXT para diagnóstico. Para restaurar, el navegador debe poder leer la instalación actual. Revisa el resumen del respaldo y confirma el reemplazo. Si se agota la cuota durante la restauración, puedes reintentar desde esa pantalla. [Informe y checklist](MACRO-002-estabilidad-integridad-recuperacion.md).
+
 ## MACRO-001 local
 
 En **Medicinas**, elige una ficha y usa los controles de edición, archivo o retiro de la ficha seleccionada. **Consultar archivadas** cambia de grupo. Si el grupo está vacío, puedes volver al otro grupo o usar **Añadir ficha**.

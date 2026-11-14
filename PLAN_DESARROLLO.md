@@ -1,14 +1,16 @@
 # Plan de desarrollo — Acompaña
 
+## MACRO-002 — Estabilidad, integridad y recuperación
+
+PREVIEW-M001 publicó el paquete aprobado de seis commits. MACRO-002 queda local para revisión. La detección de conflictos verifica el valor persistido antes y después de guardar. La restauración exige una lectura previa, y los fallos recuperables conservan el formulario o la confirmación. MACRO-003 queda pendiente de autorización. [Matriz, QA-M002 y checklist](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
+
 ## MACRO-001 — Finalización funcional y visual
 
-Entrega local para revisión del propietario. SYNC-003 confirmó el paquete anterior en `development`. [Auditoría, compatibilidad y QA-023](docs/MACRO-001-finalizacion-funcional-visual.md).
-
-MACRO-002 queda pendiente de autorización. El alcance propuesto cubre conflictos entre pestañas, recuperación de respaldos y conciliación técnica de registros legados.
+Publicado como parte de PREVIEW-M001 en `development` hasta `6896774`. [Auditoría, compatibilidad y QA-023](docs/MACRO-001-finalizacion-funcional-visual.md).
 
 ## PLAN-012 — Consolidación funcional
 
-PREVIEW-011 se publicó con los doce commits autorizados. PLAN-012 queda local con mejoras verificadas de captura, inventario, calendario, Inicio y respaldos. [Matriz, QA-022 y checklist](docs/PLAN-012-consolidacion-funcional.md).
+PREVIEW-011 publicó los doce commits previos. PREVIEW-M001 incorporó las mejoras de PLAN-012 en captura, inventario, calendario, Inicio y respaldos. [Matriz, QA-022 y checklist](docs/PLAN-012-consolidacion-funcional.md).
 
 ## FIX-FECHA-002 — Integridad de recibos históricos
 
