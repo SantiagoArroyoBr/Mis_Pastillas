@@ -7,6 +7,7 @@
     return modality+(entry.service?'':' · Registro anterior')+(nurse?.inactive===true?' · Inactivo':'');
   }
   function create({getState,updateHTML,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,amountVisible,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,allServices,ledger,generalLedger,ledgerSummary,allocatePayment,generalSummary,toCents,newId,assignmentRemovalBlock}) {
+    const {isValidDateOnly}=window.AcompanaCompatibility;
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
     const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
 function patientHTML(p,i){
@@ -52,11 +53,16 @@ function generalSummaryHTML(){
     invalidDates&&count(invalidDates,'jornada con fecha inválida','jornadas con fecha inválida')
   ].filter(Boolean);
   const warning=exclusions.length?`<p class="hint">Fuera del saldo verificable: ${exclusions.join(' · ')}.</p>`:'';
-  const movements=moves.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const dated=moves.filter(m=>isValidDateOnly(m.date)).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const undated=moves.filter(m=>!isValidDateOnly(m.date));
+  const movements=[...dated,...undated];
   const rows=movements.map(m=>{
-    if(m.type==='cancellation')return `<div class="vrow"><div>${esc(fmtD(m.date))} · Cancelación de abono<br><span class="hint">Referencia ${esc(m.originalId)}${m.concept?' · '+esc(m.concept):''}</span></div><span class="amtv">${A(m.amountCents/100)} MXN</span></div>`;
+    const validDate=isValidDateOnly(m.date);
+    const date=esc(validDate?fmtD(m.date):m.date);
+    const dateWarning=validDate?'':'<p class="ledger-date-warning"><strong>Fecha histórica inválida</strong><br>Este registro conserva su importe original, pero la fecha necesita revisión.</p>';
+    if(m.type==='cancellation')return `<div class="vrow"><div>${date} · Cancelación de abono<br><span class="hint">Referencia ${esc(m.originalId)}${m.concept?' · '+esc(m.concept):''}</span>${dateWarning}</div><span class="amtv">${A(m.amountCents/100)} MXN</span></div>`;
     const cancelled=summary.cancelledIds.has(m.id);
-    return `<div class="vrow"><div>${esc(fmtD(m.date))}${m.concept?' · '+esc(m.concept):''}<br><span class="hint">${cancelled?'Cancelado':'Abono general recibido'}</span></div><span class="amtv">${A(m.amountCents/100)} MXN</span>${cancelled?'':`<button class="link" data-pa="adminCancel" data-id="${esc(m.id)}">Cancelar</button>`}</div>`;
+    return `<div class="vrow"><div>${date}${m.concept?' · '+esc(m.concept):''}<br><span class="hint">${cancelled?'Cancelado':'Abono general recibido'}</span>${dateWarning}</div><span class="amtv">${A(m.amountCents/100)} MXN</span>${cancelled?'':`<button class="link" data-pa="adminCancel" data-id="${esc(m.id)}">Cancelar</button>`}</div>`;
   }).join('');
   const credit=summary.balanceCents<0;
   const heading=credit?'Saldo a favor':summary.balanceCents>0?'Saldo pendiente':'Sin saldo pendiente';
@@ -68,7 +74,7 @@ function generalSummaryHTML(){
       <div><dt>Abonos registrados</dt><dd>${A(summary.receivedCents/100)} MXN</dd></div>
     </dl>${warning}
     <button class="btn" data-pa="adminPay">Registrar abono</button>
-    <details class="history" data-panel="general-ledger"><summary>Historial de abonos y cancelaciones · ${moves.length} movimientos</summary><p class="hint">Más recientes primero. Los abonos cancelados conservan su movimiento original y la referencia de cancelación. El saldo reúne los movimientos registrados, sin cierre automático por mes.</p>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
+    <details class="history" data-panel="general-ledger"><summary>Historial de abonos y cancelaciones · ${moves.length} movimientos</summary><p class="hint">Más recientes primero.${undated.length?' Los movimientos con fecha inválida aparecen al final en el orden del respaldo.':''} Los abonos cancelados conservan su movimiento original y la referencia de cancelación. El saldo reúne los movimientos registrados, sin cierre automático por mes.</p>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
     </article>`;
 }
 
@@ -128,8 +134,8 @@ function individualPayForm(i){
   const nurses=nurList(i).filter(n=>n.id),servicesForPatient=services(i),movements=ledger();
   if(!nurses.length)return'Primero registra un servicio nuevo para identificar al enfermero/a.';
   const options=nurses.map(n=>({v:n.id,l:n.n}));
-  form('Registrar abono individual',[{id:'nurse',l:'Enfermero/a destinatario',t:'select',options,v:options[0].v},{id:'date',l:'Fecha del pago',t:'date',v:ymd(new Date())},{id:'amount',l:'Importe del abono (MXN)',v:'',h:'Se aplica en orden de fecha a los servicios pendientes de esa persona. No se aceptan excedentes.'},{id:'concept',l:'Concepto o referencia (opcional)',t:'text',ph:'Ej. transferencia',v:''}],v=>{
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.date))return'Elige una fecha válida.';
+  form('Registrar abono individual',[{id:'nurse',l:'Enfermero/a destinatario',t:'select',options,v:options[0].v},{id:'date',l:'Fecha del pago',t:'date',requireDate:true,v:ymd(new Date())},{id:'amount',l:'Importe del abono (MXN)',v:'',h:'Se aplica en orden de fecha a los servicios pendientes de esa persona. No se aceptan excedentes.'},{id:'concept',l:'Concepto o referencia (opcional)',t:'text',ph:'Ej. transferencia',v:''}],v=>{
+    if(!isValidDateOnly(v.date))return'Elige una fecha válida.';
     const cents=toCents(v.amount);if(!Number.isSafeInteger(cents)||cents<=0)return'Escribe un importe mayor que cero, con hasta dos decimales.';
     const allocations=allocatePayment(servicesForPatient,movements,v.nurse,cents,v.date);if(!allocations)return'El abono supera el saldo de servicios de esa persona hasta esa fecha o no hay servicios con saldo.';
     movements.push({id:newId('pay'),patientIndex:i,nurseId:v.nurse,date:v.date,amountCents:cents,concept:v.concept.trim().slice(0,120),allocations});
@@ -139,11 +145,10 @@ function individualPayForm(i){
 
 function generalPayForm(){
   form('Registrar abono a la administradora',[
-    {id:'adminDate',l:'Fecha',t:'date',v:ymd(new Date())},
+    {id:'adminDate',l:'Fecha',t:'date',requireDate:true,v:ymd(new Date())},
     {id:'adminAmount',l:'Importe recibido (MXN)',v:'',h:'El abono reduce el saldo general. El excedente queda a favor para jornadas posteriores.'},
     {id:'adminConcept',l:'Concepto o nota (opcional)',t:'text',ph:'Ej. transferencia',v:''}
   ],v=>{
-    if(!window.AcompanaCompatibility.isValidDateOnly(v.adminDate))return'Elige una fecha válida.';
     const cents=toCents(v.adminAmount);if(!Number.isSafeInteger(cents)||cents<=0)return'Escribe un importe mayor que cero, con hasta dos decimales.';
     const movements=generalLedger(),current=generalSummary([],movements);
     if(!Number.isSafeInteger(current.receivedCents+cents))return'El total de abonos excede la precisión monetaria segura.';
@@ -152,6 +157,7 @@ function generalPayForm(){
 }
 
 function saveGeneralMovement(movement){
+  if(!isValidDateOnly(movement.date))return'Elige una fecha válida.';
   const pay={...S.pay,generalLedger:[...generalLedger(),movement]};
   if(!save({...getState(),pay}))return'El movimiento no se guardó. Revisa el aviso de almacenamiento.';
   S.pay=pay;
@@ -162,17 +168,17 @@ function cancelGeneralPayForm(id){
   const movements=generalLedger(),summary=generalSummary([],movements);
   const receipt=movements.find(m=>m.id===id&&m.type==='receipt');
   if(!receipt||summary.cancelledIds.has(id)){form('Abono no disponible para cancelar',[],()=>{},'Entendido');return}
+  const validReceiptDate=isValidDateOnly(receipt.date);
   form('Cancelar abono recibido',[
-    {id:'cancelDate',l:'Fecha de cancelación',t:'date',v:ymd(new Date())},
+    {id:'cancelDate',l:'Fecha de cancelación',t:'date',requireDate:true,v:ymd(new Date())},
     {id:'cancelReason',l:'Motivo (opcional)',t:'text',ph:'Ej. importe capturado incorrectamente',v:''}
   ],v=>{
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.cancelDate))return'Elige una fecha válida.';
-    if(v.cancelDate<receipt.date)return'La cancelación no puede tener una fecha anterior al abono.';
+    if(validReceiptDate&&v.cancelDate<receipt.date)return'La cancelación no puede tener una fecha anterior al abono.';
     const latest=generalSummary([],generalLedger());
     if(latest.cancelledIds.has(id))return'Este abono ya fue cancelado.';
     return saveGeneralMovement({id:newId('admin_cancel'),type:'cancellation',originalId:id,date:v.cancelDate,amountCents:receipt.amountCents,concept:v.cancelReason.trim().slice(0,120)});
   },'Confirmar cancelación');
-  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>Se cancelará el abono de <b>${A(receipt.amountCents/100)} MXN</b> del ${esc(fmtD(receipt.date))}. El registro original se conservará y el saldo aumentará en ese importe.</p>`);
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>Se cancelará el abono de <b>${A(receipt.amountCents/100)} MXN</b> del ${esc(validReceiptDate?fmtD(receipt.date):receipt.date)}. El registro original se conservará y el saldo aumentará en ese importe.</p>`);
 }
 
 function resetForm(i){

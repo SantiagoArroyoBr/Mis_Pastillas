@@ -175,7 +175,8 @@ function validateStoredState(d){
       if(m.type==='receipt')receipts.set(m.id,m);
       else{
         const original=receipts.get(m.originalId);
-        if(typeof m.originalId!=='string'||!original||original.amountCents!==m.amountCents||m.date<original.date||cancelled.has(m.originalId))fail('La cancelación no coincide con un abono anterior o ya cancelado.');
+        const outOfOrder=original&&isValidDateOnly(original.date)&&isValidDateOnly(m.date)&&m.date<original.date;
+        if(typeof m.originalId!=='string'||!original||original.amountCents!==m.amountCents||outOfOrder||cancelled.has(m.originalId))fail('La cancelación no coincide con un abono anterior o ya cancelado.');
         cancelled.add(m.originalId);
       }
     });

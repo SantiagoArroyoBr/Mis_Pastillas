@@ -96,8 +96,19 @@ function form(title,fields,ok,btn='Guardar'){
   $('#f').onsubmit=e=>{
     e.preventDefault();
     const values=collect();
-    const invalidDate=fields.find(f=>f.t==='date'&&values[f.id]&&!window.AcompanaCompatibility.isValidDateOnly(values[f.id]));
-    if(invalidDate){$('#err').textContent='La fecha no existe en el calendario. Revísala antes de guardar.';$('#'+invalidDate.id).focus();return}
+    const invalidDate=fields.find(f=>f.t==='date'&&(f.requireDate||values[f.id])&&!window.AcompanaCompatibility.isValidDateOnly(values[f.id]));
+    if(invalidDate){
+      $('#err').textContent=values[invalidDate.id]?'La fecha no existe en el calendario. Revísala antes de guardar.':'Elige una fecha válida.';
+      const input=$('#'+invalidDate.id);
+      input.setAttribute('aria-invalid','true');
+      input.setAttribute('aria-describedby','err');
+      input.addEventListener('input',()=>{
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+      },{once:true});
+      input.focus();
+      return;
+    }
     const r=ok(values);
     if(r){$('#err').textContent=r;$('#err').focus()}else dlg.close();
   };

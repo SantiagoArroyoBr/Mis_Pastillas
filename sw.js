@@ -1,5 +1,5 @@
 const APP_CACHE_PREFIX = 'acompanha-';
-const CACHE_NAME = APP_CACHE_PREFIX + 'v13';
+const CACHE_NAME = APP_CACHE_PREFIX + 'v14';
 const LEGACY_APP_CACHES = new Set(['cuidados-v8']);
 const ASSETS = [
   './',

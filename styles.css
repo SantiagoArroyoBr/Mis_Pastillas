@@ -153,6 +153,7 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .admin-summary [data-pa=adminPay]{margin-top:10px}
 .admin-summary .vrow>div{min-width:0;overflow-wrap:anywhere}
 .admin-summary .vrow{font-size:15px}
+.ledger-date-warning{margin:6px 0 0;color:var(--amber);font-size:14px}
 .admin-summary details{margin-top:8px}
 .admin-summary summary{min-height:44px}
 .care-staff{--c:#789486;padding:14px}
