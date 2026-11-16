@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — QA-PREVIEW-001
+
+Se confirmó el SHA `6b0d84c` en Vercel y se usó el dominio propio del deployment para probar con datos ficticios. Pasaron alta, recarga, exportación y restauración. Cancelar conservó el inventario corregido y confirmar recuperó el exportado, junto con el saldo y las tarifas. Quedan pendientes la recarga offline en Preview y el recorrido de MACRO-002. [Evidencia](docs/MACRO-004-preparacion.md#verificación-autenticada-de-la-candidata).
+
 ## 2026-11-15 — PUB-M003
 
 Con autorización del propietario y 101/101 pruebas locales aprobadas, se publicaron cuatro commits de MACRO-003 hasta `6b0d84c` en `origin/development`. GitHub confirmó el SHA y Vercel reportó `success`. La URL de rama redirigió al inicio de sesión. La revisión funcional autenticada, la validación en dispositivos físicos y la decisión de lanzamiento siguen pendientes. [Evidencia](docs/MACRO-004-preparacion.md#paquete-de-publicación).

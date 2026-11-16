@@ -15,7 +15,7 @@ La consulta de solo lectura a GitHub devolvió `6ea578c1dad72f1fb2a43f00cf870819
 
 El 15 de noviembre de 2026 se publicó el paquete de cuatro commits hasta `6b0d84c` en `origin/development`, tras comprobar que la [validación local](QA-RC-LOCAL-001-candidata.md) pasó 101/101 pruebas y la actualización exacta v17 → v18. El SHA remoto se verificó después del push. `origin/main` seguía en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Los commits posteriores de coordinación y QA quedaron en el checkout local.
 
-El estado de Vercel para ese SHA pasó de `pending` a `success`. La URL de rama respondió HTTP 302 hacia el inicio de sesión. La prueba funcional queda pendiente de acceso autenticado. [Deployment registrado por GitHub](https://vercel.com/dinamita20/pastillas-1/39mivWzhzKtcebkHnBL3teAZV36R) · [Preview de development](https://pastillas-1-git-development-dinamita20.vercel.app/).
+El estado de Vercel para ese SHA pasó de `pending` a `success`. La URL de rama respondió HTTP 302 sin sesión. Tras iniciar sesión, el panel de Vercel mostró el deployment como **Ready**, en el entorno **Preview**, con origen Git `development` y SHA `6b0d84c`. [Deployment registrado por GitHub](https://vercel.com/dinamita20/pastillas-1/39mivWzhzKtcebkHnBL3teAZV36R) · [Preview de development](https://pastillas-1-git-development-dinamita20.vercel.app/).
 
 ## Lote de validación
 
@@ -29,6 +29,19 @@ Ejecutar cada recorrido con datos ficticios en un perfil aislado. Registrar SHA 
 | 4 | Dos pestañas del mismo origen. | Editar en ambas, guardar en una y comprobar que la otra conserva el borrador al detectar el conflicto. Recargar y verificar cuál estado persiste. Ante pérdida o corrupción, conservar el respaldo ficticio y abrir un defecto de integridad. |
 
 Al cerrar el lote, presentar los resultados frente a los [criterios de salida](RC-1.0-criterios-lanzamiento.md#criterios-de-salida) para la decisión del propietario.
+
+### Verificación autenticada de la candidata
+
+Se probó el dominio propio del deployment `39mivWzhzKtcebkHnBL3teAZV36R` en el navegador integrado de Codex. Ese dominio tiene almacenamiento separado de la URL de rama y de producción. La vista inicial mostró las fichas predeterminadas. Se usaron datos ficticios.
+
+| Caso | Resultado observado |
+| --- | --- |
+| Alta y recarga | Se creó una ficha, un producto con dos pautas independientes y una compra de dos cajas de cinco unidades por 60 MXN. La existencia pasó de 20 a 30 unidades. La cita de esa ficha seguía visible tras recargar. |
+| Enfermería y saldo | Se registraron tarifas de 120 y 65 MXN y un abono de 50 MXN. Tras restaurar, se mostraron ambas tarifas, un único movimiento y 50 MXN a favor. |
+| Exportación JSON | Se descargó el respaldo y se inspeccionaron dos pautas, inventario de 30, compra de 10 por 60 MXN, ambas tarifas y abono de 5 000 centavos. El respaldo validado mostró tres fichas, un producto, una cita y una persona de enfermería. |
+| Cancelación y restauración | Tras corregir la existencia a 31, cancelar en la confirmación final conservó 31. Confirmar recuperó las 30 unidades exportadas y la interfaz anunció que la restauración había terminado. |
+
+Quedan pendientes la recarga offline en Preview y el recorrido del deployment histórico de MACRO-002. La evidencia offline de la candidata corresponde a la [prueba local](QA-RC-LOCAL-001-candidata.md). [Preview específica de la candidata](https://pastillas-1-q3p9b4vfl-dinamita20.vercel.app/).
 
 ### Zoom efectivo en flujos críticos
 
