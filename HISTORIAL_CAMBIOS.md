@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — Preview histórica de MACRO-002
+
+Se validó la Preview autenticada de `6ea578c` en su dominio propio con un respaldo ficticio de la candidata v18. Pasaron alta, recarga, cancelación, restauración y exportación. La comparación JSON confirmó que v17 conservó las fichas, inventario, citas, enfermería y registros de pago de ese respaldo. Sigue pendiente la recarga offline en las Previews. [Evidencia](docs/MACRO-004-preparacion.md#verificación-autenticada-de-macro-002).
+
 ## 2026-11-15 — Publicación y Preview de UX-MONTOS-001
 
 Con autorización del propietario y **102/102** pruebas locales aprobadas, se avanzó `origin/development` de `6b0d84c` a `3a1c19bab068c6a5da9cfb494f0bf6084ea65356`. El avance incluyó dos commits del ajuste y cinco de documentación y QA ya presentes en su ascendencia. Se confirmó el SHA remoto y el check de Vercel `success`. `main` seguía en `92c4034`. [Despliegue de Vercel](https://vercel.com/dinamita20/pastillas-1/2egFGktkHecswWBWWKJzwp85J3Df).
