@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-011 · Agenda e historial de citas
+
+Sobre `0821858`, la agenda muestra hoy y fechas futuras desde la más cercana, citas anteriores desde la más reciente y un historial aparte para fechas inválidas. Cada consulta se filtra por familia antes de aplicar su límite de 20. Se reutilizan el esquema y los permisos existentes.
+
+Pasaron **12/12** pruebas del piloto y **1/1** integrada con Supabase local. Con 22 citas entre hoy y fechas futuras, la integración confirmó que se muestran las 20 más cercanas y que la cita anterior conserva su espacio. También comprobó que otra familia recibe las tres listas vacías. Se verificó por HTTP el HTML servido. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-010 · Archivo reversible y citas
 
 Sobre `c3fb40c`, la cuenta propietaria puede archivar y reactivar fichas con comprobación de revisión. Los miembros activos pueden registrar citas para fichas activas y consultar las últimas 20. Las citas y jornadas existentes mantienen sus referencias. Las fechas históricas imposibles se representan por separado como texto, y el alta normal exige una fecha válida.

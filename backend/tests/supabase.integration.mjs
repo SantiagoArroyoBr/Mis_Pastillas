@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
-import { createClient } from '../supabase-client.mjs';
+import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { loadAppliedPayments } from '../finance.mjs';
 
 const key = process.env.ACOMPANA_SUPABASE_PUBLISHABLE_KEY;
@@ -104,6 +104,20 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
   await assert.rejects(caregiver.rpc('add_appointment', { ...booking, request_id: randomUUID() }), { status: 422 });
   assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 3, archived: false }), 4);
+
+  const previousDay = '2026-11-15';
+  await caregiver.rpc('add_appointment', { ...booking, request_id: randomUUID(), day: previousDay });
+  await Promise.all(Array.from({ length: 21 }, (_, index) => caregiver.rpc('add_appointment', {
+    ...booking, request_id: randomUUID(), day: '2026-11-' + (17 + index % 12), at_time: null
+  })));
+  const calendar = await loadAppointments(caregiver, family, day);
+  assert.equal(calendar.upcoming.length, 20);
+  assert.equal(calendar.upcoming[0].appointment_day, day);
+  assert.deepEqual(calendar.upcoming.map(row => row.appointment_day),
+    calendar.upcoming.map(row => row.appointment_day).sort());
+  assert.deepEqual(calendar.past.map(row => row.appointment_day), [previousDay]);
+  assert.deepEqual(calendar.legacy, []);
+  assert.deepEqual(await loadAppointments(outsider, family, day), { upcoming: [], past: [], legacy: [] });
 
   await owner.rpc('revoke_caregiver', { family, member: caregiverId });
   assert.deepEqual(await caregiver.select('patients', byId), []);

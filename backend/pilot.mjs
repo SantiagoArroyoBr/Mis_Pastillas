@@ -1,10 +1,12 @@
-import { createClient } from './supabase-client.mjs';
+import { createClient, loadAppointments } from './supabase-client.mjs';
 import { createFinance } from './finance.mjs';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
 const rename = $('rename-patient');
 const appointment = $('add-appointment');
+const appointmentLists = ['upcoming', 'past', 'legacy'];
+const localDay = new Intl.DateTimeFormat('sv-SE');
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily;
 const status = message => { $('status').textContent = message; };
@@ -16,6 +18,14 @@ function hideEditing() {
   rename.hidden = true;
 }
 
+function resetAppointments() {
+  for (const list of appointmentLists) $('appointments-' + list).replaceChildren();
+  $('appointments-legacy-section').hidden = true;
+  appointment.elements.patient.replaceChildren();
+  appointment.reset();
+  appointmentRetry = undefined;
+}
+
 function endSession() {
   finance.scope(undefined);
   client = userId = undefined;
@@ -23,10 +33,8 @@ function endSession() {
   families.replaceChildren();
   $('patients').replaceChildren();
   $('archived-patients').replaceChildren();
-  $('appointments').replaceChildren();
-  appointment.elements.patient.replaceChildren();
-  appointment.reset();
-  appointmentRetry = renderedFamily = undefined;
+  resetAppointments();
+  renderedFamily = undefined;
   $('members').replaceChildren();
   $('invite-code').value = '';
   $('accept-invite').reset();
@@ -89,10 +97,7 @@ async function refreshFamily() {
   if (renderedFamily !== family) {
     $('patients').replaceChildren();
     $('archived-patients').replaceChildren();
-    $('appointments').replaceChildren();
-    appointment.elements.patient.replaceChildren();
-    appointment.reset();
-    appointmentRetry = undefined;
+    resetAppointments();
     renderedFamily = family;
   }
   if (!family) {
@@ -104,8 +109,7 @@ async function refreshFamily() {
   const [patients, members, appointments] = await Promise.all([
     client.select('patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
     owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : [],
-    client.select('appointments', { ...filter, select: 'appointment_day,legacy_day,appointment_time,location,notes,patients(name)',
-      order: 'appointment_day.desc.nullslast,id.desc', limit: 20 })
+    loadAppointments(client, family, localDay.format(new Date()))
   ]);
   const active = patients.filter(patient => !patient.archived_at);
   const archive = (patient, archived) => async () => {
@@ -135,13 +139,22 @@ async function refreshFamily() {
   appointment.elements.patient.replaceChildren(...active.map(patient => new Option(patient.name, patient.id)));
   if (active.some(patient => patient.id === selection)) appointment.elements.patient.value = selection;
   appointment.querySelector('button').disabled = !active.length;
-  $('appointments').replaceChildren(...appointments.map(row => {
-    const item = document.createElement('li');
-    const date = row.appointment_day ?? row.legacy_day + ' (fecha histórica)';
-    item.textContent = [date, row.appointment_time?.slice(0, 5), row.patients.name, row.location, row.notes]
-      .filter(Boolean).join(' · ');
-    return item;
-  }));
+  for (const list of appointmentLists) {
+    const rows = appointments[list];
+    const items = rows.map(row => {
+      const item = document.createElement('li');
+      item.textContent = [row.appointment_day ?? row.legacy_day, row.appointment_time?.slice(0, 5),
+        row.patients.name, row.location, row.notes].filter(Boolean).join(' · ');
+      return item;
+    });
+    if (!items.length && list !== 'legacy') {
+      const empty = document.createElement('li');
+      empty.textContent = list === 'upcoming' ? 'No hay próximas citas.' : 'No hay citas anteriores.';
+      items.push(empty);
+    }
+    $('appointments-' + list).replaceChildren(...items);
+  }
+  $('appointments-legacy-section').hidden = !appointments.legacy.length;
   $('members').replaceChildren(...members.map(member => itemWithButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
     await client.rpc('revoke_caregiver', { family, member: member.user_id });
     await refreshFamily();

@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createClient } from '../supabase-client.mjs';
+import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
+
+test('appointment history keeps its legacy dates and scopes each list before limiting', async () => {
+  const filters = [];
+  const client = { select(table, filter) {
+    assert.equal(table, 'appointments');
+    filters.push(filter);
+    return filter.appointment_day === 'is.null' ? [{ legacy_day: '2026-02-30' }] : [];
+  } };
+  assert.deepEqual(await loadAppointments(client, 'fixture-family', '2026-11-16'),
+    { upcoming: [], past: [], legacy: [{ legacy_day: '2026-02-30' }] });
+  assert.deepEqual(filters.map(filter => filter.appointment_day), ['gte.2026-11-16', 'lt.2026-11-16', 'is.null']);
+  assert.ok(filters.every(filter => filter.family_id === 'eq.fixture-family' && filter.limit === 20));
+});
 
 test('backup diagnostics use the PWA validation and report generic failures without echoing content', () => {
   assert.deepEqual(auditBackup('dato ficticio sensible'), { estado: 'rechazado', motivo: 'json-no-valido' });
