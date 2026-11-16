@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-15 — UX-MONTOS-001
+
+En Pagos, cada tarjeta de enfermería con al menos una tarifa muestra **Ver montos**. El botón revela los importes durante ocho segundos desde donde se pulsa. Los controles se sincronizan con el del saldo y permiten volver a ocultar los importes desde cualquier tarjeta con tarifa. Se reutiliza la visibilidad en memoria de la candidata `6b0d84c`. El cambio no escribe datos ni altera tarifas o cálculos.
+
+`node --test tests/payments.spec.js tests/persistence.spec.js` pasó **102/102** con Microsoft Edge 157.0.4341.60, Node.js 24.20.0, perfil temporal y datos ficticios. El caso nuevo comprueba sincronización, tarifa cero, activación con Espacio, ocultamiento automático y manual, foco, historial abierto e integridad de `pastillas-v1`. La regresión de tarjetas con nombres largos pasó entre 320 y 1280 px. La prueba exacta v18 → v19 desde `6b0d84c` pasó **1/1**, incluida activación del botón offline y conservación del respaldo. Se verificaron sintaxis y diff. El ajuste queda en revisión local.
+
 ## 2026-11-15 — QA-PREVIEW-001
 
 Se confirmó el SHA `6b0d84c` en Vercel y se usó el dominio propio del deployment para probar con datos ficticios. Pasaron alta, recarga, exportación y restauración. Cancelar conservó el inventario corregido y confirmar recuperó el exportado, junto con el saldo y las tarifas. Quedan pendientes la recarga offline en Preview y el recorrido de MACRO-002. [Evidencia](docs/MACRO-004-preparacion.md#verificación-autenticada-de-la-candidata).

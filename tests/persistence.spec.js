@@ -890,6 +890,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
   const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
   const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
+  const amountsUpdate = initialVersion==='v18'&&updatedVersion==='v19'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -943,7 +944,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
+    const updatedAssets = amountsUpdate ? "patientHTML(S.p[0],0).includes('data-pa=\"show\"')"
+      : candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
       : storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
       : patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
       : inventoryUpdate ? "typeof stockStatus==='function'"
@@ -959,7 +961,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = candidateUpdate||storageUpdate ? updatedAssets
+    const newAssets = amountsUpdate||candidateUpdate||storageUpdate ? updatedAssets
       : patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
       : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
@@ -972,6 +974,10 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       await navigate('?offline=updated');
       assert.equal(await evaluate(newAssets),true);
       assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+      if(amountsUpdate){
+        await evaluate("$('[data-m=pay]').click();$('.nurse-record [data-pa=show]').click()");
+        assert.equal(await evaluate("amtOn() && $('.account-balance [data-pa=show]').textContent.includes('Ocultar')"),true);
+      }
       if(receiptDateUpdate){
         assert.deepEqual(await evaluate(financialSnapshot),originalFinances);
         assert.deepEqual(originalFinances,{costCents:5000,receivedCents:93125,balanceCents:-88125,movements:4,historic:3});
@@ -1873,6 +1879,48 @@ function mixedNursesBackup(){
   );
   return backup;
 }
+
+test('ver montos desde enfermería sincroniza Pagos y vuelve a ocultar sin perder el foco',async()=>{
+  const backup=mixedNursesBackup();
+  await seed(JSON.stringify(backup));await navigate();
+  const raw=await evaluate('__persistenceTest.read()');
+  const control='[data-pa=show][data-i="0"][data-k="0"]';
+  const controls='[data-pa=show]';
+  const history='[data-nurse-index="0"] .nurse-history';
+  const state=()=>evaluate(`({
+    visible:amtOn(),
+    focused:document.activeElement===$(${JSON.stringify(control)}),
+    expanded:$(${JSON.stringify(history)}).open,
+    labels:[...document.querySelectorAll(${JSON.stringify(controls)})].map(button=>button.textContent),
+    balance:$('.account-balance .big').textContent,
+    staff:$('#staffView').textContent
+  })`);
+  assert.equal(await evaluate("document.querySelectorAll('.nurse-record [data-pa=show]').length"),3);
+  assert.match((await state()).balance,/••••/);
+  await cdp.send('Page.bringToFront');
+  await evaluate(`$(${JSON.stringify(history)}).open=true;$(${JSON.stringify(control)}).focus()`);
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  const revealed=await state();
+  assert.equal(revealed.visible,true);
+  assert.equal(revealed.focused,true);
+  assert.equal(revealed.expanded,true);
+  assert.ok(revealed.labels.every(label=>label.includes('Ocultar')));
+  assert.doesNotMatch(revealed.balance,/••••/);
+  assert.match(revealed.staff,/Completa \$0(?:\.00)? MXN/);
+  assert.match(revealed.staff,/Completa \$100(?:\.00)? MXN/);
+  await waitFor("$('.account-balance [data-pa=show]').textContent.includes('Ver montos')",'Vencimiento de los montos',12000);
+  const hidden=await state();
+  assert.equal(hidden.focused,true);
+  assert.equal(hidden.expanded,true);
+  assert.ok(hidden.labels.every(label=>label.includes('Ver montos')));
+  assert.match(hidden.staff,/Completa •••• MXN/);
+  await evaluate("$('.account-balance [data-pa=show]').click()");
+  assert.equal((await state()).visible,true);
+  await evaluate(`$(${JSON.stringify(control)}).click()`);
+  assert.equal((await state()).visible,false);
+  assert.equal(await evaluate('__persistenceTest.read()'),raw);
+});
 
 test('actualización periódica conserva paneles, foco y nodos cuando el contenido coincide',async()=>{
   await cdp.send('Page.bringToFront');
