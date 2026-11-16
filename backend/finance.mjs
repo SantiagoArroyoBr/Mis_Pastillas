@@ -25,10 +25,10 @@ export function formatCents(value) {
 
 export function describeBalance(value) {
   const cents = BigInt(value);
-  if (cents < 0n) return { label: 'Saldo a favor', amount: formatCents(-cents) };
+  if (cents < 0n) return { label: 'Saldo a favor', amount: '+' + formatCents(-cents) };
   return {
     label: cents > 0n ? 'Saldo pendiente' : 'Sin saldo pendiente',
-    amount: formatCents(cents)
+    amount: formatCents(-cents)
   };
 }
 

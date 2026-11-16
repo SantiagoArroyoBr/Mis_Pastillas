@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — Signo del saldo visible
+
+Sobre `fd70ca5`, por indicación del propietario, el piloto muestra el saldo pendiente con signo negativo, el crédito a favor con signo positivo y el saldo liquidado como cero. La convención se aplica al mostrar el importe. Pasaron **5/5** pruebas del piloto. [Guía de prueba](backend/README.md).
+
 ## 2026-11-16 — Etiquetas del saldo en el piloto
 
 Sobre `53fc616`, el saldo visible distingue **Saldo pendiente**, **Sin saldo pendiente** y **Saldo a favor**. Con jornadas de $300 y abonos de $400 se muestran $100 a favor. Al ocultar montos se restaura la etiqueta neutra. Se mantuvo el cálculo en centavos y se comprobó el crédito anticipado en SQL. Pasaron **5/5** pruebas del piloto. [Guía de prueba](backend/README.md).
