@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-001
+
+Se fijaron `799fac2` como referencia funcional local y `3a1c19b` como referencia publicada de Acompaña. La evaluación concluye que se puede iniciar una reconstrucción aislada y fija el contrato de equivalencia del primer lote. Los criterios de lanzamiento y transición de datos conservan sus decisiones propias. [Evaluación de inicio](docs/RECONST-001-evaluacion-de-inicio.md).
+
 ## 2026-11-16 — UX-RESPALDO-001
 
 La revisión y la confirmación final de una restauración muestran el nombre del archivo seleccionado. El botón de confirmación usa ese nombre como descripción accesible. Si el JSON carece de fecha de exportación, se omite la línea de fecha. Las fechas incluidas siguen mostrando su valor o el aviso de fecha inválida. Se conservaron el formato JSON, `pastillas-v1`, la validación y las dos confirmaciones.

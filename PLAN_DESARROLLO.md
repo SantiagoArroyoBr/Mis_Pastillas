@@ -2,6 +2,10 @@
 
 Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [conciliación de entregas](docs/AUTONOMIA-001-conciliacion.md) para comprobar qué quedó publicado, probado y pendiente. Las fichas de ciclo y tablas conservan su contexto original.
 
+## RECONST-001 — Evaluación de inicio de la reconstrucción
+
+La PWA actual puede fijarse como referencia para una reconstrucción local y aislada. El primer lote compara ficha, jornada, abono y restauración con los mismos datos ficticios. La transición de datos y la decisión de lanzamiento conservan sus criterios propios. [Evaluación y lotes](docs/RECONST-001-evaluacion-de-inicio.md).
+
 ## MACRO-004 — Preparación de la validación de RC 1.0
 
 La revisión local de la candidata fue aprobada y `6b0d84c` se publicó en `development` con check Vercel `success`. El lote en curso contempla Preview autenticada, dispositivos físicos y revisión asistiva. Quedan pendientes las decisiones sobre datos históricos, coexistencia y lanzamiento. [Evidencia y matriz](docs/MACRO-004-preparacion.md).
