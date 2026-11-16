@@ -24,6 +24,8 @@ En **Citas**, la cuenta propietaria o cuidadora puede registrar una cita vincula
 
 **Editar cita** permite cambiar fecha, hora, lugar y notas de una cita con fecha válida y ficha activa. Si dos cuentas abren la misma cita, el primer guardado actualiza su revisión. La segunda recibe un aviso y conserva su borrador. Puede copiar lo que escribió y volver a abrir la cita actualizada. Los recordatorios y la exportación a Calendar siguen pendientes.
 
+**Filtrar citas por ficha** aplica la selección a las tres listas. Las fichas archivadas se pueden seleccionar para consultar su historial, y las fichas del mismo nombre muestran una referencia breve en el selector. Las citas del día llevan la etiqueta **Hoy**. El filtro se conserva al pulsar **Actualizar fichas** dentro de la misma familia.
+
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
 
 Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.

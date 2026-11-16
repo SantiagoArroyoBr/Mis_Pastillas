@@ -6,10 +6,12 @@ const families = $('families');
 const rename = $('rename-patient');
 const appointment = $('add-appointment');
 const editAppointment = $('edit-appointment');
+const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
+let appointmentFilterValue = '', activeAppointmentPatients = new Set();
 const status = message => { $('status').textContent = message; };
 const finance = createFinance({ run, status, itemWithButton });
 
@@ -23,6 +25,9 @@ function resetAppointments() {
   for (const list of appointmentLists) $('appointments-' + list).replaceChildren();
   $('appointments-legacy-section').hidden = true;
   appointment.elements.patient.replaceChildren();
+  appointmentFilter.replaceChildren();
+  appointmentFilterValue = '';
+  activeAppointmentPatients.clear();
   appointment.reset();
   appointmentRetry = undefined;
   closeAppointment();
@@ -71,6 +76,7 @@ function run(action) {
     if (busy) return;
     busy = true;
     families.disabled = true;
+    appointmentFilter.disabled = true;
     try {
       await action(event);
     } catch (error) {
@@ -94,6 +100,7 @@ function run(action) {
     } finally {
       busy = false;
       families.disabled = false;
+      appointmentFilter.disabled = false;
     }
   };
 }
@@ -131,10 +138,11 @@ async function refreshFamily() {
     return;
   }
   const filter = { family_id: 'eq.' + family };
+  const today = localDay.format(new Date());
   const [patients, members, appointments] = await Promise.all([
     client.select('patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
     owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : [],
-    loadAppointments(client, family, localDay.format(new Date()))
+    loadAppointments(client, family, today, appointmentFilterValue)
   ]);
   const active = patients.filter(patient => !patient.archived_at);
   const archive = (patient, archived) => async () => {
@@ -161,17 +169,36 @@ async function refreshFamily() {
     item.textContent = patient.name;
     return item;
   }));
+  const names = new Map();
+  for (const patient of patients) names.set(patient.name, (names.get(patient.name) ?? 0) + 1);
+  const option = patient => {
+    const suffix = names.get(patient.name) > 1 ? ' · ' + patient.id.slice(0, 8) : '';
+    return new Option(patient.name + suffix + (patient.archived_at ? ' (archivada)' : ''), patient.id);
+  };
   const selection = appointment.elements.patient.value;
-  appointment.elements.patient.replaceChildren(...active.map(patient => new Option(patient.name, patient.id)));
+  appointment.elements.patient.replaceChildren(...active.map(option));
   if (active.some(patient => patient.id === selection)) appointment.elements.patient.value = selection;
   appointment.querySelector('button').disabled = !active.length;
-  const activeIds = new Set(active.map(patient => patient.id));
+  activeAppointmentPatients = new Set(active.map(patient => patient.id));
+  appointmentFilter.replaceChildren(new Option('Todas las fichas', ''), ...patients.map(option));
+  appointmentFilter.value = appointmentFilterValue;
+  renderAppointments(appointments, family, today);
+  $('members').replaceChildren(...members.map(member => itemWithButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
+    await client.rpc('revoke_caregiver', { family, member: member.user_id });
+    await refreshFamily();
+    status('Acceso revocado.');
+  })));
+  if (owner) await finance.load(client, family, active);
+}
+
+function renderAppointments(appointments, family, today) {
   for (const list of appointmentLists) {
     const rows = appointments[list];
     const items = rows.map(row => {
-      const text = [row.appointment_day ?? row.legacy_day, row.appointment_time?.slice(0, 5),
+      const day = row.appointment_day === today ? 'Hoy, ' + today : row.appointment_day ?? row.legacy_day;
+      const text = [day, row.appointment_time?.slice(0, 5),
         row.patient_name, row.location, row.notes].filter(Boolean).join(' · ');
-      if (list !== 'legacy' && activeIds.has(row.patient_id)) {
+      if (list !== 'legacy' && activeAppointmentPatients.has(row.patient_id)) {
         return itemWithButton(text, 'Editar cita', () => {
           if (appointmentDraft && !confirm('¿Descartar el borrador de la cita abierta?')) return;
           openAppointment(row, family);
@@ -189,12 +216,6 @@ async function refreshFamily() {
     $('appointments-' + list).replaceChildren(...items);
   }
   $('appointments-legacy-section').hidden = !appointments.legacy.length;
-  $('members').replaceChildren(...members.map(member => itemWithButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
-    await client.rpc('revoke_caregiver', { family, member: member.user_id });
-    await refreshFamily();
-    status('Acceso revocado.');
-  })));
-  if (owner) await finance.load(client, family, active);
 }
 
 async function refreshFamilies(preferred = families.value) {
@@ -329,4 +350,17 @@ rpcForm('edit-appointment', async values => {
   }
 });
 $('cancel-edit-appointment').addEventListener('click', closeAppointment);
+appointmentFilter.addEventListener('change', run(async () => {
+  const family = families.value;
+  const today = localDay.format(new Date());
+  try {
+    const rows = await loadAppointments(client, family, today, appointmentFilter.value);
+    appointmentFilterValue = appointmentFilter.value;
+    renderAppointments(rows, family, today);
+    status('Agenda filtrada.');
+  } catch (error) {
+    appointmentFilter.value = appointmentFilterValue;
+    throw error;
+  }
+}));
 $('cancel-rename').addEventListener('click', hideEditing);

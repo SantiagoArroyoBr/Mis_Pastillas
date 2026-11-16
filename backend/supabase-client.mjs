@@ -1,8 +1,9 @@
 const API = 'http://127.0.0.1:54321';
 
-export async function loadAppointments(client, family, today) {
+export async function loadAppointments(client, family, today, patient = '') {
   const fields = {
     family_id: 'eq.' + family,
+    ...(patient && { patient_id: 'eq.' + patient }),
     select: 'id,patient_id,patient_name,revision,appointment_day,legacy_day,appointment_time,location,notes',
     limit: 20
   };

@@ -15,6 +15,10 @@ test('appointment history keeps its legacy dates and scopes each list before lim
     { upcoming: [], past: [], legacy: [{ legacy_day: '2026-02-30' }] });
   assert.deepEqual(filters.map(filter => filter.appointment_day), ['gte.2026-11-16', 'lt.2026-11-16', 'is.null']);
   assert.ok(filters.every(filter => filter.family_id === 'eq.fixture-family' && filter.limit === 20));
+  assert.ok(filters.every(filter => !('patient_id' in filter)));
+  filters.length = 0;
+  await loadAppointments(client, 'fixture-family', '2026-11-16', 'fixture-patient');
+  assert.ok(filters.every(filter => filter.patient_id === 'eq.fixture-patient'));
 });
 
 test('backup diagnostics use the PWA validation and report generic failures without echoing content', () => {

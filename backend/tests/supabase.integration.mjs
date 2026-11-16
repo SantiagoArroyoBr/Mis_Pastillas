@@ -119,6 +119,19 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.deepEqual(calendar.legacy, []);
   assert.deepEqual(await loadAppointments(outsider, family, day), { upcoming: [], past: [], legacy: [] });
 
+  const homonym = await owner.rpc('add_patient', { family, patient_name: 'Ficha compartida' });
+  const homonymBooking = await owner.rpc('add_appointment', {
+    ...booking, patient: homonym, request_id: randomUUID(), day: '2026-12-01'
+  });
+  assert.equal((await loadAppointments(owner, family, day)).upcoming.some(row => row.id === homonymBooking), false);
+  assert.equal(await owner.rpc('set_patient_archived', {
+    family, patient: homonym, expected_revision: 1, archived: true
+  }), 2);
+  const filtered = await loadAppointments(caregiver, family, day, homonym);
+  assert.deepEqual(filtered.upcoming.map(row => [row.id, row.patient_id]), [[homonymBooking, homonym]]);
+  assert.deepEqual(filtered.past, []);
+  assert.deepEqual(await loadAppointments(outsider, family, day, homonym), { upcoming: [], past: [], legacy: [] });
+
   const editBooking = { family, appointment: appointmentId, expected_revision: 1, day: previousDay, at_time: null, place: 'Lugar ficticio' };
   const edits = await Promise.allSettled([
     owner.rpc('edit_appointment', { ...editBooking, details: 'Cambio A' }),

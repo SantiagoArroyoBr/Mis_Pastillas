@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-013 · Agenda por ficha
+
+Sobre `f73b4af`, la agenda permite filtrar por ficha activa o archivada antes de aplicar el límite de cada lista. Los selectores identifican fichas homónimas con una referencia breve y la agenda marca las citas de hoy. El filtro se conserva al actualizar la familia actual y se reinicia al cambiar de familia.
+
+Pasaron **12/12** pruebas del piloto y **1/1** integrada con Supabase. La integración recuperó por ficha una cita archivada fuera del límite global y mantuvo el aislamiento entre familias. En Edge se comprobaron homónimos, etiqueta Hoy y filtro al actualizar. El lote usa el esquema vigente y quedó local. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-012 · Edición de citas y conflictos
 
 Sobre `4c09225` se añadieron edición de fecha, hora, lugar y notas, cambio de lista según la fecha actualizada y protección de borrador ante revisión obsoleta. Las ediciones se guardan aparte del alta original para que su reintento conserve el mismo ID. La agenda consulta la versión vigente con los permisos de la familia. Las citas con fecha histórica inválida y las de fichas archivadas quedan disponibles para consulta.

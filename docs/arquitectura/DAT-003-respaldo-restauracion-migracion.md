@@ -84,6 +84,10 @@ Extender el esquema local con archivo reversible de fichas y citas vinculadas po
 
 Antes de considerar el lote listo, probar dos fichas del mismo nombre, citas de fechas válidas e imposibles, archivo y reactivación con historial existente, y rechazo en la API de una cita que intente vincular una ficha de otra familia. La propuesta requiere autorización para cambios de esquema y pruebas con datos ficticios en Supabase local.
 
+### Propuesta de inventario
+
+El siguiente lote de esquema local cubriría registros de inventario vinculados a ficha y familia, historial de compras con cantidad y precio original, y pautas independientes que descuentan del mismo stock de su registro. Dos registros con el mismo nombre conservan sus identidades y movimientos propios. El ensayo debe usar datos ficticios y comparar stock, compras y consumos con la PWA en las mismas fechas. También debe comprobar que un fallo en una compra no aplica la cantidad parcialmente y que otra familia no puede consultar ni vincular registros.
+
 ## 6. Secuencia y puntos de control
 
 | Etapa | Evidencia requerida | Si falla |
