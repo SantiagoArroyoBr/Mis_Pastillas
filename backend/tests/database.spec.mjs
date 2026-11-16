@@ -9,6 +9,15 @@ const directory = new URL('../supabase/migrations/', import.meta.url);
 const migrations = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.sql')).sort()
   .map(name => readFile(new URL(name, directory), 'utf8')));
 
+async function currentPwa() {
+  const context = createContext({ window: {} });
+  for (const script of ['compatibility.js', 'payments.js']) {
+    const url = new URL('../../' + script, import.meta.url);
+    runInContext(await readFile(url, 'utf8'), context, { filename: script });
+  }
+  return context.window;
+}
+
 async function database(t) {
   const db = new PGlite();
   t.after(() => db.close());
@@ -167,12 +176,7 @@ test('individual payments allocate oldest eligible shifts and roll back overpaym
 });
 
 test('PostgreSQL and the current PWA agree on the same individual and general ledgers', async t => {
-  const context = createContext({ window: {} });
-  for (const script of ['compatibility.js', 'payments.js']) {
-    const url = new URL('../../' + script, import.meta.url);
-    runInContext(await readFile(url, 'utf8'), context, { filename: script });
-  }
-  const pwa = context.window.AcompanaPayments.create({});
+  const pwa = (await currentPwa()).AcompanaPayments.create({});
   const db = await database(t);
   const owner = await addUser(db);
   const family = await rpc(owner.query, 'create_family($1)', ['Familia de comparación']);
@@ -219,4 +223,98 @@ test('PostgreSQL and the current PWA agree on the same individual and general le
   await rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', [family, randomUUID(), receipt, today]);
   general.push({ type: 'cancellation', originalId: receipt });
   await compareBalance();
+});
+
+test('a synthetic JSON backup preserves historical amounts and relations in a disposable SQL rehearsal', async t => {
+  const { AcompanaCompatibility: compatibility } = await currentPwa();
+  const day = '2026-11-16';
+  const raw = JSON.stringify({
+    sel: 0, mode: 'home', last: '',
+    p: [
+      { name: 'Ficha ficticia', meds: [{ name: 'Medicamento ficticio', base: 20, t0: 1700000000000, cons: [] }] },
+      { name: 'Ficha ficticia', meds: [], archived: true }
+    ],
+    appts: [{ id: 'cita', i: 0, d: day, t: '08:00', w: 'Consulta ficticia', n: '' }],
+    pay: {
+      cfg: [{ base: day, pays: [{ d: day, n: 1, a: 40, old: false }] }],
+      nurses: [[{ id: 'staff', n: 'Enfermería ficticia', ratesCents: { full: 12000, half: 6500 } }], []],
+      v: { [day]: { 0: [{ n: 'Enfermería ficticia',
+        service: { id: 'service', nurseId: 'staff', type: 'half', amountCents: 5000 } }] } },
+      ledger: [{ id: 'payment', patientIndex: 0, nurseId: 'staff', date: day, amountCents: 1800,
+        allocations: [{ serviceId: 'service', amountCents: 1800 }] }],
+      generalLedger: [
+        { id: 'receipt', type: 'receipt', date: day, amountCents: 2500, concept: 'Nota ficticia' },
+        { id: 'reversed', type: 'receipt', date: day, amountCents: 1000 },
+        { id: 'cancel', type: 'cancellation', originalId: 'reversed', date: day, amountCents: 1000 }
+      ]
+    }
+  });
+  const source = JSON.parse(raw);
+  compatibility.validateMigrationInput(source);
+  const wrongPatient = JSON.parse(raw);
+  wrongPatient.pay.ledger[0].patientIndex = 1;
+  assert.throws(() => compatibility.validateMigrationInput(wrongPatient), /otra persona o ficha/);
+  const historicDate = JSON.parse(raw);
+  historicDate.pay.generalLedger[0].date = '2026-02-30';
+  compatibility.validateMigrationInput(historicDate);
+  assert.equal(compatibility.isValidDateOnly(historicDate.pay.generalLedger[0].date), false);
+
+  const db = await database(t);
+  const owner = await addUser(db);
+  const outsider = await addUser(db);
+  const family = await rpc(owner.query, 'create_family($1)', ['Familia de ensayo']);
+  const patientIds = source.p.map(() => randomUUID());
+  const staff = source.pay.nurses[0][0];
+  const service = source.pay.v[day][0][0].service;
+  const movement = source.pay.ledger[0];
+  const mapped = new Map([staff, service, movement, ...source.pay.generalLedger].map(row => [row.id, randomUUID()]));
+
+  // These writes are confined to an in-memory fixture of the current destination schema.
+  function rehearse(snapshot) {
+    return db.transaction(async tx => {
+      for (const [index, patient] of source.p.entries()) {
+        await tx.query('insert into public.patients (family_id,id,name) values ($1,$2,$3)',
+          [family, patientIds[index], patient.name]);
+      }
+      await tx.query('insert into public.nurses (family_id,id,name,full_cents,half_cents) values ($1,$2,$3,$4,$5)',
+        [family, mapped.get(staff.id), staff.n, staff.ratesCents.full, staff.ratesCents.half]);
+      await tx.query('insert into public.shifts values ($1,$2,$3,$4,$5,$6,$7,$8)',
+        [family, mapped.get(service.id), patientIds[0], mapped.get(service.nurseId), day, service.type, service.amountCents, owner.id]);
+      await tx.query('insert into public.individual_payments values ($1,$2,$3,$4,$5,$6)',
+        [family, mapped.get(movement.id), mapped.get(movement.nurseId), movement.date, movement.amountCents, owner.id]);
+      for (const row of movement.allocations) {
+        await tx.query('insert into public.individual_allocations values ($1,$2,$3,$4,$5)',
+          [family, mapped.get(movement.nurseId), mapped.get(movement.id), mapped.get(row.serviceId), row.amountCents]);
+      }
+      for (const row of snapshot.pay.generalLedger) {
+        if (row.type === 'receipt') {
+          await tx.query('insert into public.receipts values ($1,$2,$3,$4,$5)',
+            [family, mapped.get(row.id), row.date, row.amountCents, owner.id]);
+        } else {
+          await tx.query('insert into public.receipt_cancellations values ($1,$2,$3,$4,$5)',
+            [family, mapped.get(row.id), mapped.get(row.originalId), row.date, owner.id]);
+        }
+      }
+    });
+  }
+  await assert.rejects(rehearse(historicDate), { code: '22008' });
+  assert.deepEqual(await owner.query('select id from public.patients where family_id = $1', [family]), []);
+  assert.deepEqual(await owner.query('select payment_id from public.individual_allocations where family_id = $1', [family]), []);
+  await rehearse(source);
+  assert.deepEqual(new Set((await owner.query('select id from public.patients where family_id = $1', [family]))
+    .map(row => row.id)), new Set(patientIds));
+  assert.deepEqual(await owner.query('select patient_id,nurse_id,cost_cents from public.shifts'), [
+    { patient_id: patientIds[0], nurse_id: mapped.get(staff.id), cost_cents: 5000 }
+  ]);
+  assert.deepEqual(await owner.query('select payment_id,shift_id,amount_cents from public.individual_allocations'), [
+    { payment_id: mapped.get(movement.id), shift_id: mapped.get(service.id), amount_cents: 1800 }
+  ]);
+  assert.deepEqual(await owner.query('select receipt_id from public.receipt_cancellations'), [{ receipt_id: mapped.get('reversed') }]);
+  assert.deepEqual(await owner.query('select * from public.financial_balance($1,$2)', [family, day]), [
+    { cost_cents: '5000', received_cents: '2500', balance_cents: '2500' }
+  ]);
+  assert.deepEqual(await outsider.query('select payment_id from public.individual_allocations'), []);
+  await assert.rejects(rehearse(source), { code: '23505' });
+  assert.deepEqual(await owner.query('select count(*)::int as total from public.shifts'), [{ total: 1 }]);
+  assert.equal(JSON.stringify(source), raw);
 });

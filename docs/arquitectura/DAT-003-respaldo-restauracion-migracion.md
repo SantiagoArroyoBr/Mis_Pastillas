@@ -60,6 +60,18 @@ Si en el futuro se aprueba un destino remoto, diseñar un convertidor separado q
 
 Este diseño es preliminar: el esquema destino, el tenant, el formato de importación, el protocolo de coexistencia y el manejo de conflictos dependen de decisiones futuras y pruebas aisladas.
 
+### Conciliación con el esquema del piloto
+
+RECONST-008 usa un JSON ficticio con dos fichas del mismo nombre, una archivada, una medicina, una cita, prepago por cobertura y ambos libros de abonos. Primero aplica la validación de la PWA. Después comprueba el subconjunto representable en una base PostgreSQL desechable. Las escrituras del ensayo son exclusivas del fixture. [Prueba de conciliación](../../backend/tests/database.spec.mjs).
+
+| Datos en el respaldo | Resultado del ensayo | Decisión pendiente antes de importar |
+| --- | --- | --- |
+| Fichas y enfermería | Los índices resuelven las referencias a UUID distintos aunque las fichas tengan el mismo nombre. Se conserva la tarifa vigente del enfermero. | Representar el archivo de fichas, la inactividad, el vínculo de personal por ficha y los índices originales con un mapa durable y reversible. |
+| Jornada con tarifa histórica y abono individual | Se conserva el costo histórico de 5.000 centavos frente a la tarifa vigente de 6.500, la ficha y el enfermero de la jornada, y su asignación original de 1.800 centavos. | Definir la escritura de importación autorizada que conserva costos y aplicaciones históricas. La RPC de operación normal calcula con las tarifas y los pendientes que encuentra al ejecutarse. |
+| Abonos generales y cancelaciones | Se conserva el vínculo entre cancelación y recibo. El saldo observado es de 2.500 centavos pendientes. Una fecha imposible válida como dato histórico en la PWA se rechaza en PostgreSQL y revierte toda la transacción del ensayo. | Representar los textos de fecha legados y los conceptos para poder recuperar el respaldo completo, conservando su efecto financiero. |
+| Inventario, cita y prepago de cobertura | Se validan en el JSON de origen. | Incorporar su representación y verificar consumos, citas y cobertura sobre los mismos registros. |
+| Repetición y recuperación | Una segunda escritura con los mismos IDs se rechaza y deja un solo conjunto. El JSON fuente conserva su contenido. | Diseñar el registro durable de lotes, la reconciliación posterior y la devolución del respaldo completo. |
+
 ## 6. Secuencia y puntos de control
 
 | Etapa | Evidencia requerida | Si falla |

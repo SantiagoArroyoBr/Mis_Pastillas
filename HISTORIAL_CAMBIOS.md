@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-008 · Ensayo de respaldo y conciliación
+
+Sobre `5ccb63a` se registró la aprobación de la comparación de pagos. Un respaldo ficticio validado por la PWA sirvió para ensayar la correspondencia de índices e IDs, jornadas a costo histórico, abonos y cancelaciones en PostgreSQL desechable. Una fecha histórica imposible provocó la reversión de la transacción completa. El segundo intento con los mismos IDs se rechazó sin duplicados y el JSON fuente conservó su contenido.
+
+Pasaron **9/9** pruebas del piloto y **102/102** de regresión de la PWA en Edge. La matriz registra los faltantes para la recuperación íntegra, entre ellos inventario, citas, prepago de cobertura, archivo de fichas y metadatos financieros históricos. El ensayo no requiere cambios de esquema ni acceso a Supabase con datos persistentes. [Matriz de conciliación](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md#conciliación-con-el-esquema-del-piloto).
+
 ## 2026-11-16 — RECONST-007 · Comparación financiera entre PWA y PostgreSQL
 
 Sobre `dee9be4` se registró la aprobación del detalle por jornada. La suite del piloto ejecuta un mismo caso ficticio contra `payments.js` y las migraciones SQL. Coinciden las asignaciones individuales de dos pagos parciales, el rechazo de excedentes, el costo y saldo en tres fechas de corte, y el efecto de cancelar un abono general. Se verificó también la ausencia de acceso anónimo a los abonos individuales y la denegación del borrado directo de asignaciones.
