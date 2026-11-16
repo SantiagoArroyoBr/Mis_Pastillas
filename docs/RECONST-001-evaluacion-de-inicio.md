@@ -28,6 +28,12 @@ Se repitió `node --test tests/payments.spec.js tests/persistence.spec.js` sobre
 2. **Flujos restantes.** Incorporar inventario, calendario, historiales, accesibilidad y PWA offline. Reutilizar el inventario de escenarios de la referencia, con casos de recarga, restauración, cuotas, actualización y dos pestañas. Revisar con dispositivos físicos las diferencias que la automatización de escritorio no cubre.
 3. **Transición de datos.** Ensayar importación, exportación, reconciliación y retorno a la instalación anterior con respaldos ficticios representativos. Exigir coincidencia de IDs, relaciones, importes y totales y un plan de recuperación validado antes de tocar datos reales. Si se aprueban cuentas, familias múltiples o sincronización, resolver el modelo de permisos y las escrituras concurrentes y ejecutar CAL-001 en un entorno separado. [Plan de recuperación y migración](arquitectura/DAT-003-respaldo-restauracion-migracion.md) · [Matriz CAL-001](arquitectura/CAL-001-matriz-pruebas-aislamiento.md).
 
+### Equivalencia financiera verificada
+
+RECONST-007 alimenta el módulo `payments.js` de la PWA y las funciones SQL del piloto con las mismas jornadas y movimientos ficticios. Compara las asignaciones en centavos, el rechazo de excedentes y los totales generales en tres fechas de corte antes y después de cancelar un abono. El caso se reproduce con `npm test` desde `backend`. [Prueba de comparación](../backend/tests/database.spec.mjs).
+
+Para completar el primer corte falta reconciliar un respaldo de extremo a extremo entre ambos formatos. Los casos de fecha histórica inválida, relaciones sin correspondencia y campos que el esquema destino todavía no representa deben quedar identificados en esa reconciliación. [Plan de respaldo y restauración](arquitectura/DAT-003-respaldo-restauracion-migracion.md).
+
 ## Decisiones pendientes
 
 - **Alcance de la reconstrucción.** El primer lote puede definirse sobre la PWA local. Backend, autenticación, sincronización, servicios y cambios del formato requieren una decisión explícita. [Evaluación de alternativas](arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md).

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-007 · Comparación financiera entre PWA y PostgreSQL
+
+Sobre `dee9be4` se registró la aprobación del detalle por jornada. La suite del piloto ejecuta un mismo caso ficticio contra `payments.js` y las migraciones SQL. Coinciden las asignaciones individuales de dos pagos parciales, el rechazo de excedentes, el costo y saldo en tres fechas de corte, y el efecto de cancelar un abono general. Se verificó también la ausencia de acceso anónimo a los abonos individuales y la denegación del borrado directo de asignaciones.
+
+Pasaron **8/8** pruebas del piloto, **1/1** integrada con Supabase local y **102/102** de regresión de la PWA en Edge. Queda pendiente ensayar un respaldo completo entre ambos formatos. [Contrato y resultado](docs/RECONST-001-evaluacion-de-inicio.md#equivalencia-financiera-verificada) · [Matriz CAL-001](docs/arquitectura/CAL-001-matriz-pruebas-aislamiento.md).
+
 ## 2026-11-16 — RECONST-006 · Detalle de abonos por jornada
 
 Sobre `fa0beb6` se registró la aprobación de RECONST-005. El botón **Ver montos** del historial revela costo, abonado y pendiente por jornada. La consulta agrupa en centavos los importes asignados y lee páginas sucesivas si hay más de 500 asignaciones para las jornadas visibles. Usa las tablas y permisos existentes. El lote quedó local.

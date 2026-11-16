@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
+import { createContext, runInContext } from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
 
 const directory = new URL('../supabase/migrations/', import.meta.url);
@@ -132,6 +133,7 @@ test('individual payments allocate oldest eligible shifts and roll back overpaym
   const db = await database(t);
   const owner = await addUser(db);
   const outsider = await addUser(db);
+  const anonymous = actor(db);
   const family = await rpc(owner.query, 'create_family($1)', ['Familia ficticia']);
   const patient = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha']);
   const nurse = await rpc(owner.query, 'add_nurse($1,$2,$3,$4)', [family, 'Enfermero A', 10000, null]);
@@ -153,10 +155,68 @@ test('individual payments allocate oldest eligible shifts and roll back overpaym
     await assert.rejects(rpc(owner.query, call, [family, randomUUID(), nurse, date, amount]), { code: 'PT422' });
   }
   await assert.rejects(rpc(outsider.query, call, args), { code: '42501' });
+  await assert.rejects(rpc(anonymous, call, args), { code: '42501' });
+  await assert.rejects(anonymous('select id from public.individual_payments'), { code: '42501' });
+  await assert.rejects(owner.query('delete from public.individual_allocations'), { code: '42501' });
   assert.deepEqual(await outsider.query('select * from public.individual_allocations'), []);
   assert.deepEqual(await owner.query('select id from public.individual_payments'), [{ id: payment }]);
   assert.deepEqual(await owner.query('select shift_id, amount_cents from public.individual_allocations order by amount_cents desc'),
     [{ shift_id: first, amount_cents: 10000 }, { shift_id: second, amount_cents: 5000 }]);
   assert.deepEqual(await owner.query('select * from public.financial_balance($1,$2)', [family, day]),
     [{ cost_cents: '30000', received_cents: '0', balance_cents: '30000' }]);
+});
+
+test('PostgreSQL and the current PWA agree on the same individual and general ledgers', async t => {
+  const context = createContext({ window: {} });
+  for (const script of ['compatibility.js', 'payments.js']) {
+    const url = new URL('../../' + script, import.meta.url);
+    runInContext(await readFile(url, 'utf8'), context, { filename: script });
+  }
+  const pwa = context.window.AcompanaPayments.create({});
+  const db = await database(t);
+  const owner = await addUser(db);
+  const family = await rpc(owner.query, 'create_family($1)', ['Familia de comparación']);
+  const patient = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha ficticia']);
+  const nurse = await rpc(owner.query, 'add_nurse($1,$2,$3,$4)', [family, 'Enfermería ficticia', 12000, 6500]);
+  const [first, today, later] = ['2026-11-15', '2026-11-16', '2026-11-17'];
+  const services = [];
+  for (const [date, modality, amountCents] of [[today, 'full', 12000], [first, 'half', 6500], [later, 'full', 12000]]) {
+    const id = randomUUID();
+    await rpc(owner.query, 'record_shift($1,$2,$3,$4,$5,$6)', [family, id, patient, nurse, date, modality]);
+    services.push({ id, nurseId: nurse, date, amountCents });
+  }
+  const individual = [];
+  const pay = 'record_individual_payment($1,$2,$3,$4,$5)';
+  for (const [date, amount] of [[today, 7000], [today, 2500], [first, 1], [today, 9001]]) {
+    const expected = pwa.allocatePayment(services, individual, nurse, amount, date);
+    const id = randomUUID();
+    if (expected) {
+      await rpc(owner.query, pay, [family, id, nurse, date, amount]);
+      const rows = await owner.query(
+        'select shift_id, amount_cents from public.individual_allocations where payment_id = $1', [id]
+      );
+      assert.deepEqual(new Map(rows.map(row => [row.shift_id, row.amount_cents])),
+        new Map(expected.map(row => [row.serviceId, row.amountCents])));
+      individual.push({ nurseId: nurse, amountCents: amount, allocations: expected });
+    } else {
+      await assert.rejects(rpc(owner.query, pay, [family, id, nurse, date, amount]), { code: 'PT422' });
+      assert.deepEqual(await owner.query('select id from public.individual_payments where id = $1', [id]), []);
+    }
+  }
+
+  const receipt = randomUUID();
+  await rpc(owner.query, 'record_receipt($1,$2,$3,$4)', [family, receipt, today, 20000]);
+  const general = [{ id: receipt, type: 'receipt', amountCents: 20000 }];
+  async function compareBalance() {
+    for (const cutoff of [first, today, later]) {
+      const { costCents, receivedCents, balanceCents } = pwa.generalSummary(services, general, cutoff);
+      assert.deepEqual(await owner.query('select * from public.financial_balance($1,$2)', [family, cutoff]), [{
+        cost_cents: String(costCents), received_cents: String(receivedCents), balance_cents: String(balanceCents)
+      }]);
+    }
+  }
+  await compareBalance();
+  await rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', [family, randomUUID(), receipt, today]);
+  general.push({ type: 'cancellation', originalId: receipt });
+  await compareBalance();
 });
