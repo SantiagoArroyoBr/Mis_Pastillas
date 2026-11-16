@@ -50,6 +50,23 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   }]);
   assert.deepEqual(await caregiver.select('shifts', shiftHistory), []);
   assert.deepEqual(await outsider.select('shifts', shiftHistory), []);
+  const individualArgs = { family, nurse, day, cents: '4000' };
+  const individual = (client, request_id) => client.rpc('record_individual_payment', { ...individualArgs, request_id });
+  const ids = [randomUUID(), randomUUID()];
+  const results = await Promise.allSettled(ids.map(id => individual(owner, id)));
+  const succeeded = results.filter(result => result.status === 'fulfilled');
+  const rejected = results.filter(result => result.status === 'rejected');
+  assert.equal(succeeded.length, 1);
+  assert.equal(rejected.length, 1);
+  assert.equal(rejected[0].reason.code, 'PT422');
+  assert.equal(await individual(owner, succeeded[0].value), succeeded[0].value);
+  await assert.rejects(individual(caregiver, randomUUID()), { status: 403 });
+  const byFamily = { family_id: 'eq.' + family, select: 'paid_on,amount_cents,nurses(name)' };
+  assert.deepEqual(await owner.select('individual_payments', byFamily), [
+    { paid_on: day, amount_cents: 4000, nurses: { name: 'Enfermería ficticia' } }
+  ]);
+  assert.deepEqual(await caregiver.select('individual_payments', byFamily), []);
+  assert.deepEqual(await outsider.select('individual_payments', byFamily), []);
   const receipt = randomUUID();
   const args = { family, request_id: receipt, day, cents: '5000' };
   assert.deepEqual(await Promise.all([owner.rpc('record_receipt', args), owner.rpc('record_receipt', args)]), [receipt, receipt]);

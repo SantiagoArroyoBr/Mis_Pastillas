@@ -58,11 +58,14 @@ export function createFinance({ run, status, itemWithButton }) {
   const toggle = $('finance-toggle');
   const shift = $('record-shift');
   const receipt = $('record-receipt');
+  const individual = $('record-individual-payment');
   const cancel = $('cancel-receipt');
   const history = $('finance-receipts');
   const shiftHistory = $('finance-shifts');
+  const individualHistory = $('finance-individual-payments');
   const hideReceiptAmounts = historyAmounts(history, $('receipt-toggle'));
   const hideShiftAmounts = historyAmounts(shiftHistory, $('shift-toggle'));
+  const hideIndividualAmounts = historyAmounts(individualHistory, $('individual-toggle'));
   const pending = new Map();
   let family, client, patients, balance, selected, timer;
 
@@ -91,12 +94,16 @@ export function createFinance({ run, status, itemWithButton }) {
     hideAmounts();
     hideReceiptAmounts();
     hideShiftAmounts();
+    hideIndividualAmounts();
     dismissCancellation();
     history.replaceChildren();
     shiftHistory.replaceChildren();
+    individualHistory.replaceChildren();
     $('add-nurse').reset();
     shift.reset();
     receipt.reset();
+    individual.reset();
+    individual.elements.nurse.replaceChildren();
     shift.elements.patient.replaceChildren();
     shift.elements.nurse.replaceChildren();
   }
@@ -113,13 +120,16 @@ export function createFinance({ run, status, itemWithButton }) {
     patients = nextPatients;
     const today = dateFormat.format(new Date());
     const filter = { family_id: 'eq.' + family };
-    const [nurses, receipts, totals, shifts] = await Promise.all([
+    const [nurses, receipts, totals, shifts, individualPayments] = await Promise.all([
       client.select('nurses', { ...filter, select: 'id,name', order: 'name.asc,id.asc' }),
       client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents', order: 'paid_on.desc,id.desc', limit: 20 }),
       client.rpc('financial_balance', { family, as_of: today }),
       client.select('shifts', {
         ...filter, select: 'service_day,modality,cost_cents,patients(name),nurses(name)',
         order: 'service_day.desc,id.desc', limit: 20
+      }),
+      client.select('individual_payments', {
+        ...filter, select: 'paid_on,amount_cents,nurses(name)', order: 'paid_on.desc,id.desc', limit: 20
       })
     ]);
     const cancellations = receipts.length ? await client.select('receipt_cancellations', {
@@ -130,8 +140,22 @@ export function createFinance({ run, status, itemWithButton }) {
     hideAmounts();
     options(shift.elements.patient, patients);
     options(shift.elements.nurse, nurses);
+    options(individual.elements.nurse, nurses);
     shift.querySelector('button').disabled = !patients.length || !nurses.length;
-    for (const form of [shift, receipt]) form.elements.day.value ||= today;
+    individual.querySelector('button').disabled = !nurses.length;
+    for (const form of [shift, receipt, individual]) form.elements.day.value ||= today;
+    individualHistory.replaceChildren(...individualPayments.map(row => {
+      const item = document.createElement('li');
+      item.append(row.paid_on + ' · ' + row.nurses.name + ' · ', historyAmount(row.amount_cents));
+      return item;
+    }));
+    if (!individualPayments.length) {
+      const empty = document.createElement('li');
+      empty.textContent = 'Aún no hay abonos individuales.';
+      individualHistory.append(empty);
+    }
+    $('individual-toggle').disabled = !individualPayments.length;
+    hideIndividualAmounts();
     shiftHistory.replaceChildren(...shifts.map(row => {
       const item = document.createElement('li');
       const modality = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';
@@ -175,7 +199,14 @@ export function createFinance({ run, status, itemWithButton }) {
         const key = JSON.stringify([rpc, args]);
         if (!pending.has(key)) pending.set(key, crypto.randomUUID());
         args.request_id = pending.get(key);
-        await client.rpc(rpc, args);
+        try {
+          await client.rpc(rpc, args);
+        } catch (error) {
+          if (rpc === 'record_individual_payment' && error.code === 'PT422') {
+            throw new Error('El abono supera el monto pendiente de este enfermero hasta la fecha indicada.');
+          }
+          throw error;
+        }
         pending.delete(key);
       } else {
         await client.rpc(rpc, args);
@@ -217,6 +248,9 @@ export function createFinance({ run, status, itemWithButton }) {
   register('record-receipt', 'record_receipt', values => ({
     day: values.get('day'), cents: parseCents(values.get('amount'))
   }), 'Abono registrado.');
+  register('record-individual-payment', 'record_individual_payment', values => ({
+    nurse: values.get('nurse'), day: values.get('day'), cents: parseCents(values.get('amount'))
+  }), 'Abono individual registrado.');
   register('cancel-receipt', 'cancel_receipt', values => ({
     receipt: selected, day: values.get('day')
   }), 'Cancelación registrada.');

@@ -76,6 +76,16 @@
           <h3>Últimas jornadas registradas</h3>
           <button id="shift-toggle" type="button" aria-controls="finance-shifts" aria-pressed="false">Ver montos</button>
           <ul id="finance-shifts"></ul>
+          <h3>Abonos individuales</h3>
+          <p>Se aplican a las jornadas pendientes del enfermero hasta la fecha del abono, empezando por la más antigua.</p>
+          <form id="record-individual-payment">
+            <label>Enfermero/a <select name="nurse" required></select></label>
+            <label>Fecha de abono individual <input name="day" type="date" required></label>
+            <label>Abono individual (MXN) <input name="amount" inputmode="decimal" required></label>
+            <button>Registrar abono individual</button>
+          </form>
+          <button id="individual-toggle" type="button" aria-controls="finance-individual-payments" aria-pressed="false">Ver montos</button>
+          <ul id="finance-individual-payments"></ul>
           <h3 id="finance-heading">Saldo general</h3>
           <button id="finance-toggle" type="button" aria-controls="finance-summary" aria-pressed="false">Ver montos</button>
           <dl id="finance-summary">

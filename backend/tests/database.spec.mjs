@@ -127,3 +127,36 @@ test('shifts and receipts preserve cents, ownership, family links and idempotenc
   assert.deepEqual(await owner.query('select receipt_id from public.receipt_cancellations'), [{ receipt_id: receipt }]);
   assert.deepEqual(await owner.query(balance, [family, day]), [{ cost_cents: '6500', received_cents: '0', balance_cents: '6500' }]);
 });
+
+test('individual payments allocate oldest eligible shifts and roll back overpayments', async t => {
+  const db = await database(t);
+  const owner = await addUser(db);
+  const outsider = await addUser(db);
+  const family = await rpc(owner.query, 'create_family($1)', ['Familia ficticia']);
+  const patient = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha']);
+  const nurse = await rpc(owner.query, 'add_nurse($1,$2,$3,$4)', [family, 'Enfermero A', 10000, null]);
+  const other = await rpc(owner.query, 'add_nurse($1,$2,$3,$4)', [family, 'Enfermero B', 10000, null]);
+  const early = '2026-11-15', day = '2026-11-16';
+  const [first, second] = [randomUUID(), randomUUID()];
+  for (const [id, staff, date] of [
+    [second, nurse, day], [first, nurse, early], [randomUUID(), nurse, '2026-11-17'], [randomUUID(), other, day]
+  ]) {
+    await rpc(owner.query, 'record_shift($1,$2,$3,$4,$5,$6)', [family, id, patient, staff, date, 'full']);
+  }
+  const call = 'record_individual_payment($1,$2,$3,$4,$5)';
+  const payment = randomUUID();
+  const args = [family, payment, nurse, day, 15000];
+  assert.equal(await rpc(owner.query, call, args), payment);
+  assert.equal(await rpc(owner.query, call, args), payment);
+  await assert.rejects(rpc(owner.query, call, [family, payment, nurse, day, 1]), { code: 'PT409' });
+  for (const [date, amount] of [[early, 1], [day, 5001]]) {
+    await assert.rejects(rpc(owner.query, call, [family, randomUUID(), nurse, date, amount]), { code: 'PT422' });
+  }
+  await assert.rejects(rpc(outsider.query, call, args), { code: '42501' });
+  assert.deepEqual(await outsider.query('select * from public.individual_allocations'), []);
+  assert.deepEqual(await owner.query('select id from public.individual_payments'), [{ id: payment }]);
+  assert.deepEqual(await owner.query('select shift_id, amount_cents from public.individual_allocations order by amount_cents desc'),
+    [{ shift_id: first, amount_cents: 10000 }, { shift_id: second, amount_cents: 5000 }]);
+  assert.deepEqual(await owner.query('select * from public.financial_balance($1,$2)', [family, day]),
+    [{ cost_cents: '30000', received_cents: '0', balance_cents: '30000' }]);
+});

@@ -30,6 +30,8 @@ Desde una cuenta propietaria, registra a una persona de enfermería con tarifa d
 
 **Últimas jornadas registradas** muestra hasta 20 jornadas ordenadas por fecha, con ficha, enfermero, modalidad y costo registrado. Una fecha futura aparece como programada. Su botón **Ver montos** revela esos costos durante 30 segundos y funciona de forma independiente del saldo y de los abonos.
 
+**Abonos individuales** aplica el pago a las jornadas pendientes del enfermero, de la más antigua a la más reciente y hasta la fecha indicada. Para probarlo, registra dos jornadas de $100 para el mismo enfermero y abona $150 con fecha igual o posterior a ambas. Quedarán $50 pendientes en la segunda. Un intento de abonar $51 se rechaza y conserva el importe en el formulario. Puedes consultar los últimos 20 abonos individuales con su propio **Ver montos**. El saldo general sigue la regla de la PWA y considera los abonos generales activos.
+
 ## Pruebas
 
 - `npm test` aplica el SQL real a PostgreSQL embebido en memoria. Las pruebas simulan la identidad que Supabase aporta a PostgreSQL y comprueban permisos de lectura y escritura, aislamiento, conflictos, revocación e integridad de pagos. También verifican el cliente HTTP con respuestas simuladas. Este comando funciona sin contenedores.

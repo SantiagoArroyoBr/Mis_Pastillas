@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-005 · Abonos individuales
+
+Sobre `c0b2552`, el piloto incorpora formulario, últimos 20 abonos y un control independiente de montos. PostgreSQL reparte el pago por fecha e ID entre jornadas pendientes del mismo enfermero hasta la fecha del abono. La asignación se guarda en la misma transacción. Se rechaza el excedente, se conserva el borrador en pantalla y un reintento con el mismo ID devuelve el movimiento original. El saldo general conserva la regla de la PWA.
+
+Se exportaron las jornadas existentes del Supabase local a JSON y se comprobó la reconstrucción exacta en una tabla temporal antes de aplicar `20261116000300`. Pasaron **6/6** pruebas del piloto, **1/1** integrada con Supabase y **102/102** de regresión de la PWA. La integración comprobó que, con dos solicitudes simultáneas que juntas exceden el pendiente, se registra solo una. En Edge con datos ficticios se comprobaron el abono parcial, el rechazo de excedente, la conservación del borrador y los controles de montos. El lote quedó local. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-004 · Historial de jornadas
 
 Sobre `255120c` se registró la aprobación de RECONST-003. El piloto muestra hasta 20 jornadas por fecha con ficha, enfermería, modalidad y un botón independiente para revelar el costo durante 30 segundos. Las jornadas futuras se marcan como programadas. Se utilizan las relaciones y permisos existentes de Supabase.
