@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — QA-RC-LOCAL-001
+
+La candidata de `6b0d84c` en `development` superó 101/101 pruebas conjuntas en Edge 157.0.4341.60, la actualización exacta v17 → v18 y el reflujo de las tres secciones principales con zoom efectivo al 200 % y 400 %. El resultado local queda en revisión. Siguen pendientes el lector de pantalla, la Preview autenticada y los dispositivos físicos. [Informe y límites de la validación](docs/QA-RC-LOCAL-001-candidata.md).
+
 ## 2026-11-15 — AUTONOMÍA-001
 
 Se incorporaron [las instrucciones de Codex](AGENTS.md) y [el backlog operativo](BACKLOG.md) a `development`. La [conciliación](docs/AUTONOMIA-001-conciliacion.md) registra las entregas y el [inventario](docs/AUTONOMIA-001-inventario.md) conserva la trazabilidad documental. La [estrategia de agentes](docs/AUTONOMIA-001-agentes.md) describe la configuración local propuesta.
