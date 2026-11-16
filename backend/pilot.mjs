@@ -1,5 +1,6 @@
 import { createClient, loadAppointments } from './supabase-client.mjs';
 import { createFinance } from './finance.mjs';
+import { createInventory } from './inventory.mjs';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
@@ -14,6 +15,7 @@ let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
 const status = message => { $('status').textContent = message; };
 const finance = createFinance({ run, status, itemWithButton });
+const inventory = createInventory({ run, status });
 
 function hideEditing() {
   draft = undefined;
@@ -54,6 +56,7 @@ function openAppointment(row, family) {
 
 function endSession() {
   finance.scope(undefined);
+  inventory.scope(undefined);
   client = userId = undefined;
   memberships = [];
   families.replaceChildren();
@@ -87,6 +90,8 @@ function run(action) {
         if (trigger === editAppointment) {
           $('save-appointment').disabled = true;
           status('La cita cambió en otro dispositivo. Tu borrador sigue abierto. Revisa la cita actualizada antes de volver a editar.');
+        } else if (trigger.id === 'inventory-purchase') {
+          status('El inventario cambió. Conservamos la compra. Revisa las existencias antes de volver a guardar.');
         } else status(trigger === rename
           ? 'La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.'
           : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.');
@@ -124,6 +129,7 @@ async function refreshFamily() {
   const family = families.value;
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
   finance.scope(owner ? family : undefined);
+  inventory.scope(family || undefined);
   $('family').hidden = !family;
   $('owner-actions').hidden = !owner;
   if (renderedFamily !== family) {
@@ -188,7 +194,7 @@ async function refreshFamily() {
     await refreshFamily();
     status('Acceso revocado.');
   })));
-  if (owner) await finance.load(client, family, active);
+  await Promise.all([owner ? finance.load(client, family, active) : undefined, inventory.load(client, family, patients)]);
 }
 
 function renderAppointments(appointments, family, today) {

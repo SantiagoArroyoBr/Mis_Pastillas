@@ -3,6 +3,16 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
+import { inventoryNumber } from '../inventory.mjs';
+
+test('inventory decimal fields preserve fractional stock and reject partial numeric input', () => {
+  assert.equal(inventoryNumber('12,5', 'la cantidad', true), 12.5);
+  assert.equal(inventoryNumber('0', 'la cantidad'), 0);
+  assert.equal(inventoryNumber('.25', 'la cantidad', true), 0.25);
+  for (const invalid of ['', '-1', '3 cajas', '1e4', '0']) {
+    assert.throws(() => inventoryNumber(invalid, 'la cantidad', true));
+  }
+});
 
 test('appointment history keeps its legacy dates and scopes each list before limiting', async () => {
   const filters = [];

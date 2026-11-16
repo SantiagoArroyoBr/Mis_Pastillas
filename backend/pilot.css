@@ -4,6 +4,7 @@ section, form { margin-block: 1rem; }
 label { display: block; margin-block: .5rem; }
 input, select, textarea, button { font: inherit; color: inherit; padding: .45rem; max-width: 100%; }
 input, select, textarea { box-sizing: border-box; width: 100%; }
+input[type=checkbox] { width: auto; }
 button { margin: .2rem .25rem .2rem 0; }
 li { margin-block: .45rem; overflow-wrap: anywhere; }
 :focus-visible { outline: 3px solid #145b48; outline-offset: 2px; }

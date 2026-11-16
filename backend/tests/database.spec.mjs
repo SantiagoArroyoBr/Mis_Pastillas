@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import { createContext, runInContext } from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
 import { auditBackup } from '../audit-backup.mjs';
+import { remainingStock } from '../inventory.mjs';
 
 const directory = new URL('../supabase/migrations/', import.meta.url);
 const migrations = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.sql')).sort()
@@ -129,7 +130,9 @@ test('inventory keeps independent schedules on one stock and purchases rebase at
   const rows = () => owner.query('select id,base_quantity::text,base_at::text,consumptions,revision from public.inventory_items');
   const stored = (await rows()).find(row => row.id === item);
   assert.deepEqual(stored.consumptions, schedules);
-  const stock = domain.calc({ base: Number(stored.base_quantity), t0: Number(stored.base_at), cons: stored.consumptions }, current).rem;
+  const stock = remainingStock(domain, {
+    ...stored, base_quantity: Number(stored.base_quantity), base_at: Number(stored.base_at)
+  }, current);
   assert.equal(stock, 17.25);
   const buy = [family, purchaseId, item, 1, '12.5', '180.125', '2026-11-17', 'Farmacia ficticia', stock, current];
   assert.equal(await rpc(owner.query, purchase, buy), purchaseId);

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Acompaña · Piloto local</title>
   <link rel="stylesheet" href="/pilot.css">
+  <script defer src="/compatibility.js"></script>
+  <script defer src="/domain.js"></script>
   <script type="module" src="/pilot.mjs"></script>
 </head>
 <body>
@@ -89,6 +91,56 @@
             <h3>Citas con fecha histórica inválida</h3>
             <ul id="appointments-legacy"></ul>
           </div>
+        </section>
+        <section id="inventory">
+          <h2>Inventario</h2>
+          <form id="add-inventory">
+            <label>Ficha <select name="patient" required></select></label>
+            <label>Artículo <input name="name" maxlength="160" required></label>
+            <label>Tipo <select name="kind"><option value="medicine">Medicina</option><option value="sup">Insumo</option></select></label>
+            <label>Cantidad actual <input name="quantity" inputmode="decimal" required></label>
+            <div id="inventory-schedules"></div>
+            <button id="add-schedule" type="button">Agregar otra pauta</button>
+            <button id="save-inventory">Guardar artículo</button>
+          </form>
+          <template id="inventory-schedule">
+            <fieldset>
+              <legend>Pauta</legend>
+              <label>Cantidad por toma o uso <input data-field="dose" inputmode="decimal" required></label>
+              <label>Horas, separadas por comas <input data-field="times" value="08:00" required></label>
+              <label>Frecuencia <select data-field="frequency">
+                <option value="daily">Diaria</option><option value="weekdays">Días de la semana</option><option value="interval">Cada cierto número de días</option>
+              </select></label>
+              <div data-group="weekdays" hidden>
+                <fieldset><legend>Días</legend>
+                  <label><input type="checkbox" value="1"> Lunes</label>
+                  <label><input type="checkbox" value="2"> Martes</label>
+                  <label><input type="checkbox" value="3"> Miércoles</label>
+                  <label><input type="checkbox" value="4"> Jueves</label>
+                  <label><input type="checkbox" value="5"> Viernes</label>
+                  <label><input type="checkbox" value="6"> Sábado</label>
+                  <label><input type="checkbox" value="0"> Domingo</label>
+                </fieldset>
+              </div>
+              <div data-group="interval" hidden>
+                <label>Cada cuántos días <input data-field="interval" type="number" min="1" step="1"></label>
+                <label>Fecha de inicio <input data-field="start" type="date"></label>
+              </div>
+              <button data-remove type="button">Quitar pauta</button>
+            </fieldset>
+          </template>
+          <h3>Existencias por ficha</h3>
+          <ul id="inventory-items"></ul>
+          <form id="inventory-purchase">
+            <label>Artículo de la compra <select name="item" required></select></label>
+            <label>Cantidad comprada <input name="quantity" inputmode="decimal" required></label>
+            <label>Precio total (MXN, opcional) <input name="price" inputmode="decimal"></label>
+            <label>Tienda (opcional) <input name="shop" maxlength="40"></label>
+            <button>Registrar compra</button>
+          </form>
+          <h3>Últimas compras</h3>
+          <button id="inventory-price-toggle" type="button" aria-controls="inventory-purchases" aria-pressed="false">Ver montos</button>
+          <ul id="inventory-purchases"></ul>
         </section>
         <section id="finance" hidden>
           <h2>Enfermería y pagos</h2>

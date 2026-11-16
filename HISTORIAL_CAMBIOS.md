@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-015 · Inventario en la interfaz del piloto
+
+Sobre `5cd5d15`, la pantalla permite alta de artículos por ficha, captura de pautas diarias, semanales o por intervalo, cálculo de existencias con el módulo de la PWA y registro de compras. El historial de 20 compras tiene control de montos independiente. El lote usa el esquema existente. Se reinició el servidor local para servir el módulo y las dependencias compartidas.
+
+Pasaron **14/14** pruebas del piloto, **2/2** integradas con Supabase y **102/102** de regresión PWA. En Edge se creó un artículo ficticio con dos pautas. Una compra de 12,5 unidades llevó el stock de 20 a 32,5. Se descartó la respuesta después de confirmar la compra en el servidor y el reintento conservó un solo movimiento. Se verificaron precios ocultos, revelación independiente y existencias tras actualizar. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-014 · Inventario y compras en Supabase local
 
 Sobre `5cf66b5`, el modelo local incorpora inventario por ficha, pautas independientes y compras con precio decimal opcional. La compra guarda el remanente observado, actualiza el stock y registra el movimiento en una sola transacción. La revisión evita que dos compras calculadas sobre el mismo stock se apliquen juntas. Se verificaron homónimos, historial, omisión de duplicados por reintento y aislamiento por familia.

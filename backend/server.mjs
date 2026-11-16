@@ -5,6 +5,9 @@ const files = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/pilot.mjs': ['pilot.mjs', 'text/javascript; charset=utf-8'],
   '/finance.mjs': ['finance.mjs', 'text/javascript; charset=utf-8'],
+  '/inventory.mjs': ['inventory.mjs', 'text/javascript; charset=utf-8'],
+  '/compatibility.js': ['../compatibility.js', 'text/javascript; charset=utf-8'],
+  '/domain.js': ['../domain.js', 'text/javascript; charset=utf-8'],
   '/supabase-client.mjs': ['supabase-client.mjs', 'text/javascript; charset=utf-8'],
   '/pilot.css': ['pilot.css', 'text/css; charset=utf-8']
 };
