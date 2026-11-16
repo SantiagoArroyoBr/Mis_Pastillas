@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { createContext, runInContext } from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
+import { auditBackup } from '../audit-backup.mjs';
 
 const directory = new URL('../supabase/migrations/', import.meta.url);
 const migrations = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.sql')).sort()
@@ -251,13 +252,23 @@ test('a synthetic JSON backup preserves historical amounts and relations in a di
   });
   const source = JSON.parse(raw);
   compatibility.validateMigrationInput(source);
+  assert.deepEqual(auditBackup(raw), {
+    estado: 'diagnostico',
+    registros: { fichas: 2, personal: 1, jornadasConCosto: 1, abonosIndividuales: 1, abonosGenerales: 2, cancelacionesGenerales: 1 },
+    hallazgosConocidos: {
+      fichasArchivadas: 1, fichasConNombreRepetido: 1, medicinas: 1, citas: 1,
+      prepagosDeCobertura: 1, movimientosConConcepto: 1
+    }
+  });
   const wrongPatient = JSON.parse(raw);
   wrongPatient.pay.ledger[0].patientIndex = 1;
   assert.throws(() => compatibility.validateMigrationInput(wrongPatient), /otra persona o ficha/);
+  assert.equal(auditBackup(JSON.stringify(wrongPatient)).estado, 'rechazado');
   const historicDate = JSON.parse(raw);
   historicDate.pay.generalLedger[0].date = '2026-02-30';
   compatibility.validateMigrationInput(historicDate);
   assert.equal(compatibility.isValidDateOnly(historicDate.pay.generalLedger[0].date), false);
+  assert.equal(auditBackup(JSON.stringify(historicDate)).hallazgosConocidos.fechasFinancierasInvalidas, 1);
 
   const db = await database(t);
   const owner = await addUser(db);

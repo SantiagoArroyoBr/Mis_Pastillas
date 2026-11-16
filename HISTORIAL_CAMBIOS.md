@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-009 · Diagnóstico de respaldo local
+
+Sobre `3bfd044` se registró la aprobación del ensayo. Se añadió un comando para validar JSON con el mismo código que la PWA y contar registros y faltantes conocidos del piloto. El diagnóstico se limita a leer el archivo y reporta conteos y motivos genéricos de rechazo sin imprimir valores del respaldo.
+
+Pasaron **10/10** pruebas del piloto. La ejecución de CLI comprobó con un archivo ficticio la coincidencia del hash antes y después, la exclusión del nombre y el código de salida 1 para JSON inválido. Se documentó la propuesta de archivo reversible de fichas y citas para el siguiente lote. [Diagnóstico local y propuesta](docs/arquitectura/DAT-003-respaldo-restauracion-migracion.md#diagnóstico-local-reproducible).
+
 ## 2026-11-16 — RECONST-008 · Ensayo de respaldo y conciliación
 
 Sobre `5ccb63a` se registró la aprobación de la comparación de pagos. Un respaldo ficticio validado por la PWA sirvió para ensayar la correspondencia de índices e IDs, jornadas a costo histórico, abonos y cancelaciones en PostgreSQL desechable. Una fecha histórica imposible provocó la reversión de la transacción completa. El segundo intento con los mismos IDs se rechazó sin duplicados y el JSON fuente conservó su contenido.

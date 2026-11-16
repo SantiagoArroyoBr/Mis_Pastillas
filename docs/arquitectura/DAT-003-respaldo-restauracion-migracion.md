@@ -72,6 +72,18 @@ RECONST-008 usa un JSON ficticio con dos fichas del mismo nombre, una archivada,
 | Inventario, cita y prepago de cobertura | Se validan en el JSON de origen. | Incorporar su representación y verificar consumos, citas y cobertura sobre los mismos registros. |
 | Repetición y recuperación | Una segunda escritura con los mismos IDs se rechaza y deja un solo conjunto. El JSON fuente conserva su contenido. | Diseñar el registro durable de lotes, la reconciliación posterior y la devolución del respaldo completo. |
 
+### Diagnóstico local reproducible
+
+Desde `backend`, ejecuta `node audit-backup.mjs ruta-al-respaldo-ficticio.json`. El comando usa el mismo validador que la restauración de la PWA, aplica su límite de 10 MiB y devuelve JSON con conteos y hallazgos conocidos. La salida omite nombres, identificadores, fechas concretas y montos. Un respaldo rechazado devuelve código de salida 1 y un motivo genérico, y un uso incorrecto devuelve 2. El comando lee el archivo local y no se conecta a Supabase.
+
+Un diagnóstico válido con cero hallazgos significa que no se encontraron los impedimentos conocidos que cubre el comando. Para autorizar una restauración completa aún se requiere resolver el mapa de índices e IDs, los metadatos que el esquema no representa y la reversión del lote. Los nombres repetidos se reportan porque obligan a conciliar por índice, aunque sean representables mediante IDs distintos. [Código del diagnóstico](../../backend/audit-backup.mjs).
+
+### Propuesta del siguiente lote
+
+Extender el esquema local con archivo reversible de fichas y citas vinculadas por familia y ficha. Una ficha archivada mantiene su ID y sus relaciones. La lista activa puede excluirla y el historial puede consultarla y reactivarla. Las citas apuntan al ID resuelto desde `appts[].i` dentro del mismo respaldo. Una fecha histórica estructuralmente válida pero imposible se conserva como texto de historial y queda fuera de recordatorios y exportación de calendario. Una cita nueva requiere fecha válida.
+
+Antes de considerar el lote listo, probar dos fichas del mismo nombre, citas de fechas válidas e imposibles, archivo y reactivación con historial existente, y rechazo en la API de una cita que intente vincular una ficha de otra familia. La propuesta requiere autorización para cambios de esquema y pruebas con datos ficticios en Supabase local.
+
 ## 6. Secuencia y puntos de control
 
 | Etapa | Evidencia requerida | Si falla |

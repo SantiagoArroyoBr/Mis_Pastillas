@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
+import { auditBackup } from '../audit-backup.mjs';
+
+test('backup diagnostics use the PWA validation and report generic failures without echoing content', () => {
+  assert.deepEqual(auditBackup('dato ficticio sensible'), { estado: 'rechazado', motivo: 'json-no-valido' });
+  assert.deepEqual(auditBackup(' '.repeat(10 * 1024 * 1024 + 1)), { estado: 'rechazado', motivo: 'limite-de-tamaño' });
+  assert.deepEqual(auditBackup('{"p":[]}'), { estado: 'rechazado', motivo: 'estructura-o-relaciones-no-validas-para-la-pwa' });
+});
 
 test('shift history accumulates allocations across pages without skipping a shared payment', async () => {
   const rows = Array.from({ length: 500 }, (_, i) => ({
