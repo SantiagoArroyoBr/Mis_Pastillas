@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — Prueba integrada del piloto Supabase
+
+Tras reiniciar Windows, Docker 29.9.3 arrancó y Supabase CLI 3.2.0 aplicó la migración local. Se sustituyó el ajuste deprecado de correo por `auth.email.enabled`. Como la red definida no limitó los puertos en Docker Desktop para Windows, se recrearon solo los cinco contenedores publicados con enlace explícito a `127.0.0.1`. Se conservaron sus volúmenes y las instancias previas quedaron detenidas.
+
+Con los enlaces locales definitivos pasó **1/1** prueba integrada. Auth registró e inició sesión con tres cuentas ficticias. PostgREST permitió compartir una ficha dentro de su familia, aisló la otra familia, rechazó la edición obsoleta, mantuvo un único abono al reintentar y revocó el acceso. Se comprobó la respuesta de la pantalla y la solicitud CORS de Auth. Se retiró la regla de firewall temporal. Los cinco listeners siguieron en loopback y se rechazaron las dos conexiones de prueba desde el contenedor hacia la interfaz física de Windows. [Guía local](backend/README.md) · [Matriz de aislamiento](docs/arquitectura/CAL-001-matriz-pruebas-aislamiento.md).
+
 ## 2026-11-16 — Preparación del entorno local de Supabase
 
 Se instaló WSL 3.0.5 y Docker Desktop 4.99.0 para el usuario actual. Los instaladores devolvieron código 0. La CLI oficial de Supabase 3.2.0 quedó instalada y fijada en `backend/package-lock.json`. Pasaron **3/3** pruebas del piloto sin contenedores y se verificó la opción de red del comando de arranque. Windows informa un reinicio pendiente y WSL 2 todavía indica que no puede iniciar su máquina virtual. Sigue pendiente comprobar Docker después del reinicio, arrancar el stack aislado y ejecutar la prueba integrada de Auth. [Guía local](backend/README.md).

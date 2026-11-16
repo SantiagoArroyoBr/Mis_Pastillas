@@ -1,6 +1,6 @@
 # CAL-001 — Matriz de pruebas de respaldo y aislamiento
 
-**Estado:** piloto SQL local disponible con una primera comprobación de aislamiento en PostgreSQL embebido. Sigue pendiente ejecutar Auth y PostgREST juntos sobre Supabase.
+**Estado:** piloto SQL local con comprobación de aislamiento en PostgreSQL embebido y una prueba integrada aprobada en Supabase local.
 
 **Alcance:** datos y cuentas sintéticas exclusivamente. La matriz completa se conserva para las iteraciones posteriores. [Piloto RECONST-002](../../backend/README.md).
 
@@ -35,4 +35,4 @@ Bloqueantes de liberación: una lectura o escritura entre familias, una operaci�
 
 ## 5. Estado
 
-RECONST-002 cubre con SQL las cuentas propietaria, cuidadora, externa, revocada y anónima en el primer conjunto de tablas. La prueba HTTP está preparada. La matriz completa aún requiere verificar el stack de Supabase, ampliar la cobertura a cada tabla y operación incorporada, y probar restauración y sincronización offline cuando se implementen. DAT-003 conserva la evidencia previa de persistencia y restauración local.
+RECONST-002 cubre con SQL las cuentas propietaria, cuidadora, externa, revocada y anónima en el primer conjunto de tablas. La prueba HTTP pasó con tres cuentas ficticias, dos familias, una ficha compartida, rechazo de una revisión obsoleta, un abono reintentado y revocación. La matriz completa requiere ampliar la cobertura a cada tabla y operación incorporada y probar restauración y sincronización offline cuando se implementen. DAT-003 conserva la evidencia previa de persistencia y restauración local.

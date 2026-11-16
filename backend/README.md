@@ -16,6 +16,8 @@ npm start
 
 Crea la red una sola vez. Reutilízala al iniciar de nuevo. En Windows, la primera instalación de WSL 2 puede requerir un reinicio antes de que Docker pueda arrancar. [Instalación de WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
+**Comprobación en Docker Desktop para Windows.** Verifica los puertos publicados con `docker ps --filter network=acompana-pilot-loopback`. En el equipo de prueba, la opción de la red por sí sola permitió enlaces en todas las interfaces. Los cinco contenedores publicados se recrearon allí con `HostIp=127.0.0.1` y los mismos volúmenes. Las instancias anteriores quedaron detenidas para recuperación local. Volver a crear el stack con la CLI puede restablecer los enlaces predeterminados, así que verifica los puertos si se recrea.
+
 Abre `http://127.0.0.1:4173` y usa la clave **Publishable** local de `supabase status`. Utiliza correos `@acompana.test` y contraseñas exclusivas del piloto. Crea una familia y una ficha, genera una invitación, y acéptala desde otra cuenta en una ventana aparte. Guarda un nombre desde una cuenta y pulsa **Actualizar fichas** en la otra. Puedes revocar a la segunda cuenta desde la propietaria y actualizar sus fichas para comprobar la pérdida de acceso.
 
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.

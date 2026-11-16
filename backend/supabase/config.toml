@@ -19,5 +19,5 @@ site_url = "http://127.0.0.1:4173"
 enable_signup = true
 
 [auth.email]
-enable_signup = true
+enabled = true
 enable_confirmations = false

@@ -4,7 +4,7 @@ Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [co
 
 ## RECONST-002 — Base de datos y cuentas antes de reconstruir la interfaz
 
-El propietario autorizó comenzar por datos e inicio de sesión. El primer piloto usa Supabase local. Sigue probar Auth y PostgREST con dos cuentas compartiendo una ficha y una tercera cuenta aislada. Después se retoma el trabajo de interfaz, equivalencia de flujos y sincronización offline. [Piloto y pruebas](backend/README.md).
+El propietario autorizó comenzar por datos e inicio de sesión. Se ejecutó el piloto de Supabase local con Auth y PostgREST. Pasó el recorrido de dos cuentas compartiendo una ficha y una tercera cuenta aislada. Los siguientes lotes cubren interfaz, equivalencia de flujos y sincronización offline. [Piloto y pruebas](backend/README.md).
 
 ## RECONST-001 — Evaluación de inicio de la reconstrucción
 
