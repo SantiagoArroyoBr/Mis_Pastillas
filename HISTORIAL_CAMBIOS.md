@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-15 — UX-MONTOS-001 · Control independiente
+
+Pagos tiene controles independientes para saldo general, historial de abonos y cancelaciones, tarifas de cada enfermero, costos de sus asignaciones e historial anterior de cada ficha. Cada control usa su propio plazo de ocho segundos. Se pueden consultar varios apartados a la vez y ocultar cualquiera por separado. La visibilidad se guarda en memoria y se borra al salir de Pagos o restaurar un respaldo.
+
+La regresión conjunta en Edge 157.0.4341.60 y Node.js 24.20.0 pasó **102/102** y cubrió teclado, apertura simultánea, ocultamiento manual y automático, conservación del foco y datos guardados. Pasaron **2/2** actualizaciones locales, v18 → v20 desde el SHA publicado `6b0d84c` y v19 → v20 desde el ajuste local `a215c62`. Ambas comprobaron que el botón de tarifas funciona sin conexión y que la actualización espera con un borrador abierto y conserva los datos del perfil ficticio. El ajuste queda en revisión local.
+
 ## 2026-11-15 — UX-MONTOS-001
 
 En Pagos, cada tarjeta de enfermería con al menos una tarifa muestra **Ver montos**. El botón revela los importes durante ocho segundos desde donde se pulsa. Los controles se sincronizan con el del saldo y permiten volver a ocultar los importes desde cualquier tarjeta con tarifa. Se reutiliza la visibilidad en memoria de la candidata `6b0d84c`. El cambio no escribe datos ni altera tarifas o cálculos.

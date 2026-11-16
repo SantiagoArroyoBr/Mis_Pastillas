@@ -890,7 +890,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
   const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
   const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
-  const amountsUpdate = initialVersion==='v18'&&updatedVersion==='v19'&&PREVIOUS_ASSETS;
+  const amountsUpdate = ['v18','v19'].includes(initialVersion)&&updatedVersion==='v20'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -944,7 +944,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = amountsUpdate ? "patientHTML(S.p[0],0).includes('data-pa=\"show\"')"
+    const updatedAssets = amountsUpdate ? "patientHTML(S.p[0],0).includes('data-amount-scope=')"
       : candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
       : storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
       : patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
@@ -976,7 +976,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
       if(amountsUpdate){
         await evaluate("$('[data-m=pay]').click();$('.nurse-record [data-pa=show]').click()");
-        assert.equal(await evaluate("amtOn() && $('.account-balance [data-pa=show]').textContent.includes('Ocultar')"),true);
+        assert.equal(await evaluate("$('.nurse-record [data-pa=show]').textContent.includes('Ocultar') && $('.account-balance [data-pa=show]').textContent.includes('Ver montos')"),true);
       }
       if(receiptDateUpdate){
         assert.deepEqual(await evaluate(financialSnapshot),originalFinances);
@@ -1880,45 +1880,52 @@ function mixedNursesBackup(){
   return backup;
 }
 
-test('ver montos desde enfermería sincroniza Pagos y vuelve a ocultar sin perder el foco',async()=>{
-  const backup=mixedNursesBackup();
-  await seed(JSON.stringify(backup));await navigate();
+test('los montos de Pagos se revelan y se ocultan por apartado',async()=>{
+  await seed(JSON.stringify(mixedNursesBackup()));await navigate();
   const raw=await evaluate('__persistenceTest.read()');
-  const control='[data-pa=show][data-i="0"][data-k="0"]';
-  const controls='[data-pa=show]';
+  const rate='[data-nurse-index="0"] .sidebtns [data-pa=show]';
+  const otherRate='[data-nurse-index="1"] .sidebtns [data-pa=show]';
+  const balance='.account-balance [data-pa=show]';
   const history='[data-nurse-index="0"] .nurse-history';
-  const state=()=>evaluate(`({
-    visible:amtOn(),
-    focused:document.activeElement===$(${JSON.stringify(control)}),
-    expanded:$(${JSON.stringify(history)}).open,
-    labels:[...document.querySelectorAll(${JSON.stringify(controls)})].map(button=>button.textContent),
-    balance:$('.account-balance .big').textContent,
-    staff:$('#staffView').textContent
-  })`);
-  assert.equal(await evaluate("document.querySelectorAll('.nurse-record [data-pa=show]').length"),3);
-  assert.match((await state()).balance,/••••/);
+  const ledger='[data-panel=general-ledger]';
+  const legacy='[data-panel=legacy-0]';
+  const text=selector=>evaluate('$('+JSON.stringify(selector)+').textContent');
+  const click=selector=>evaluate('$('+JSON.stringify(selector)+').click()');
+  const show=' [data-pa=show]';
+  assert.equal(await evaluate("document.querySelectorAll('.nurse-record .sidebtns [data-pa=show]').length"),3);
   await cdp.send('Page.bringToFront');
-  await evaluate(`$(${JSON.stringify(history)}).open=true;$(${JSON.stringify(control)}).focus()`);
+  await evaluate('$('+JSON.stringify(rate)+').focus()');
   await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
   await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
-  const revealed=await state();
-  assert.equal(revealed.visible,true);
-  assert.equal(revealed.focused,true);
-  assert.equal(revealed.expanded,true);
-  assert.ok(revealed.labels.every(label=>label.includes('Ocultar')));
-  assert.doesNotMatch(revealed.balance,/••••/);
-  assert.match(revealed.staff,/Completa \$0(?:\.00)? MXN/);
-  assert.match(revealed.staff,/Completa \$100(?:\.00)? MXN/);
-  await waitFor("$('.account-balance [data-pa=show]').textContent.includes('Ver montos')",'Vencimiento de los montos',12000);
-  const hidden=await state();
-  assert.equal(hidden.focused,true);
-  assert.equal(hidden.expanded,true);
-  assert.ok(hidden.labels.every(label=>label.includes('Ver montos')));
-  assert.match(hidden.staff,/Completa •••• MXN/);
-  await evaluate("$('.account-balance [data-pa=show]').click()");
-  assert.equal((await state()).visible,true);
-  await evaluate(`$(${JSON.stringify(control)}).click()`);
-  assert.equal((await state()).visible,false);
+  assert.equal(await text(rate),'Ocultar montos');
+  assert.match(await text('[data-nurse-index="0"]'),/Completa \$100\.00 MXN/);
+  assert.equal(await text(otherRate),'Ver montos');
+  assert.match(await text('.account-balance .big'),/••••/);
+  await click(otherRate);
+  assert.match(await text('[data-nurse-index="1"]'),/Completa \$0\.00 MXN/);
+  assert.equal(await text(rate),'Ocultar montos');
+  await click(history+' summary');
+  assert.match(await text(history),/Costo guardado ••••/);
+  await click(history+show);
+  assert.match(await text(history),/Costo guardado \$50\.00/);
+  await click(ledger+' summary');
+  await click(ledger+show);
+  assert.match(await text(ledger+' .amtv'),/\$20\.00/);
+  assert.match(await text('.account-balance .big'),/••••/);
+  await click(balance);
+  await click(legacy+' summary');
+  await click(legacy+show);
+  assert.match(await text(legacy),/\$45\.00/);
+  assert.match(await text('.account-balance .big'),/\$30\.00/);
+  await click(rate);
+  assert.match(await text('[data-nurse-index="0"]'),/Completa ••••/);
+  assert.equal(await text(otherRate),'Ocultar montos');
+  assert.equal(await text(history+show),'Ocultar montos');
+  await evaluate('$('+JSON.stringify(history+show)+').focus()');
+  await waitFor('$('+JSON.stringify(history+show)+').textContent==="Ver montos"','Vencimiento del historial de asignaciones',12000);
+  assert.equal(await evaluate('document.activeElement===$('+JSON.stringify(history+show)+')'),true);
+  assert.equal(await evaluate('$('+JSON.stringify(history)+').open'),true);
+  assert.match(await text(history),/Costo guardado ••••/);
   assert.equal(await evaluate('__persistenceTest.read()'),raw);
 });
 
@@ -1938,11 +1945,11 @@ test('actualización periódica conserva paneles, foco y nodos cuando el conteni
   assert.deepEqual(result,{mutations:0,same:true,focus:true});
   assert.equal(await evaluate('__persistenceTest.read()'),raw);
   const key=await evaluate("document.activeElement.closest('details').dataset.panel");
-  await evaluate("showT=Date.now()+60000;S.pay.nurses[0][0].ratesCents.full=12345;__persistenceTest.refresh()");
+  await evaluate("$('[data-nurse-index=\"0\"] .sidebtns [data-pa=show]').click();S.pay.nurses[0][0].ratesCents.full=12345;__persistenceTest.refresh()");
   assert.equal(await evaluate("document.activeElement.closest('details')?.dataset.panel"),key);
   assert.equal(await evaluate("[...document.querySelectorAll('#payView details[data-panel]')].every(panel=>panel.open)"),true);
   assert.match(await evaluate("document.querySelector('[data-nurse-index=\"0\"]').textContent"),/123.45/);
-  await evaluate("document.querySelector('details[data-panel=\"general-ledger\"]').open=false;showT=0;__persistenceTest.refresh()");
+  await evaluate("document.querySelector('details[data-panel=\"general-ledger\"]').open=false;clearPaymentAmounts();__persistenceTest.refresh()");
   assert.equal(await evaluate("document.querySelector('details[data-panel=\"general-ledger\"]').open"),false);
   assert.equal(await evaluate('__persistenceTest.read()'),raw);
   await evaluate("document.querySelector('[data-nurse-index=\"0\"] [data-pa=nrm]').click()");
@@ -1994,7 +2001,7 @@ test('acciones de enfermería caben en sus tarjetas con textos largos e historia
   backup.pay.nurses[0].forEach((n,i)=>{n.n='Enfermería ficticia con nombre extenso '+i;n.ratesCents={full:123456789,half:98765432}});
   await seed(JSON.stringify(backup));await navigate();
   const raw=await evaluate('__persistenceTest.read()');
-  await evaluate("showT=Date.now()+60000;render();document.querySelectorAll('.nurse-record details').forEach(d=>d.open=true)");
+  await evaluate("for(const node of document.querySelectorAll('.nurse-record .sidebtns [data-pa=show]'))togglePaymentAmounts(node.dataset.amountScope);document.querySelectorAll('.nurse-record details').forEach(d=>d.open=true)");
   try{
     for(const width of [320,360,390,430,768,1024,1280]){
       await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
@@ -2018,7 +2025,7 @@ test('historiales activos e inactivos integran todos los registros en un panel c
   backup.pay.v['2020-02-01']={0:[{n:'Enfermera ficticia A',s:'full'},{n:'B ficticio',s:'half'}]};
   await seed(JSON.stringify(backup));await navigate();await cdp.send('Page.bringToFront');
   const raw=await evaluate('__persistenceTest.read()');
-  await evaluate('showT=Date.now()+60000;render()');
+  await evaluate("for(const node of document.querySelectorAll('.nurse-record [data-pa=show]'))togglePaymentAmounts(node.dataset.amountScope)");
   assert.equal(await evaluate("[...document.querySelectorAll('.nurse-history')].every(panel=>!panel.open)"),true);
   const cardSelectors=['.nurse-record:not(.nurse-inactive)','.nurse-record.nurse-inactive'];
   for(const card of cardSelectors){
@@ -2095,7 +2102,7 @@ test('enfermeros se agrupan visualmente con índices originales y reactivación 
   assert.deepEqual(await evaluate('S'),before);
   assert.equal(await evaluate('__persistenceTest.read()'),raw);
   assert.match(await evaluate("document.querySelector('[data-nurse-index=\"1\"]').textContent"),/Completa.*MXN.*Media sin configurar/s);
-  await evaluate('showT=Date.now()+60000;render()');
+  await evaluate("$('[data-nurse-index=\"1\"] .sidebtns [data-pa=show]').click();$('[data-nurse-index=\"3\"] .sidebtns [data-pa=show]').click()");
   assert.equal(await evaluate("document.querySelector('[data-nurse-index=\"1\"]').textContent.includes('Completa '+money(0)+' MXN')"),true);
   assert.equal(await evaluate("document.querySelector('[data-nurse-index=\"3\"]').textContent.includes('Media '+money(25)+' MXN')"),true);
   assert.match(await evaluate("document.querySelector('[data-nurse-index=\"2\"]').textContent"),/Completa sin configurar.*Media sin configurar/s);

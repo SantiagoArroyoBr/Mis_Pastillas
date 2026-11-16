@@ -6,10 +6,37 @@
     const nurse=nurses.find(n=>entry.service?.nurseId?n.id===entry.service.nurseId:n.n===entry.n);
     return modality+(entry.service?'':' · Registro anterior')+(nurse?.inactive===true?' · Inactivo':'');
   }
-  function create({getState,updateHTML,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,amountVisible,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,allServices,ledger,generalLedger,ledgerSummary,allocatePayment,generalSummary,toCents,newId,assignmentRemovalBlock}) {
+  function create({getState,updateHTML,query,escape,dates,save,render,form,dialog,config,entries,nurses,nurseColor,nextColor,cover,oweSummary,lastPay,pillEvents,due,calc,formatDate,number,money,amount,unit,palette,paletteNames,labels,shiftNames,longWeekdays,services,allServices,ledger,generalLedger,ledgerSummary,allocatePayment,generalSummary,toCents,newId,assignmentRemovalBlock}) {
     const {isValidDateOnly}=window.AcompanaCompatibility;
     const S=new Proxy({}, {get:(_,key)=>getState()[key],set:(_,key,value)=>{getState()[key]=value;return true}});
-    const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,amtOn=amountVisible,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
+    const $=query,esc=escape,dlg=dialog,{ymd,pd,fmtD}=dates,cfg=config,ents=entries,nurList=nurses,nurColor=nurseColor,coverFn=cover,oweSummaryFn=oweSummary,lastPayFn=lastPay,pillEv=pillEvents,payDue=due,calcFn=calc,fmt=formatDate,num=number,A=amount,un=unit,NPAL=palette,NPALN=paletteNames,PLBL=labels,TIMES=shiftNames,WD_LONG=longWeekdays;
+const paymentAmounts=new Map();
+const paymentAmountVisible=scope=>Date.now()<(paymentAmounts.get(scope)?.until??0);
+const paymentAmount=(scope,value)=>paymentAmountVisible(scope)?money(value):'••••';
+
+function clearPaymentAmounts(){
+  for(const entry of paymentAmounts.values())clearTimeout(entry.timer);
+  paymentAmounts.clear();
+}
+
+function togglePaymentAmounts(scope){
+  clearTimeout(paymentAmounts.get(scope)?.timer);
+  if(paymentAmountVisible(scope))paymentAmounts.delete(scope);
+  else{
+    const timer=setTimeout(()=>{
+      paymentAmounts.delete(scope);
+      renderPay();
+    },8000);
+    paymentAmounts.set(scope,{until:Date.now()+8000,timer});
+  }
+  renderPay();
+}
+
+function paymentAmountButton(scope,description,style='link neutral'){
+  const label=paymentAmountVisible(scope)?'Ocultar montos':'Ver montos';
+  return `<button type="button" class="${style}" data-pa="show" data-amount-scope="${esc(scope)}" aria-label="${label} ${esc(description)}">${label}</button>`;
+}
+
 function patientHTML(p,i){
   const nurses=nurList(i),today=ymd(new Date());
   const assignments=Object.entries(S.pay.v).flatMap(([date,byPatient])=>(byPatient[i]||[]).map(entry=>({date,entry})));
@@ -22,12 +49,17 @@ function patientHTML(p,i){
     const half=rows.filter(({entry})=>(entry.service&&entry.service.type==='half')||(!entry.service&&entry.s==='half')).length;
     const unknown=rows.length-full-half;
     const rates=n.ratesCents||{};
-    const rateLabel=[rates.full!==null&&rates.full!==undefined?`Completa ${A(rates.full/100)} MXN`:'Completa sin configurar',rates.half!==null&&rates.half!==undefined?`Media ${A(rates.half/100)} MXN`:'Media sin configurar'].join(' · ');
-    const showLabel=amtOn()?'Ocultar montos':'Ver montos';
+    const nurseKey=JSON.stringify([i,n.id||[k,n.n]]);
+    const rateScope='rates:'+nurseKey,historyScope='assignments:'+nurseKey;
+    const description=n.n+' · '+p.name;
+    const rateLabel=[rates.full!=null?`Completa ${paymentAmount(rateScope,rates.full/100)} MXN`:'Completa sin configurar',rates.half!=null?`Media ${paymentAmount(rateScope,rates.half/100)} MXN`:'Media sin configurar'].join(' · ');
     const showButton=[rates.full,rates.half].some(value=>value!=null)
-      ?`<button type="button" class="btn ghost small" data-pa="show" data-i="${i}" data-k="${k}" aria-label="${showLabel} desde ${esc(n.n)} · ${esc(p.name)}">${showLabel}</button>`
+      ?paymentAmountButton(rateScope,'de las tarifas de '+description,'btn ghost small')
       :'';
-    const html=`<div class="nurse-record${n.inactive===true?' nurse-inactive':''}" data-nurse-index="${k}"><div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b> <span class="nurse-status">${n.inactive===true?'Inactivo':'Activo'}</span><br><span class="hint">${rateLabel}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><div class="sidebtns">${showButton}<button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}" aria-label="Editar y gestionar a ${esc(n.n)}">Editar</button>${n.inactive===true?`<button class="btn ghost small" data-pa="nrm" data-i="${i}" data-k="${k}" aria-label="Reactivar a ${esc(n.n)}">Reactivar</button>`:''}</div></div><details class="nurse-history" data-panel="${esc('nurse:'+i+':'+(n.id||n.n))}"><summary>Asignaciones e historial · ${history.length}</summary>${history.map(({date,entry})=>`<p><b>${esc(fmtD(date))}</b><br>${esc(assignmentLabel(entry,nurses))}${entry.service?' · Costo guardado '+A(entry.service.amountCents/100)+' MXN':''}</p>`).join('')||'<p class="hint">Sin asignaciones registradas.</p>'}</details></div>`;
+    const showHistory=history.some(({entry})=>entry.service)
+      ?paymentAmountButton(historyScope,'de las asignaciones de '+description)
+      :'';
+    const html=`<div class="nurse-record${n.inactive===true?' nurse-inactive':''}" data-nurse-index="${k}"><div class="vrow"><div><span class="dot" style="background:${n.c}"></span><b>${esc(n.n)}</b> <span class="nurse-status">${n.inactive===true?'Inactivo':'Activo'}</span><br><span class="hint">${rateLabel}</span><br><span class="hint">${full} jornadas completas · ${half} medias jornadas${unknown?` · ${unknown} asignaciones anteriores sin modalidad confirmada`:''}</span></div><div class="sidebtns">${showButton}<button class="btn ghost small" data-pa="nedit" data-i="${i}" data-k="${k}" aria-label="Editar y gestionar a ${esc(n.n)}">Editar</button>${n.inactive===true?`<button class="btn ghost small" data-pa="nrm" data-i="${i}" data-k="${k}" aria-label="Reactivar a ${esc(n.n)}">Reactivar</button>`:''}</div></div><details class="nurse-history" data-panel="${esc('nurse:'+i+':'+(n.id||n.n))}"><summary>Asignaciones e historial · ${history.length}</summary>${showHistory}${history.map(({date,entry})=>`<p><b>${esc(fmtD(date))}</b><br>${esc(assignmentLabel(entry,nurses))}${entry.service?' · Costo guardado '+paymentAmount(historyScope,entry.service.amountCents/100)+' MXN':''}</p>`).join('')||'<p class="hint">Sin asignaciones registradas.</p>'}</details></div>`;
     return {inactive:n.inactive===true,html};
   });
   const groups=[false,true].map(inactive=>{
@@ -35,7 +67,11 @@ function patientHTML(p,i){
     return `<section class="nurse-group"><h4>${inactive?'Inactivos':'Activos'} · ${rows.length}</h4>${rows.map(row=>row.html).join('')||`<p class="hint">${inactive?'Sin enfermeros inactivos.':'Sin enfermeros activos. Agrega uno o reactiva un registro existente.'}</p>`}</section>`;
   }).join('');
   const oldPayments=cfg(i).pays||[],oldIndividual=(ledger()||[]).filter(m=>m.patientIndex===i);
-  const oldArchive=oldPayments.length||oldIndividual.length?`<details class="legacy-payments" data-panel="legacy-${i}"><summary>Historial anterior no incluido en el saldo general</summary><p class="hint">Estos registros se conservan como fueron guardados. No se reinterpretan ni se descuentan del saldo general porque su relación con los cargos no está confirmada.</p>${oldPayments.map(m=>`<div class="vrow"><div>${m.d?esc(fmtD(m.d)):'Fecha anterior sin dato'} · ${m.n} días${m.a!==null&&m.a!==undefined?` · ${A(m.a)} (importe histórico)`:''}${m.old?' · anterior':''}</div></div>`).join('')}${oldIndividual.map(m=>`<div class="vrow"><div>${esc(fmtD(m.date))} · movimiento individual anterior · ${A(m.amountCents/100)} MXN</div><span class="hint">Conservado</span></div>`).join('')}</details>`:'';
+  const legacyScope='legacy:'+i;
+  const showLegacy=oldPayments.some(m=>m.a!=null)||oldIndividual.length
+    ?paymentAmountButton(legacyScope,'del historial anterior de '+p.name)
+    :'';
+  const oldArchive=oldPayments.length||oldIndividual.length?`<details class="legacy-payments" data-panel="legacy-${i}"><summary>Historial anterior no incluido en el saldo general</summary><p class="hint">Estos registros se conservan como fueron guardados. No se reinterpretan ni se descuentan del saldo general porque su relación con los cargos no está confirmada.</p>${showLegacy}${oldPayments.map(m=>`<div class="vrow"><div>${m.d?esc(fmtD(m.d)):'Fecha anterior sin dato'} · ${m.n} días${m.a!==null&&m.a!==undefined?` · ${paymentAmount(legacyScope,m.a)} (importe histórico)`:''}${m.old?' · anterior':''}</div></div>`).join('')}${oldIndividual.map(m=>`<div class="vrow"><div>${esc(fmtD(m.date))} · movimiento individual anterior · ${paymentAmount(legacyScope,m.amountCents/100)} MXN</div><span class="hint">Conservado</span></div>`).join('')}</details>`:'';
   const ratesVisible=nurses.some(n=>n.ratesCents&&Object.values(n.ratesCents).some(v=>v!==null&&v!==undefined));
   return `<article class="card care-staff"><div class="top"><h3 class="name">👤 ${esc(p.name)}</h3><button class="link" data-pa="ren" data-i="${i}">Editar ficha</button></div>
     <h4>Enfermeros y tarifas</h4><p class="hint">Jornadas registradas hasta hoy. Los costos y abonos se consultan en el saldo general con la administradora.</p>${groups}
@@ -64,25 +100,27 @@ function generalSummaryHTML(){
     const validDate=isValidDateOnly(m.date);
     const date=esc(validDate?fmtD(m.date):m.date);
     const dateWarning=validDate?'':'<p class="ledger-date-warning"><strong>Fecha histórica inválida</strong><br>Este registro conserva su importe original, pero la fecha necesita revisión.</p>';
-    if(m.type==='cancellation')return `<div class="vrow"><div>${date} · Cancelación de abono<br><span class="hint">Referencia ${esc(m.originalId)}${m.concept?' · '+esc(m.concept):''}</span>${dateWarning}</div><span class="amtv">${A(m.amountCents/100)} MXN</span></div>`;
+    if(m.type==='cancellation')return `<div class="vrow"><div>${date} · Cancelación de abono<br><span class="hint">Referencia ${esc(m.originalId)}${m.concept?' · '+esc(m.concept):''}</span>${dateWarning}</div><span class="amtv">${paymentAmount('general-history',m.amountCents/100)} MXN</span></div>`;
     const cancelled=summary.cancelledIds.has(m.id);
-    return `<div class="vrow"><div>${date}${m.concept?' · '+esc(m.concept):''}<br><span class="hint">${cancelled?'Cancelado':'Abono general recibido'}</span>${dateWarning}</div><span class="amtv">${A(m.amountCents/100)} MXN</span>${cancelled?'':`<button class="link" data-pa="adminCancel" data-id="${esc(m.id)}">Cancelar</button>`}</div>`;
+    return `<div class="vrow"><div>${date}${m.concept?' · '+esc(m.concept):''}<br><span class="hint">${cancelled?'Cancelado':'Abono general recibido'}</span>${dateWarning}</div><span class="amtv">${paymentAmount('general-history',m.amountCents/100)} MXN</span>${cancelled?'':`<button class="link" data-pa="adminCancel" data-id="${esc(m.id)}">Cancelar</button>`}</div>`;
   }).join('');
   const credit=summary.balanceCents<0;
   const heading=credit?'Saldo a favor':summary.balanceCents>0?'Saldo pendiente':'Sin saldo pendiente';
-  return `<article class="card admin-summary${credit?' admin-credit':''}"><div class="account-balance"><div class="top"><h2>${heading}</h2><button class="link neutral" data-pa="show">${amtOn()?'🙈 Ocultar':'👁 Ver montos'}</button></div>
+  return `<article class="card admin-summary${credit?' admin-credit':''}"><div class="account-balance"><div class="top"><h2>${heading}</h2>${paymentAmountButton('general-balance','del saldo general')}</div>
     <p class="hint">Estado de cuenta con la administradora</p>
-    <p class="big">${A(Math.abs(summary.balanceCents)/100)} <small>MXN</small></p></div>
+    <p class="big">${paymentAmount('general-balance',Math.abs(summary.balanceCents)/100)} <small>MXN</small></p></div>
     <dl class="account-breakdown">
-      <div><dt>Jornadas registradas hasta hoy</dt><dd>${A(summary.costCents/100)} MXN</dd></div>
-      <div><dt>Abonos registrados</dt><dd>${A(summary.receivedCents/100)} MXN</dd></div>
+      <div><dt>Jornadas registradas hasta hoy</dt><dd>${paymentAmount('general-balance',summary.costCents/100)} MXN</dd></div>
+      <div><dt>Abonos registrados</dt><dd>${paymentAmount('general-balance',summary.receivedCents/100)} MXN</dd></div>
     </dl>${warning}
     <button class="btn" data-pa="adminPay">Registrar abono</button>
-    <details class="history" data-panel="general-ledger"><summary>Historial de abonos y cancelaciones · ${moves.length} movimientos</summary><p class="hint">Más recientes primero.${undated.length?' Los movimientos con fecha inválida aparecen al final en el orden del respaldo.':''} Los abonos cancelados conservan su movimiento original y la referencia de cancelación. El saldo reúne los movimientos registrados, sin cierre automático por mes.</p>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
+    <details class="history" data-panel="general-ledger"><summary>Historial de abonos y cancelaciones · ${moves.length} movimientos</summary>${moves.length?paymentAmountButton('general-history','del historial de abonos'):''}<p class="hint">Más recientes primero.${undated.length?' Los movimientos con fecha inválida aparecen al final en el orden del respaldo.':''} Los abonos cancelados conservan su movimiento original y la referencia de cancelación. El saldo reúne los movimientos registrados, sin cierre automático por mes.</p>${rows||'<p class="hint">Todavía no hay movimientos generales.</p>'}</details>
     </article>`;
 }
 
 function renderPay(){
+  const cancellationAmount=dlg.querySelector('#cancelReceiptAmount');
+  if(cancellationAmount&&!paymentAmountVisible('general-history'))cancellationAmount.textContent='•••• MXN';
   const view=$('#accountView'),status=$('#accountStatus');
   updateHTML(view,generalSummaryHTML());
   updateHTML($('#staffView'),S.p.map((p,i)=>patientHTML(p,i)).join(''));
@@ -186,7 +224,7 @@ function cancelGeneralPayForm(id){
     if(latest.cancelledIds.has(id))return'Este abono ya fue cancelado.';
     return saveGeneralMovement({id:newId('admin_cancel'),type:'cancellation',originalId:id,date:v.cancelDate,amountCents:receipt.amountCents,concept:v.cancelReason.trim().slice(0,120)});
   },'Confirmar cancelación');
-  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>Se cancelará el abono de <b>${A(receipt.amountCents/100)} MXN</b> del ${esc(validReceiptDate?fmtD(receipt.date):receipt.date)}. El registro original se conservará y el saldo aumentará en ese importe.</p>`);
+  dlg.querySelector('h2').insertAdjacentHTML('afterend',`<p>Se cancelará el abono de <b id="cancelReceiptAmount">${paymentAmount('general-history',receipt.amountCents/100)} MXN</b> del ${esc(validReceiptDate?fmtD(receipt.date):receipt.date)}. El registro original se conservará y el saldo aumentará en ese importe.</p>`);
 }
 
 function resetForm(i){
@@ -354,7 +392,7 @@ function dayForm(i,ds){
 }
 
 // ---------- INSUMOS: usan el mismo cálculo que las pastillas, con un uso fijo por día ----------
-  return Object.freeze({patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm});
+  return Object.freeze({patientHTML,renderPay,togglePaymentAmounts,clearPaymentAmounts,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm});
   }
   window.AcompanaCareUI=Object.freeze({create,assignmentLabel});
 })();

@@ -293,6 +293,7 @@ function payAction(t){
       S.pay=pay;render();
     },'Sí, quitar');
   }
+  else if(pa==='show'&&t.dataset.amountScope)togglePaymentAmounts(t.dataset.amountScope);
   else if(pa==='show'){
     if(amtOn())showT=0;
     else{showT=Date.now()+8000;setTimeout(()=>{if(Date.now()>=showT-50){showT=0;render()}},8100)}
@@ -351,6 +352,7 @@ function notifyDaily(){
 function navigateTo(mode,index){
   const next={...S,mode,sel:index===undefined?S.sel:Math.min(index,S.p.length-1)};
   if(!save(next))return;
+  if(S.mode==='pay'&&mode!=='pay')clearPaymentAmounts();
   S=next;
   if(index!==undefined)showArchived=S.p[S.sel].archived===true;
   render();window.scrollTo(0,0);
@@ -513,7 +515,7 @@ const form=window.AcompanaForms.create({dialog:dlg,query:$,escape:esc,parseTimes
 const {apptList,apptWhen,apptDue,apptCalUrl,apptsCard,apptForm}=window.AcompanaAppointments.create({getState:()=>S,form,save,render,query:$,escape:esc,dates:window.AcompanaDomain,getHomePatient:()=>homeP,dialog:dlg});
 const un=m=>(m&&m.kind==='sup')?'piezas':'pastillas';
 const {saveInventory,replaceInventory,supCons,supAdd,supEdit,unit1,addBuy,buyList,unitPrice,usage30,monthCost,bestShop,shopPresets,priceLine,spendHTML,priceForm,result,pos,PRE,newCons,medForm}=window.AcompanaInventory.create({getState:()=>S,save,render,form,query:$,escape:esc,dates:window.AcompanaDomain,calc,events:evs,parseTimes,calendarUrl:calUrl,amount:A,amountVisible:amtOn,unit:un,dialog:dlg});
-const {patientHTML,renderPay,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,amountVisible:amtOn,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId,assignmentRemovalBlock});
+const {patientHTML,renderPay,togglePaymentAmounts,clearPaymentAmounts,payForm,payRegForm,individualPayForm,generalPayForm,cancelGeneralPayForm,resetForm,nurseForm,dayForm}=window.AcompanaCareUI.create({getState:()=>S,updateHTML,query:$,escape:esc,dates:window.AcompanaDomain,save,render,form,dialog:dlg,config:cfg,entries:ents,nurses:nurList,nurseColor:nurColor,nextColor,cover,oweSummary,lastPay,pillEvents:pillEv,due:payDue,calc,formatDate:fmt,number:num,money,amount:A,unit:un,palette:NPAL,paletteNames:NPALN,labels:PLBL,shiftNames:TIMES,longWeekdays:WD_LONG,services:serviceRows,allServices:allServiceRows,ledger:ledgerRows,generalLedger:generalRows,ledgerSummary,allocatePayment,generalSummary,toCents,newId:newLedgerId,assignmentRemovalBlock});
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
@@ -702,6 +704,7 @@ function showRestoreConfirmation(candidate,expected){
       return;
     }
     // El estado en memoria solo cambia después de confirmar la escritura.
+    clearPaymentAmounts();
     S=candidate;
     showArchived=S.p[S.sel].archived===true;
     homeP=S.sel;
