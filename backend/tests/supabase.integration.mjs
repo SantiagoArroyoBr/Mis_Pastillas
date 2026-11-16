@@ -89,8 +89,25 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   await owner.rpc('cancel_receipt', { family, request_id: randomUUID(), receipt, day });
   assert.deepEqual(await owner.rpc('financial_balance', cutoff), [{ cost_cents: '6500', received_cents: '0', balance_cents: '6500' }]);
 
+  const appointmentId = randomUUID();
+  const booking = { family, request_id: appointmentId, patient, day, at_time: '08:00', place: '', details: '' };
+  assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
+  const appointments = { family_id: 'eq.' + family, select: 'appointment_day,legacy_day,appointment_time,location,notes,patients(name)',
+    order: 'appointment_day.desc.nullslast,id.desc', limit: 20 };
+  assert.deepEqual(await owner.select('appointments', appointments), [{
+    appointment_day: day, legacy_day: null, appointment_time: '08:00:00', location: '', notes: '', patients: { name: 'Ficha compartida' }
+  }]);
+  assert.deepEqual(await outsider.select('appointments', appointments), []);
+  assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 2, archived: true }), 3);
+  assert.deepEqual(await caregiver.select('patients', { ...byId, archived_at: 'is.null' }), []);
+  assert.equal((await caregiver.select('appointments', appointments)).length, 1);
+  assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
+  await assert.rejects(caregiver.rpc('add_appointment', { ...booking, request_id: randomUUID() }), { status: 422 });
+  assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 3, archived: false }), 4);
+
   await owner.rpc('revoke_caregiver', { family, member: caregiverId });
   assert.deepEqual(await caregiver.select('patients', byId), []);
+  assert.deepEqual(await caregiver.select('appointments', appointments), []);
   await assert.rejects(caregiver.rpc('rename_patient', { ...edit, expected_revision: 2 }), { status: 403 });
   await caregiver.signOut();
   await assert.rejects(caregiver.select('patients', byId), error => [401, 403].includes(error.status));

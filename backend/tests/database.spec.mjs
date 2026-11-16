@@ -55,6 +55,46 @@ async function rpc(query, call, params) {
   return (await query('select public.' + call + ' as result', params))[0].result;
 }
 
+test('archiving preserves appointments and shifts and rejects new activity for that patient', async t => {
+  const db = await database(t);
+  const owner = await addUser(db);
+  const caregiver = await addUser(db);
+  const outsider = await addUser(db);
+  const family = await rpc(owner.query, 'create_family($1)', ['Familia A']);
+  const otherFamily = await rpc(outsider.query, 'create_family($1)', ['Familia B']);
+  const patient = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha ficticia']);
+  const duplicate = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha ficticia']);
+  const foreign = await rpc(outsider.query, 'add_patient($1,$2)', [otherFamily, 'Ficha ficticia']);
+  const invitation = await rpc(owner.query, 'create_invite($1,$2)', [family, caregiver.email]);
+  await rpc(caregiver.query, 'accept_invite($1)', [invitation]);
+  const nurse = await rpc(owner.query, 'add_nurse($1,$2,$3,$4)', [family, 'Enfermería', 10000, null]);
+  const day = '2026-11-16', appointmentId = randomUUID(), shift = randomUUID();
+  const appointment = 'add_appointment($1,$2,$3,$4,$5,$6,$7)';
+  const archive = 'set_patient_archived($1,$2,$3,$4)';
+  const recordShift = 'record_shift($1,$2,$3,$4,$5,$6)';
+  const args = [family, appointmentId, patient, day, '08:00', 'Consultorio ficticio', ''];
+  assert.equal(await rpc(caregiver.query, appointment, args), appointmentId);
+  await rpc(owner.query, recordShift, [family, shift, patient, nurse, day, 'full']);
+  await assert.rejects(rpc(owner.query, appointment, [family, randomUUID(), foreign, day, null, '', '']), { code: 'PT422' });
+  await assert.rejects(rpc(owner.query, appointment, [family, randomUUID(), duplicate, '2026-02-30', null, '', '']), { code: '22008' });
+  await db.query(`insert into public.appointments(family_id,id,patient_id,legacy_day,location,notes,actor_id)
+    values ($1,$2,$3,'2026-02-30','','',$4)`, [family, randomUUID(), patient, owner.id]);
+  await assert.rejects(rpc(caregiver.query, archive, [family, patient, 1, true]), { code: '42501' });
+  assert.equal(await rpc(owner.query, archive, [family, patient, 1, true]), 2);
+  await assert.rejects(rpc(owner.query, archive, [family, patient, 1, false]), { code: 'PT409' });
+  assert.deepEqual(await caregiver.query('select id from public.patients where archived_at is null'), [{ id: duplicate }]);
+  assert.equal(await rpc(caregiver.query, appointment, args), appointmentId);
+  await assert.rejects(rpc(caregiver.query, appointment, [family, randomUUID(), ...args.slice(2)]), { code: 'PT422' });
+  assert.equal(await rpc(owner.query, recordShift, [family, shift, patient, nurse, day, 'full']), shift);
+  await assert.rejects(rpc(owner.query, recordShift, [family, randomUUID(), patient, nurse, day, 'full']), { code: 'PT422' });
+  assert.deepEqual(await caregiver.query('select patient_id,legacy_day from public.appointments order by legacy_day nulls first'),
+    [{ patient_id: patient, legacy_day: null }, { patient_id: patient, legacy_day: '2026-02-30' }]);
+  assert.deepEqual(await outsider.query('select id from public.appointments'), []);
+  await assert.rejects(caregiver.query('delete from public.appointments'), { code: '42501' });
+  assert.equal(await rpc(owner.query, archive, [family, patient, 2, false]), 3);
+  assert.equal((await caregiver.query('select id from public.patients where archived_at is null')).length, 2);
+});
+
 test('families protect data from anonymous users, other families and revoked members', async t => {
   const db = await database(t);
   const owner = await addUser(db);

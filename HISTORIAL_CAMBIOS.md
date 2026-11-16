@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-010 · Archivo reversible y citas
+
+Sobre `c3fb40c`, la cuenta propietaria puede archivar y reactivar fichas con comprobación de revisión. Los miembros activos pueden registrar citas para fichas activas y consultar las últimas 20. Las citas y jornadas existentes mantienen sus referencias. Las fechas históricas imposibles se representan por separado como texto, y el alta normal exige una fecha válida.
+
+Se exportaron fichas y jornadas a JSON y se verificó su restauración exacta en tablas temporales antes de aplicar `20261116000400` al Supabase local. Pasaron **11/11** pruebas del piloto, **1/1** integrada con Supabase y **102/102** de regresión PWA. En Edge con datos ficticios se comprobó registro de cita, cancelación de confirmación, archivo reversible y conservación de la cita. SQL y HTTP comprobaron aislamiento, revocación y reintentos. Quedan pendientes edición de citas, recordatorios y exportación a Calendar. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-009 · Diagnóstico de respaldo local
 
 Sobre `3bfd044` se registró la aprobación del ensayo. Se añadió un comando para validar JSON con el mismo código que la PWA y contar registros y faltantes conocidos del piloto. El diagnóstico se limita a leer el archivo y reporta conteos y motivos genéricos de rechazo sin imprimir valores del respaldo.

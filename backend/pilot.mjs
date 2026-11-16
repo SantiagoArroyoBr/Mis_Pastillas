@@ -4,7 +4,9 @@ import { createFinance } from './finance.mjs';
 const $ = id => document.getElementById(id);
 const families = $('families');
 const rename = $('rename-patient');
+const appointment = $('add-appointment');
 let client, userId, memberships = [], draft, busy = false;
+let appointmentRetry, renderedFamily;
 const status = message => { $('status').textContent = message; };
 const finance = createFinance({ run, status, itemWithButton });
 
@@ -20,6 +22,11 @@ function endSession() {
   memberships = [];
   families.replaceChildren();
   $('patients').replaceChildren();
+  $('archived-patients').replaceChildren();
+  $('appointments').replaceChildren();
+  appointment.elements.patient.replaceChildren();
+  appointment.reset();
+  appointmentRetry = renderedFamily = undefined;
   $('members').replaceChildren();
   $('invite-code').value = '';
   $('accept-invite').reset();
@@ -58,14 +65,18 @@ function run(action) {
   };
 }
 
-function itemWithButton(text, label, action) {
-  const item = document.createElement('li');
+function actionButton(text, label, action) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = label;
   button.setAttribute('aria-label', label + ': ' + text);
   button.addEventListener('click', run(action));
-  item.append(text + ' ', button);
+  return button;
+}
+
+function itemWithButton(text, label, action) {
+  const item = document.createElement('li');
+  item.append(text + ' ', actionButton(text, label, action));
   return item;
 }
 
@@ -75,28 +86,68 @@ async function refreshFamily() {
   finance.scope(owner ? family : undefined);
   $('family').hidden = !family;
   $('owner-actions').hidden = !owner;
+  if (renderedFamily !== family) {
+    $('patients').replaceChildren();
+    $('archived-patients').replaceChildren();
+    $('appointments').replaceChildren();
+    appointment.elements.patient.replaceChildren();
+    appointment.reset();
+    appointmentRetry = undefined;
+    renderedFamily = family;
+  }
   if (!family) {
     $('patients').replaceChildren();
     $('members').replaceChildren();
     return;
   }
   const filter = { family_id: 'eq.' + family };
-  const [patients, members] = await Promise.all([
-    client.select('patients', { ...filter, select: 'id,name,revision', order: 'name.asc,id.asc' }),
-    owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : []
+  const [patients, members, appointments] = await Promise.all([
+    client.select('patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
+    owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : [],
+    client.select('appointments', { ...filter, select: 'appointment_day,legacy_day,appointment_time,location,notes,patients(name)',
+      order: 'appointment_day.desc.nullslast,id.desc', limit: 20 })
   ]);
-  $('patients').replaceChildren(...patients.map(patient => itemWithButton(patient.name, 'Editar ficha', () => {
-    draft = { ...patient, family };
-    rename.elements.name.value = patient.name;
-    rename.hidden = false;
-    rename.elements.name.focus();
-  })));
+  const active = patients.filter(patient => !patient.archived_at);
+  const archive = (patient, archived) => async () => {
+    if (archived && !confirm('¿Archivar la ficha de ' + patient.name + '? Se conservará su historial.')) return;
+    await client.rpc('set_patient_archived', { family, patient: patient.id, expected_revision: patient.revision, archived });
+    hideEditing();
+    await refreshFamily();
+    status(archived ? 'Ficha archivada.' : 'Ficha reactivada.');
+  };
+  $('patients').replaceChildren(...active.map(patient => {
+    const item = itemWithButton(patient.name, 'Editar ficha', () => {
+      draft = { ...patient, family };
+      rename.elements.name.value = patient.name;
+      rename.hidden = false;
+      rename.elements.name.focus();
+    });
+    if (owner) item.append(actionButton(patient.name, 'Archivar ficha', archive(patient, true)));
+    return item;
+  }));
+  $('archived-patients').replaceChildren(...patients.filter(patient => patient.archived_at).map(patient => {
+    if (owner) return itemWithButton(patient.name, 'Reactivar ficha', archive(patient, false));
+    const item = document.createElement('li');
+    item.textContent = patient.name;
+    return item;
+  }));
+  const selection = appointment.elements.patient.value;
+  appointment.elements.patient.replaceChildren(...active.map(patient => new Option(patient.name, patient.id)));
+  if (active.some(patient => patient.id === selection)) appointment.elements.patient.value = selection;
+  appointment.querySelector('button').disabled = !active.length;
+  $('appointments').replaceChildren(...appointments.map(row => {
+    const item = document.createElement('li');
+    const date = row.appointment_day ?? row.legacy_day + ' (fecha histórica)';
+    item.textContent = [date, row.appointment_time?.slice(0, 5), row.patients.name, row.location, row.notes]
+      .filter(Boolean).join(' · ');
+    return item;
+  }));
   $('members').replaceChildren(...members.map(member => itemWithButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
     await client.rpc('revoke_caregiver', { family, member: member.user_id });
     await refreshFamily();
     status('Acceso revocado.');
   })));
-  if (owner) await finance.load(client, family, patients);
+  if (owner) await finance.load(client, family, active);
 }
 
 async function refreshFamilies(preferred = families.value) {
@@ -199,5 +250,21 @@ rpcForm('rename-patient', async values => {
   hideEditing();
   await refreshFamily();
   status('Nombre guardado.');
+});
+rpcForm('add-appointment', async values => {
+  const args = {
+    family: families.value, patient: values.get('patient'), day: values.get('day'),
+    at_time: values.get('time') || null, place: values.get('place'), details: values.get('details')
+  };
+  const key = JSON.stringify(args);
+  if (appointmentRetry?.key !== key) appointmentRetry = { key, id: crypto.randomUUID() };
+  await client.rpc('add_appointment', { ...args, request_id: appointmentRetry.id });
+  try {
+    await refreshFamily();
+    status('Cita registrada.');
+  } catch {
+    status('Cita registrada. Usa Actualizar fichas para consultar la lista.');
+  }
+  appointmentRetry = undefined;
 });
 $('cancel-rename').addEventListener('click', hideEditing);

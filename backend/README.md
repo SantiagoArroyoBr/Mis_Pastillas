@@ -20,6 +20,8 @@ Crea la red una sola vez. Reutilízala al iniciar de nuevo. En Windows, la prime
 
 Abre `http://127.0.0.1:4173` y usa la clave **Publishable** local de `supabase status`. Utiliza correos `@acompana.test` y contraseñas exclusivas del piloto. Crea una familia y una ficha, genera una invitación, y acéptala desde otra cuenta en una ventana aparte. Guarda un nombre desde una cuenta y pulsa **Actualizar fichas** en la otra. Puedes revocar a la segunda cuenta desde la propietaria y actualizar sus fichas para comprobar la pérdida de acceso.
 
+En **Citas**, la cuenta propietaria o cuidadora puede registrar una cita vinculada a una ficha activa. La lista muestra hasta 20 citas. Desde la cuenta propietaria, confirma **Archivar ficha** y comprueba que la ficha desaparece de los selectores de citas y jornadas y que sus registros anteriores siguen visibles. **Reactivar ficha** devuelve la misma ficha a los selectores. El piloto permite registrar y consultar citas. La edición, los recordatorios y la exportación a Calendar siguen pendientes.
+
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
 
 Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.

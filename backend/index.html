@@ -53,11 +53,25 @@
           <button>Agregar ficha</button>
         </form>
         <ul id="patients"></ul>
+        <h3>Fichas archivadas</h3>
+        <ul id="archived-patients"></ul>
         <form id="rename-patient" hidden>
           <label>Nuevo nombre <input name="name" required maxlength="80"></label>
           <button>Guardar nombre</button>
           <button id="cancel-rename" type="button">Cancelar edición</button>
         </form>
+        <section aria-labelledby="appointments-heading">
+          <h2 id="appointments-heading">Citas</h2>
+          <form id="add-appointment">
+            <label>Ficha <select name="patient" required></select></label>
+            <label>Fecha <input name="day" type="date" required></label>
+            <label>Hora <input name="time" type="time"></label>
+            <label>Lugar <input name="place" maxlength="160"></label>
+            <label>Notas <textarea name="details" maxlength="500"></textarea></label>
+            <button>Registrar cita</button>
+          </form>
+          <ul id="appointments"></ul>
+        </section>
         <section id="finance" hidden>
           <h2>Enfermería y pagos</h2>
           <form id="add-nurse">
