@@ -88,6 +88,8 @@ Antes de considerar el lote listo, probar dos fichas del mismo nombre, citas de 
 
 El siguiente lote de esquema local cubriría registros de inventario vinculados a ficha y familia, historial de compras con cantidad y precio original, y pautas independientes que descuentan del mismo stock de su registro. Dos registros con el mismo nombre conservan sus identidades y movimientos propios. El ensayo debe usar datos ficticios y comparar stock, compras y consumos con la PWA en las mismas fechas. También debe comprobar que un fallo en una compra no aplica la cantidad parcialmente y que otra familia no puede consultar ni vincular registros.
 
+RECONST-014 incorpora ese modelo para altas y compras nuevas. Para un respaldo anterior, la cantidad base, el instante y las pautas se pueden representar, pero `meds[].buys` también contiene cotizaciones y precios históricos que no necesariamente aumentaron existencias. Una futura importación debe preservar esas anotaciones sin volver a sumar sus cantidades al stock. Quedan por definir la representación de esas anotaciones y la zona horaria común antes de sincronizar cálculos entre dispositivos.
+
 ## 6. Secuencia y puntos de control
 
 | Etapa | Evidencia requerida | Si falla |

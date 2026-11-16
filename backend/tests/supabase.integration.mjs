@@ -15,6 +15,40 @@ async function account(role) {
   return { client, email, id: await client.signIn(email, password) };
 }
 
+test('inventory lets family members buy stock without applying a concurrent purchase twice', async () => {
+  const { client: owner } = await account('inventory-owner');
+  const { client: caregiver, email } = await account('inventory-caregiver');
+  const { client: outsider } = await account('inventory-outsider');
+  const family = await owner.rpc('create_family', { family_name: 'Familia ficticia' });
+  const patient = await owner.rpc('add_patient', { family, patient_name: 'Ficha ficticia' });
+  await caregiver.rpc('accept_invite', { invitation: await owner.rpc('create_invite', { family, invite_email: email }) });
+  const initial = Date.UTC(2026, 10, 16, 8);
+  const item = await owner.rpc('add_inventory_item', {
+    family, request_id: randomUUID(), patient, item_name: 'Producto ficticio', item_kind: 'medicine',
+    quantity: '10', counted_at: initial, schedules: [
+      { dose: 1, times: ['08:00'], schedule: { type: 'daily' } },
+      { dose: 0.5, times: ['12:00'], schedule: { type: 'daily' } }
+    ]
+  });
+  const values = {
+    family, item, expected_revision: 1, quantity: '2.5', price: '15.125', day: '2026-11-16',
+    shop_name: 'Farmacia ficticia', remaining: '9.5', counted_at: initial + 5 * 3600000
+  };
+  const request = client => client.rpc('record_inventory_purchase', { ...values, request_id: randomUUID() });
+  const results = await Promise.allSettled([request(owner), request(caregiver)]);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  assert.equal(results.find(result => result.status === 'rejected')?.reason.code, 'PT409');
+  assert.deepEqual(await owner.select('inventory_items', { id: 'eq.' + item, select: 'base_quantity,revision' }), [
+    { base_quantity: 12, revision: 2 }
+  ]);
+  assert.deepEqual(await caregiver.select('inventory_purchases', { item_id: 'eq.' + item, select: 'quantity,total_price' }), [
+    { quantity: 2.5, total_price: 15.125 }
+  ]);
+  assert.deepEqual(await outsider.select('inventory_items', { id: 'eq.' + item }), []);
+  assert.deepEqual(await outsider.select('inventory_purchases', { item_id: 'eq.' + item }), []);
+  await assert.rejects(request(outsider), { status: 403 });
+});
+
 test('auth and PostgREST keep two families separate while authorized clients share a patient', async () => {
   const { client: owner } = await account('owner');
   const { client: caregiver, email: caregiverEmail, id: caregiverId } = await account('caregiver');

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-014 · Inventario y compras en Supabase local
+
+Sobre `5cf66b5`, el modelo local incorpora inventario por ficha, pautas independientes y compras con precio decimal opcional. La compra guarda el remanente observado, actualiza el stock y registra el movimiento en una sola transacción. La revisión evita que dos compras calculadas sobre el mismo stock se apliquen juntas. Se verificaron homónimos, historial, omisión de duplicados por reintento y aislamiento por familia.
+
+Se exportaron las fichas a JSON y se verificó su restauración en una tabla temporal antes de aplicar `20261116000600`. Pasaron **13/13** pruebas del piloto, **2/2** integradas con Supabase y **102/102** de regresión PWA. El ensayo con el cálculo de la PWA obtuvo 17,25 unidades tras tres pautas y 29,75 tras sumar una compra de 12,5. Un desbordamiento rechazó la actualización sin dejar una compra registrada. La interfaz del piloto, las cotizaciones históricas y la zona horaria compartida quedan pendientes. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-013 · Agenda por ficha
 
 Sobre `f73b4af`, la agenda permite filtrar por ficha activa o archivada antes de aplicar el límite de cada lista. Los selectores identifican fichas homónimas con una referencia breve y la agenda marca las citas de hoy. El filtro se conserva al actualizar la familia actual y se reinicia al cambiar de familia.

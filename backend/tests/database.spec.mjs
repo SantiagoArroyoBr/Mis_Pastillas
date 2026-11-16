@@ -12,7 +12,7 @@ const migrations = await Promise.all((await readdir(directory)).filter(name => n
 
 async function currentPwa() {
   const context = createContext({ window: {} });
-  for (const script of ['compatibility.js', 'payments.js']) {
+  for (const script of ['compatibility.js', 'payments.js', 'domain.js']) {
     const url = new URL('../../' + script, import.meta.url);
     runInContext(await readFile(url, 'utf8'), context, { filename: script });
   }
@@ -99,6 +99,59 @@ test('archiving preserves appointments and shifts and rejects new activity for t
   await assert.rejects(caregiver.query('delete from public.appointments'), { code: '42501' });
   assert.equal(await rpc(owner.query, archive, [family, patient, 2, false]), 3);
   assert.equal((await caregiver.query('select id from public.patients where archived_at is null')).length, 2);
+});
+
+test('inventory keeps independent schedules on one stock and purchases rebase atomically', async t => {
+  const { AcompanaDomain: domain } = await currentPwa();
+  const db = await database(t);
+  const owner = await addUser(db);
+  const outsider = await addUser(db);
+  const family = await rpc(owner.query, 'create_family($1)', ['Familia ficticia']);
+  const foreignFamily = await rpc(outsider.query, 'create_family($1)', ['Otra familia']);
+  const patient = await rpc(owner.query, 'add_patient($1,$2)', [family, 'Ficha ficticia']);
+  const foreignPatient = await rpc(outsider.query, 'add_patient($1,$2)', [foreignFamily, 'Ficha ficticia']);
+  const item = randomUUID(), other = randomUUID(), purchaseId = randomUUID();
+  const start = new Date(2026, 10, 16, 7).getTime();
+  const current = new Date(2026, 10, 17, 13).getTime();
+  const schedules = [
+    { dose: 1, times: ['08:00'], schedule: { type: 'daily' } },
+    { dose: 0.5, times: ['12:00'], schedule: { type: 'interval', n: 2, start } },
+    { dose: 0.25, times: ['08:00'], schedule: { type: 'weekdays', days: [1] } }
+  ];
+  const add = 'add_inventory_item($1,$2,$3,$4,$5,$6,$7,$8)';
+  const purchase = 'record_inventory_purchase($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)';
+  const args = [family, item, patient, 'Registro ficticio', 'medicine', 20, start, schedules];
+  assert.equal(await rpc(owner.query, add, args), item);
+  await rpc(owner.query, add, [family, other, ...args.slice(2)]);
+  await assert.rejects(rpc(owner.query, add, [family, randomUUID(), foreignPatient, ...args.slice(3)]), { code: 'PT422' });
+  await assert.rejects(rpc(owner.query, add, [family, randomUUID(), ...args.slice(2, 7),
+    [{ dose: 1, times: ['25:00'], schedule: { type: 'daily' } }]]), { code: '23514' });
+  const rows = () => owner.query('select id,base_quantity::text,base_at::text,consumptions,revision from public.inventory_items');
+  const stored = (await rows()).find(row => row.id === item);
+  assert.deepEqual(stored.consumptions, schedules);
+  const stock = domain.calc({ base: Number(stored.base_quantity), t0: Number(stored.base_at), cons: stored.consumptions }, current).rem;
+  assert.equal(stock, 17.25);
+  const buy = [family, purchaseId, item, 1, '12.5', '180.125', '2026-11-17', 'Farmacia ficticia', stock, current];
+  assert.equal(await rpc(owner.query, purchase, buy), purchaseId);
+  assert.equal(await rpc(owner.query, purchase, buy), purchaseId);
+  assert.equal(await rpc(owner.query, add, args), item);
+  await assert.rejects(rpc(owner.query, purchase, [family, randomUUID(), ...buy.slice(2)]), { code: 'PT409' });
+  await assert.rejects(rpc(owner.query, purchase, [family, randomUUID(), item, 2, 1, -1, ...buy.slice(6)]), { code: '23514' });
+  await assert.rejects(rpc(outsider.query, purchase, buy), { code: '42501' });
+  const items = new Map((await rows()).map(row => [row.id, [row.base_quantity, row.revision]]));
+  assert.deepEqual(items, new Map([[item, ['29.75', 2]], [other, ['20', 1]]]));
+  assert.deepEqual(await owner.query('select quantity::text,total_price::text from public.inventory_purchases'),
+    [{ quantity: '12.5', total_price: '180.125' }]);
+  assert.deepEqual(await outsider.query('select id from public.inventory_items'), []);
+  assert.deepEqual(await outsider.query('select id from public.inventory_purchases'), []);
+  await assert.rejects(owner.query('delete from public.inventory_purchases'), { code: '42501' });
+  const large = randomUUID();
+  const overflow = randomUUID();
+  await rpc(owner.query, add, [family, large, patient, 'Otro producto ficticio', 'medicine', '1e308', start, schedules]);
+  await assert.rejects(rpc(owner.query, purchase,
+    [family, overflow, large, 1, '1e308', null, '2026-11-17', '', '1e308', current]), { code: '23514' });
+  assert.deepEqual(await owner.query('select id from public.inventory_purchases where id = $1', [overflow]), []);
+  assert.deepEqual(await owner.query('select revision from public.inventory_items where id = $1', [large]), [{ revision: 1 }]);
 });
 
 test('families protect data from anonymous users, other families and revoked members', async t => {
