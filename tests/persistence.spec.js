@@ -890,7 +890,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const patientPickerUpdate = initialVersion==='v15'&&updatedVersion==='v16'&&PREVIOUS_ASSETS;
   const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
   const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
-  const amountsUpdate = ['v18','v19'].includes(initialVersion)&&updatedVersion==='v20'&&PREVIOUS_ASSETS;
+  const amountsUpdate = ['v17','v18','v19'].includes(initialVersion)&&updatedVersion==='v20'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";

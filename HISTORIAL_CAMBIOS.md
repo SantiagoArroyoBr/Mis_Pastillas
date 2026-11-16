@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — Instalabilidad y actualización directa v17 → v20
+
+Edge ofreció instalar la Preview `3a1c19b`. En un perfil temporal pasó la actualización desde `6ea578c` y pasaron tres casos de respaldo grande, cuota y recorrido familiar. Quedan pendientes la instalación y apertura desde el icono, el móvil físico y el lector de pantalla. [Evidencia](docs/MACRO-004-preparacion.md#instalabilidad-en-edge-y-actualización-directa).
+
 ## 2026-11-15 — Recarga offline en Preview
 
 En Microsoft Edge se desconectó solo la pestaña de la Preview `3a1c19b` mediante DevTools. El service worker respondió a la recarga y el control de saldo funcionó. Se restableció la conexión de la pestaña y se cerró DevTools. Se cerró QA-PREVIEW-001. [Evidencia](docs/MACRO-004-preparacion.md#recarga-offline-en-la-preview-vigente).
