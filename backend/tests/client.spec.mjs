@@ -1,7 +1,23 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '../supabase-client.mjs';
-import { parseCents, formatCents, describeBalance } from '../finance.mjs';
+import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
+
+test('shift history accumulates allocations across pages without skipping a shared payment', async () => {
+  const rows = Array.from({ length: 500 }, (_, i) => ({
+    shift_id: 'first', payment_id: String(i).padStart(4, '0'), amount_cents: 1
+  }));
+  const calls = [];
+  const client = { select(table, filter) {
+    calls.push({ table, ...filter });
+    return calls.length === 1 ? rows : [{ shift_id: 'second', payment_id: '0499', amount_cents: 2 }];
+  } };
+  const result = await loadAppliedPayments(client, 'family', [{ id: 'first' }, { id: 'second' }, { id: 'third' }]);
+  assert.deepEqual(result, new Map([['first', 500n], ['second', 2n]]));
+  assert.equal(calls[0].family_id, 'eq.family');
+  assert.equal(calls[0].shift_id, 'in.(first,second,third)');
+  assert.equal(calls[1].or, '(payment_id.gt.0499,and(payment_id.eq.0499,shift_id.gt.first))');
+});
 
 test('pilot distinguishes credit, exact payment and an outstanding balance', () => {
   assert.deepEqual(describeBalance('-10000'), { label: 'Saldo a favor', amount: '+$100.00 MXN' });

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { createClient } from '../supabase-client.mjs';
+import { loadAppliedPayments } from '../finance.mjs';
 
 const key = process.env.ACOMPANA_SUPABASE_PUBLISHABLE_KEY;
 if (!key) throw new Error('Define ACOMPANA_SUPABASE_PUBLISHABLE_KEY con la clave publicable de tu Supabase local.');
@@ -39,7 +40,10 @@ test('auth and PostgREST keep two families separate while authorized clients sha
 
   const nurse = await owner.rpc('add_nurse', { family, nurse_name: 'Enfermería ficticia', full_rate: '12000', half_rate: '6500' });
   const day = '2026-11-16';
-  await owner.rpc('record_shift', { family, request_id: randomUUID(), patient, nurse, day, shift_type: 'half' });
+  const shiftId = randomUUID();
+  await owner.rpc('record_shift', { family, request_id: shiftId, patient, nurse, day, shift_type: 'half' });
+  const shifts = [{ id: shiftId }];
+  assert.deepEqual(await loadAppliedPayments(owner, family, shifts), new Map());
   const shiftHistory = {
     family_id: 'eq.' + family, select: 'service_day,modality,cost_cents,patients(name),nurses(name)',
     order: 'service_day.desc,id.desc', limit: 20
@@ -67,6 +71,11 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   ]);
   assert.deepEqual(await caregiver.select('individual_payments', byFamily), []);
   assert.deepEqual(await outsider.select('individual_payments', byFamily), []);
+  assert.deepEqual(await loadAppliedPayments(owner, family, shifts), new Map([[shiftId, 4000n]]));
+  assert.deepEqual(await loadAppliedPayments(caregiver, family, shifts), new Map());
+  assert.deepEqual(await loadAppliedPayments(outsider, family, shifts), new Map());
+  await owner.rpc('record_individual_payment', { ...individualArgs, request_id: randomUUID(), cents: '2500' });
+  assert.deepEqual(await loadAppliedPayments(owner, family, shifts), new Map([[shiftId, 6500n]]));
   const receipt = randomUUID();
   const args = { family, request_id: receipt, day, cents: '5000' };
   assert.deepEqual(await Promise.all([owner.rpc('record_receipt', args), owner.rpc('record_receipt', args)]), [receipt, receipt]);

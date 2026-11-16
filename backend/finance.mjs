@@ -53,6 +53,30 @@ function historyAmount(cents) {
   return amount;
 }
 
+export async function loadAppliedPayments(client, family, shifts) {
+  const totals = new Map();
+  if (!shifts.length) return totals;
+  const filter = {
+    family_id: 'eq.' + family,
+    shift_id: 'in.(' + shifts.map(shift => shift.id).join(',') + ')',
+    select: 'payment_id,shift_id,amount_cents',
+    order: 'payment_id.asc,shift_id.asc',
+    limit: 500
+  };
+  let page;
+  do {
+    page = await client.select('individual_allocations', filter);
+    for (const row of page) {
+      totals.set(row.shift_id, (totals.get(row.shift_id) ?? 0n) + BigInt(row.amount_cents));
+    }
+    if (page.length) {
+      const { payment_id: payment, shift_id: shift } = page.at(-1);
+      filter.or = '(payment_id.gt.' + payment + ',and(payment_id.eq.' + payment + ',shift_id.gt.' + shift + '))';
+    }
+  } while (page.length === filter.limit);
+  return totals;
+}
+
 export function createFinance({ run, status, itemWithButton }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
@@ -125,16 +149,19 @@ export function createFinance({ run, status, itemWithButton }) {
       client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents', order: 'paid_on.desc,id.desc', limit: 20 }),
       client.rpc('financial_balance', { family, as_of: today }),
       client.select('shifts', {
-        ...filter, select: 'service_day,modality,cost_cents,patients(name),nurses(name)',
+        ...filter, select: 'id,service_day,modality,cost_cents,patients(name),nurses(name)',
         order: 'service_day.desc,id.desc', limit: 20
       }),
       client.select('individual_payments', {
         ...filter, select: 'paid_on,amount_cents,nurses(name)', order: 'paid_on.desc,id.desc', limit: 20
       })
     ]);
-    const cancellations = receipts.length ? await client.select('receipt_cancellations', {
-      ...filter, select: 'receipt_id,cancelled_on', receipt_id: 'in.(' + receipts.map(row => row.id).join(',') + ')'
-    }) : [];
+    const [cancellations, applied] = await Promise.all([
+      receipts.length ? client.select('receipt_cancellations', {
+        ...filter, select: 'receipt_id,cancelled_on', receipt_id: 'in.(' + receipts.map(row => row.id).join(',') + ')'
+      }) : [],
+      loadAppliedPayments(client, family, shifts)
+    ]);
     const cancelled = new Map(cancellations.map(row => [row.receipt_id, row.cancelled_on]));
     balance = totals[0];
     hideAmounts();
@@ -160,7 +187,12 @@ export function createFinance({ run, status, itemWithButton }) {
       const item = document.createElement('li');
       const modality = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';
       const date = row.service_day + (row.service_day > today ? ' (programada)' : '');
-      item.append([date, row.patients.name, row.nurses.name, modality].join(' · ') + ' · ', historyAmount(row.cost_cents));
+      const paid = applied.get(row.id) ?? 0n;
+      const remaining = BigInt(row.cost_cents) - paid;
+      item.append([date, row.patients.name, row.nurses.name, modality].join(' · '),
+        ' · Costo ', historyAmount(row.cost_cents),
+        ' · Abonado ', historyAmount(paid),
+        ' · Pendiente ', historyAmount(remaining));
       return item;
     }));
     if (!shifts.length) {

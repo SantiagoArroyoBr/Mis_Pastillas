@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-006 · Detalle de abonos por jornada
+
+Sobre `fa0beb6` se registró la aprobación de RECONST-005. El botón **Ver montos** del historial revela costo, abonado y pendiente por jornada. La consulta agrupa en centavos los importes asignados y lee páginas sucesivas si hay más de 500 asignaciones para las jornadas visibles. Usa las tablas y permisos existentes. El lote quedó local.
+
+Pasaron **7/7** pruebas del piloto, **1/1** integrada con Supabase y **102/102** de regresión PWA. En Edge, con tres jornadas ficticias de $100 y un abono de $140, se verificaron los pendientes de $0, $60 y $100, además de la ocultación y la independencia del control de montos. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-005 · Abonos individuales
 
 Sobre `c0b2552`, el piloto incorpora formulario, últimos 20 abonos y un control independiente de montos. PostgreSQL reparte el pago por fecha e ID entre jornadas pendientes del mismo enfermero hasta la fecha del abono. La asignación se guarda en la misma transacción. Se rechaza el excedente, se conserva el borrador en pantalla y un reintento con el mismo ID devuelve el movimiento original. El saldo general conserva la regla de la PWA.
