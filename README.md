@@ -49,6 +49,8 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 
 Para entender qué está implementado y qué queda pendiente, consulta primero el [plan](PLAN_DESARROLLO.md) y la [arquitectura vigente](ARQUITECTURA.md).
 
+El [piloto local de base de datos e inicio de sesión](backend/README.md) se ejecuta en un origen separado para la reconstrucción. Incluye configuración de Supabase, migración SQL, datos ficticios y pruebas reproducibles.
+
 ## Pruebas de persistencia
 
 La suite de `tests/persistence.spec.js` usa el ejecutor integrado de Node.js y automatiza un navegador Chromium, Chrome o Microsoft Edge mediante el protocolo DevTools. No requiere `npm install`: el repositorio no tiene `package.json` ni dependencias npm para estas pruebas.

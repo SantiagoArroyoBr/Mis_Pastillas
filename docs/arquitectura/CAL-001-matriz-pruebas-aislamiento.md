@@ -1,7 +1,8 @@
 # CAL-001 — Matriz de pruebas de respaldo y aislamiento
 
-**Estado:** preparación documental completada; las pruebas de aislamiento entre familias están bloqueadas hasta que exista una decisión de backend y un entorno aislado.  
-**Alcance:** datos y cuentas sintéticas exclusivamente. No se crearon servicios, usuarios, tablas ni credenciales.
+**Estado:** piloto SQL local disponible con una primera comprobación de aislamiento en PostgreSQL embebido. Sigue pendiente ejecutar Auth y PostgREST juntos sobre Supabase.
+
+**Alcance:** datos y cuentas sintéticas exclusivamente. La matriz completa se conserva para las iteraciones posteriores. [Piloto RECONST-002](../../backend/README.md).
 
 ## 1. Objetivo
 
@@ -34,4 +35,4 @@ Bloqueantes de liberación: una lectura o escritura entre familias, una operaci�
 
 ## 5. Estado
 
-Se preparó el diseño de casos. **No se ejecutó CAL-001:** actualmente no existe backend/Auth ni modelo de roles definitivo; DAT-002 recomienda conservar la PWA local mientras no haya una necesidad multi-dispositivo confirmada. Las 14 pruebas locales de persistencia de DAT-003 no son pruebas de aislamiento. CAL-001 debe seguir bloqueada hasta que el usuario decida adoptar un backend y queden definidos los requisitos previos; entonces se ejecutará solo en staging con datos ficticios.
+RECONST-002 cubre con SQL las cuentas propietaria, cuidadora, externa, revocada y anónima en el primer conjunto de tablas. La prueba HTTP está preparada. La matriz completa aún requiere verificar el stack de Supabase, ampliar la cobertura a cada tabla y operación incorporada, y probar restauración y sincronización offline cuando se implementen. DAT-003 conserva la evidencia previa de persistencia y restauración local.

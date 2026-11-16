@@ -1,0 +1,14 @@
+{
+  "name": "acompana-backend-pilot",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/database.spec.mjs tests/client.spec.mjs",
+    "test:auth": "node --test tests/supabase.integration.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16"
+  }
+}

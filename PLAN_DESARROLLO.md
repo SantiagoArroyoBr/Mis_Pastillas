@@ -2,6 +2,10 @@
 
 Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [conciliación de entregas](docs/AUTONOMIA-001-conciliacion.md) para comprobar qué quedó publicado, probado y pendiente. Las fichas de ciclo y tablas conservan su contexto original.
 
+## RECONST-002 — Base de datos y cuentas antes de reconstruir la interfaz
+
+El propietario autorizó comenzar por datos e inicio de sesión. El primer piloto usa Supabase local. Sigue probar Auth y PostgREST con dos cuentas compartiendo una ficha y una tercera cuenta aislada. Después se retoma el trabajo de interfaz, equivalencia de flujos y sincronización offline. [Piloto y pruebas](backend/README.md).
+
 ## RECONST-001 — Evaluación de inicio de la reconstrucción
 
 La PWA actual puede fijarse como referencia para una reconstrucción local y aislada. El primer lote compara ficha, jornada, abono y restauración con los mismos datos ficticios. La transición de datos y la decisión de lanzamiento conservan sus criterios propios. [Evaluación y lotes](docs/RECONST-001-evaluacion-de-inicio.md).

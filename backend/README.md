@@ -1,0 +1,29 @@
+# Acompaña · Piloto local de datos y cuentas
+
+El piloto corre en `127.0.0.1` y tiene su propio servidor, origen y configuración. Úsalo con cuentas y datos ficticios. La PWA de referencia conserva su propio servidor, respaldo y clave `pastillas-v1`. `.vercelignore` excluye el piloto del despliegue estático actual. [Exclusiones de Vercel](https://vercel.com/docs/deployments/vercel-ignore).
+
+## Ejecutar
+
+Requiere Node.js 22+, Supabase CLI y un motor de contenedores compatible con Docker. Ejecuta los comandos desde este directorio. La [guía de instalación de Supabase](https://supabase.com/docs/guides/local-development) cubre el motor y la CLI.
+
+```text
+npm ci
+supabase start
+supabase status
+npm start
+```
+
+Abre `http://127.0.0.1:4173` y usa la clave **Publishable** local de `supabase status`. Utiliza correos `@acompana.test` y contraseñas exclusivas del piloto. Crea una familia y una ficha, genera una invitación, y acéptala desde otra cuenta en una ventana aparte. Guarda un nombre desde una cuenta y pulsa **Actualizar fichas** en la otra. Puedes revocar a la segunda cuenta desde la propietaria y actualizar sus fichas para comprobar la pérdida de acceso.
+
+Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
+
+## Pruebas
+
+- `npm test` aplica el SQL real a PostgreSQL embebido en memoria. Las pruebas simulan la identidad que Supabase aporta a PostgreSQL y comprueban permisos de lectura y escritura, aislamiento, conflictos, revocación e integridad de pagos. También verifican el cliente HTTP con respuestas simuladas. Este comando funciona sin contenedores.
+- Con el stack iniciado, configura `ACOMPANA_SUPABASE_PUBLISHABLE_KEY` con la clave publicable local y ejecuta `npm run test:auth`. El caso registra tres cuentas nuevas y prueba Auth y PostgREST, con acceso compartido, aislamiento, reintentos de abono y revocación. Deja registros ficticios en el stack local para inspección. La URL de integración está fijada a loopback.
+
+## Alcance
+
+La migración incluye familias, membresías, fichas, enfermería, jornadas, recibos y cancelaciones. Los miembros activos pueden editar fichas de su familia. La cuenta propietaria administra membresías y valores financieros. Las escrituras de fichas detectan una revisión obsoleta. Jornada, abono y cancelación aceptan un ID de operación reutilizable en un reintento. Los importes se guardan en centavos y el costo de una jornada se fija con la tarifa registrada. El piloto web permite comprobar cuentas y fichas compartidas con conexión. Las operaciones financieras se prueban mediante el API y el SQL.
+
+Para extender el piloto se mantienen separados los flujos de inventario, calendario, libros legados, recuperación de cuenta, sincronización offline y transición de respaldos. La configuración local tiene alta de cuentas habilitada para las pruebas y debe revisarse antes de cualquier despliegue. Mantén los archivos de entorno, credenciales y respaldos reales fuera de Git.

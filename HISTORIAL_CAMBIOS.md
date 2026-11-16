@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-002 · Piloto de datos y cuentas
+
+Sobre `b3b7d2c` se preparó un piloto local de Supabase separado de la PWA. Incluye cuentas, invitaciones revocables vinculadas al correo, familias, fichas con revisión de edición y operaciones financieras de prueba que conservan centavos y evitan duplicados al reintentar. Los cuidadores activos pueden editar fichas, y la administración de membresías y los datos financieros se reservan a la cuenta propietaria durante el piloto.
+
+Pasaron **3/3** pruebas de PostgreSQL embebido y del cliente HTTP con identidad o respuestas simuladas, una comprobación independiente del servidor en loopback y **102/102** pruebas de la PWA en Edge. El equipo carece de Supabase CLI y motor de contenedores. El caso integrado de registro, login, dos cuentas, aislamiento y revocación queda preparado para ejecutarse en el stack local. No se creó un servicio remoto ni se trasladaron datos. [Piloto y reproducción](backend/README.md).
+
 ## 2026-11-16 — RECONST-001
 
 Se fijaron `799fac2` como referencia funcional local y `3a1c19b` como referencia publicada de Acompaña. La evaluación concluye que se puede iniciar una reconstrucción aislada y fija el contrato de equivalencia del primer lote. Los criterios de lanzamiento y transición de datos conservan sus decisiones propias. [Evaluación de inicio](docs/RECONST-001-evaluacion-de-inicio.md).

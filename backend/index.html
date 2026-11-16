@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acompaña · Piloto local</title>
+  <link rel="stylesheet" href="/pilot.css">
+  <script type="module" src="/pilot.mjs"></script>
+</head>
+<body>
+  <main>
+    <h1>Acompaña · Piloto local</h1>
+    <p>Prueba de cuentas y fichas compartidas. Usa datos ficticios.</p>
+    <p id="status" role="status"></p>
+    <section id="auth">
+      <h2>Cuenta de prueba</h2>
+      <form id="credentials">
+        <label>Clave publicable local <input name="key" autocomplete="off" required></label>
+        <label>Correo ficticio <input name="email" type="email" autocomplete="username" required></label>
+        <label>Contraseña <input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
+        <button>Iniciar sesión</button>
+        <button name="register" value="yes">Crear cuenta de prueba</button>
+      </form>
+    </section>
+    <section id="session" hidden>
+      <button id="logout" type="button">Cerrar sesión</button>
+      <h2>Familias</h2>
+      <form id="create-family">
+        <label>Nombre de familia <input name="name" required maxlength="80"></label>
+        <button>Crear familia</button>
+      </form>
+      <form id="accept-invite">
+        <label>Código de invitación <input name="code" required autocomplete="off"></label>
+        <button>Aceptar invitación</button>
+      </form>
+      <label>Familia activa <select id="families"></select></label>
+      <section id="family" hidden>
+        <div id="owner-actions" hidden>
+          <form id="invite">
+            <label>Correo de la cuenta invitada <input name="email" type="email" required maxlength="320"></label>
+            <button>Generar invitación</button>
+          </form>
+          <div id="invite-result" hidden>
+            <label>Código de un solo uso <input id="invite-code" readonly></label>
+            <button id="revoke-invite" type="button">Revocar invitación pendiente</button>
+          </div>
+          <ul id="members"></ul>
+        </div>
+        <h2>Fichas</h2>
+        <button id="reload" type="button">Actualizar fichas</button>
+        <form id="add-patient">
+          <label>Nombre de ficha <input name="name" required maxlength="80"></label>
+          <button>Agregar ficha</button>
+        </form>
+        <ul id="patients"></ul>
+        <form id="rename-patient" hidden>
+          <label>Nuevo nombre <input name="name" required maxlength="80"></label>
+          <button>Guardar nombre</button>
+          <button id="cancel-rename" type="button">Cancelar edición</button>
+        </form>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
