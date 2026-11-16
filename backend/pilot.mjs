@@ -1,10 +1,12 @@
 import { createClient } from './supabase-client.mjs';
+import { createFinance } from './finance.mjs';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
 const rename = $('rename-patient');
 let client, userId, memberships = [], draft, busy = false;
 const status = message => { $('status').textContent = message; };
+const finance = createFinance({ run, status, itemWithButton });
 
 function hideEditing() {
   draft = undefined;
@@ -13,6 +15,7 @@ function hideEditing() {
 }
 
 function endSession() {
+  finance.scope(undefined);
   client = userId = undefined;
   memberships = [];
   families.replaceChildren();
@@ -38,7 +41,9 @@ function run(action) {
         endSession();
         status('La sesión terminó. Vuelve a iniciar sesión.');
       } else if (error.status === 409 || error.code === 'PT409') {
-        status('La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.');
+        status(event.currentTarget === rename
+          ? 'La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.'
+          : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.');
         await refreshFamily().catch(() => {});
       } else if (error.status === 403 && userId) {
         await refreshFamilies().catch(() => {});
@@ -67,6 +72,7 @@ function itemWithButton(text, label, action) {
 async function refreshFamily() {
   const family = families.value;
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
+  finance.scope(owner ? family : undefined);
   $('family').hidden = !family;
   $('owner-actions').hidden = !owner;
   if (!family) {
@@ -90,6 +96,7 @@ async function refreshFamily() {
     await refreshFamily();
     status('Acceso revocado.');
   })));
+  if (owner) await finance.load(client, family, patients);
 }
 
 async function refreshFamilies(preferred = families.value) {

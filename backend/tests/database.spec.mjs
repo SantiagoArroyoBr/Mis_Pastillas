@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 
-const migration = await readFile(new URL('../supabase/migrations/20261116000100_family_pilot.sql', import.meta.url), 'utf8');
+const directory = new URL('../supabase/migrations/', import.meta.url);
+const migrations = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.sql')).sort()
+  .map(name => readFile(new URL(name, directory), 'utf8')));
 
 async function database(t) {
   const db = new PGlite();
@@ -19,7 +21,7 @@ async function database(t) {
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     grant usage on schema auth to authenticated, anon;
   `);
-  await db.exec(migration);
+  for (const migration of migrations) await db.exec(migration);
   return db;
 }
 
@@ -95,9 +97,12 @@ test('shifts and receipts preserve cents, ownership, family links and idempotenc
   assert.equal(await rpc(owner.query, 'record_shift($1,$2,$3,$4,$5,$6)', [family, shift, patient, nurse, day, 'half']), shift);
   await assert.rejects(rpc(owner.query, 'record_shift($1,$2,$3,$4,$5,$6)', [family, randomUUID(), foreignPatient, nurse, day, 'half']), { code: '23503' });
   assert.deepEqual(await owner.query('select cost_cents from public.shifts'), [{ cost_cents: 6500 }]);
+  const tomorrow = '2026-11-17';
+  await rpc(owner.query, 'record_shift($1,$2,$3,$4,$5,$6)', [family, randomUUID(), patient, nurse, tomorrow, 'full']);
+  const balance = 'select * from public.financial_balance($1,$2)';
 
   const receipt = randomUUID();
-  const payment = [family, receipt, day, 5000];
+  const payment = [family, receipt, tomorrow, 5000];
   assert.equal(await rpc(owner.query, 'record_receipt($1,$2,$3,$4)', payment), receipt);
   assert.equal(await rpc(owner.query, 'record_receipt($1,$2,$3,$4)', payment), receipt);
   await assert.rejects(rpc(owner.query, 'record_receipt($1,$2,$3,$4)', [family, receipt, day, 9000]), { code: 'PT409' });
@@ -106,13 +111,18 @@ test('shifts and receipts preserve cents, ownership, family links and idempotenc
   await rpc(caregiver.query, 'accept_invite($1)', [invitation]);
   await assert.rejects(rpc(caregiver.query, 'record_receipt($1,$2,$3,$4)', payment), { code: '42501' });
   assert.deepEqual(await caregiver.query('select id from public.receipts'), []);
+  await assert.rejects(caregiver.query(balance, [family, day]), { code: '42501' });
+  await assert.rejects(another.query(balance, [family, day]), { code: '42501' });
+  assert.deepEqual(await owner.query(balance, [family, day]), [{ cost_cents: '6500', received_cents: '5000', balance_cents: '1500' }]);
+  assert.deepEqual(await owner.query(balance, [family, tomorrow]), [{ cost_cents: '18500', received_cents: '5000', balance_cents: '13500' }]);
   await assert.rejects(owner.query('delete from public.receipts'), { code: '42501' });
 
   const cancellation = randomUUID();
-  const cancel = [family, cancellation, receipt, day];
+  const cancel = [family, cancellation, receipt, tomorrow];
   assert.equal(await rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', cancel), cancellation);
   assert.equal(await rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', cancel), cancellation);
-  await assert.rejects(rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', [family, randomUUID(), receipt, day]), { code: 'PT409' });
+  await assert.rejects(rpc(owner.query, 'cancel_receipt($1,$2,$3,$4)', [family, randomUUID(), receipt, tomorrow]), { code: 'PT409' });
   assert.deepEqual(await owner.query('select amount_cents from public.receipts'), [{ amount_cents: 5000 }]);
   assert.deepEqual(await owner.query('select receipt_id from public.receipt_cancellations'), [{ receipt_id: receipt }]);
+  assert.deepEqual(await owner.query(balance, [family, day]), [{ cost_cents: '6500', received_cents: '0', balance_cents: '6500' }]);
 });

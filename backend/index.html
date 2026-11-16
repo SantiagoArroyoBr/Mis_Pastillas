@@ -58,6 +58,43 @@
           <button>Guardar nombre</button>
           <button id="cancel-rename" type="button">Cancelar edición</button>
         </form>
+        <section id="finance" hidden>
+          <h2>Enfermería y pagos</h2>
+          <form id="add-nurse">
+            <label>Nombre de enfermero/a <input name="name" required maxlength="80"></label>
+            <label>Tarifa completa (MXN) <input name="full" inputmode="decimal"></label>
+            <label>Tarifa de media jornada (MXN) <input name="half" inputmode="decimal"></label>
+            <button>Agregar enfermero/a</button>
+          </form>
+          <form id="record-shift">
+            <label>Ficha <select name="patient" required></select></label>
+            <label>Enfermero/a <select name="nurse" required></select></label>
+            <label>Fecha de jornada <input name="day" type="date" required></label>
+            <label>Modalidad <select name="modality"><option value="full">Completa</option><option value="half">Media jornada</option></select></label>
+            <button>Registrar jornada</button>
+          </form>
+          <h3 id="finance-heading">Saldo general</h3>
+          <button id="finance-toggle" type="button" aria-controls="finance-summary" aria-pressed="false">Ver montos</button>
+          <dl id="finance-summary">
+            <dt>Jornadas devengadas</dt><dd id="finance-cost">••••</dd>
+            <dt>Abonos activos</dt><dd id="finance-received">••••</dd>
+            <dt>Saldo</dt><dd id="finance-balance">••••</dd>
+          </dl>
+          <form id="record-receipt">
+            <label>Fecha de abono <input name="day" type="date" required></label>
+            <label>Abono (MXN) <input name="amount" inputmode="decimal" required></label>
+            <button>Registrar abono</button>
+          </form>
+          <h3>Últimos abonos</h3>
+          <button id="receipt-toggle" type="button" aria-controls="finance-receipts" aria-pressed="false">Ver montos</button>
+          <ul id="finance-receipts"></ul>
+          <form id="cancel-receipt" hidden>
+            <p id="cancel-receipt-detail"></p>
+            <label>Fecha de cancelación <input name="day" type="date" required></label>
+            <button>Confirmar cancelación del abono</button>
+            <button id="dismiss-cancel-receipt" type="button">Volver</button>
+          </form>
+        </section>
       </section>
     </section>
   </main>

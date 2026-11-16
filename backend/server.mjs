@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const files = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/pilot.mjs': ['pilot.mjs', 'text/javascript; charset=utf-8'],
+  '/finance.mjs': ['finance.mjs', 'text/javascript; charset=utf-8'],
   '/supabase-client.mjs': ['supabase-client.mjs', 'text/javascript; charset=utf-8'],
   '/pilot.css': ['pilot.css', 'text/css; charset=utf-8']
 };

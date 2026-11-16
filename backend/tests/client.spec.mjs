@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '../supabase-client.mjs';
+import { parseCents, formatCents } from '../finance.mjs';
+
+test('pilot amounts preserve cent precision and reject invalid input', () => {
+  assert.equal(parseCents('65,01'), '6501');
+  assert.equal(parseCents('0', true), '0');
+  assert.equal(parseCents('', true), null);
+  assert.equal(parseCents('90071992547409.91'), '9007199254740991');
+  for (const invalid of ['0', '-1', '1.001', '1e2', '90071992547409.92']) {
+    assert.throws(() => parseCents(invalid));
+  }
+  assert.equal(formatCents('-1500'), '−$15.00 MXN');
+  assert.equal(formatCents('900719925474099123'), '$9,007,199,254,740,991.23 MXN');
+});
 
 test('pilot client only points to the loopback API and drops the token after logout fails', async t => {
   const calls = [];

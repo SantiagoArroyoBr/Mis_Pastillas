@@ -37,16 +37,21 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   await assert.rejects(owner.rpc('rename_patient', edit), { status: 409 });
   assert.deepEqual(await owner.select('patients', byId), [{ id: patient, name: 'Ficha compartida', revision: 2 }]);
 
-  const nurse = await owner.rpc('add_nurse', { family, nurse_name: 'Enfermería ficticia', full_rate: 12000, half_rate: 6500 });
+  const nurse = await owner.rpc('add_nurse', { family, nurse_name: 'Enfermería ficticia', full_rate: '12000', half_rate: '6500' });
   const day = '2026-11-16';
   await owner.rpc('record_shift', { family, request_id: randomUUID(), patient, nurse, day, shift_type: 'half' });
   const receipt = randomUUID();
-  const args = { family, request_id: receipt, day, cents: 5000 };
+  const args = { family, request_id: receipt, day, cents: '5000' };
   assert.deepEqual(await Promise.all([owner.rpc('record_receipt', args), owner.rpc('record_receipt', args)]), [receipt, receipt]);
   assert.deepEqual(await owner.select('receipts', { id: 'eq.' + receipt, select: 'amount_cents' }), [{ amount_cents: 5000 }]);
   assert.deepEqual(await caregiver.select('receipts', { id: 'eq.' + receipt }), []);
   assert.deepEqual(await outsider.select('receipts', { id: 'eq.' + receipt }), []);
+  const cutoff = { family, as_of: day };
+  assert.deepEqual(await owner.rpc('financial_balance', cutoff), [{ cost_cents: '6500', received_cents: '5000', balance_cents: '1500' }]);
+  await assert.rejects(caregiver.rpc('financial_balance', cutoff), { status: 403 });
+  await assert.rejects(outsider.rpc('financial_balance', cutoff), { status: 403 });
   await owner.rpc('cancel_receipt', { family, request_id: randomUUID(), receipt, day });
+  assert.deepEqual(await owner.rpc('financial_balance', cutoff), [{ cost_cents: '6500', received_cents: '0', balance_cents: '6500' }]);
 
   await owner.rpc('revoke_caregiver', { family, member: caregiverId });
   assert.deepEqual(await caregiver.select('patients', byId), []);

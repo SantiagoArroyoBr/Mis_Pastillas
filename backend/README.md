@@ -22,6 +22,10 @@ Abre `http://127.0.0.1:4173` y usa la clave **Publishable** local de `supabase s
 
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
 
+Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.
+
+Desde una cuenta propietaria, registra a una persona de enfermería con tarifa de media jornada de $65 MXN. Registra una media jornada de hoy para una ficha y un abono general de $50 MXN. **Ver montos** en el saldo debe mostrar $15 MXN pendientes. **Ver montos** en los últimos abonos revela únicamente los importes de ese listado. Los dos controles se ocultan por separado al cabo de 30 segundos. Confirma la cancelación del abono y comprueba el saldo de $65 MXN y la marca de cancelación en el listado.
+
 ## Pruebas
 
 - `npm test` aplica el SQL real a PostgreSQL embebido en memoria. Las pruebas simulan la identidad que Supabase aporta a PostgreSQL y comprueban permisos de lectura y escritura, aislamiento, conflictos, revocación e integridad de pagos. También verifican el cliente HTTP con respuestas simuladas. Este comando funciona sin contenedores.
@@ -29,6 +33,6 @@ Auth utiliza correo y contraseña con confirmación externa desactivada únicame
 
 ## Alcance
 
-La migración incluye familias, membresías, fichas, enfermería, jornadas, recibos y cancelaciones. Los miembros activos pueden editar fichas de su familia. La cuenta propietaria administra membresías y valores financieros. Las escrituras de fichas detectan una revisión obsoleta. Jornada, abono y cancelación aceptan un ID de operación reutilizable en un reintento. Los importes se guardan en centavos y el costo de una jornada se fija con la tarifa registrada. El piloto web permite comprobar cuentas y fichas compartidas con conexión. Las operaciones financieras se prueban mediante el API y el SQL.
+Las migraciones incluyen familias, membresías, fichas, enfermería, jornadas, recibos y cancelaciones. Los miembros activos pueden editar fichas de su familia. La cuenta propietaria administra membresías y valores financieros. Las escrituras de fichas detectan una revisión obsoleta. Jornada, abono y cancelación aceptan un ID de operación reutilizable en un reintento durante la sesión. Los importes se guardan en centavos y el costo de una jornada se fija con la tarifa registrada. El saldo usa la fecha local como corte de devengo, considera todos los abonos generales activos y se puede consultar con conexión. El listado muestra los últimos 20 abonos y sus cancelaciones. El piloto todavía requiere conexión para acceder a los datos.
 
 Para extender el piloto se mantienen separados los flujos de inventario, calendario, libros legados, recuperación de cuenta, sincronización offline y transición de respaldos. La configuración local tiene alta de cuentas habilitada para las pruebas y debe revisarse antes de cualquier despliegue. Mantén los archivos de entorno, credenciales y respaldos reales fuera de Git.

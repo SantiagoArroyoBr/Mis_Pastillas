@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-003 · Recorrido financiero del piloto
+
+Sobre `8e128ef` se registró la aprobación de RECONST-002. El piloto incorpora alta de enfermería, jornada a tarifa completa o media, abono general y cancelación confirmada. El saldo aplica el corte de jornadas por fecha local y conserva los abonos activos, incluidos los anticipos. El resumen y los últimos 20 abonos tienen botones independientes de **Ver montos** con ocultación a los 30 segundos. El saldo se calcula en PostgreSQL sobre todos los registros aplicables y se devuelve en centavos exactos.
+
+Se aplicó la migración `20261116000200` al Supabase de loopback por CLI. Pasaron **4/4** pruebas del piloto, **1/1** integrada de Auth y PostgREST y **102/102** de regresión de la PWA en Edge. En Edge con un perfil temporal se creó una cuenta ficticia, una ficha y una jornada de $65, se registró un abono de $50, se verificó el saldo de $15 y se confirmó que los botones se comportan de forma independiente. Tras cancelar el abono, el historial conservó la cancelación y el saldo volvió a $65. El lote quedó local. [Reproducción](backend/README.md).
+
 ## 2026-11-16 — Prueba integrada del piloto Supabase
 
 Tras reiniciar Windows, Docker 29.9.3 arrancó y Supabase CLI 3.2.0 aplicó la migración local. Se sustituyó el ajuste deprecado de correo por `auth.email.enabled`. Como la red definida no limitó los puertos en Docker Desktop para Windows, se recrearon solo los cinco contenedores publicados con enlace explícito a `127.0.0.1`. Se conservaron sus volúmenes y las instancias previas quedaron detenidas.
