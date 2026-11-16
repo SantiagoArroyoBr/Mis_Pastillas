@@ -113,6 +113,7 @@ test('shifts and receipts preserve cents, ownership, family links and idempotenc
   assert.deepEqual(await caregiver.query('select id from public.receipts'), []);
   await assert.rejects(caregiver.query(balance, [family, day]), { code: '42501' });
   await assert.rejects(another.query(balance, [family, day]), { code: '42501' });
+  assert.deepEqual(await owner.query(balance, [family, '2026-11-15']), [{ cost_cents: '0', received_cents: '5000', balance_cents: '-5000' }]);
   assert.deepEqual(await owner.query(balance, [family, day]), [{ cost_cents: '6500', received_cents: '5000', balance_cents: '1500' }]);
   assert.deepEqual(await owner.query(balance, [family, tomorrow]), [{ cost_cents: '18500', received_cents: '5000', balance_cents: '13500' }]);
   await assert.rejects(owner.query('delete from public.receipts'), { code: '42501' });

@@ -24,6 +24,8 @@ Auth utiliza correo y contraseña con confirmación externa desactivada únicame
 
 Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.
 
+El saldo visible distingue lo pendiente de pagar y el crédito disponible. Por ejemplo, $300 de jornadas y $400 en abonos muestran **Saldo a favor** de $100. Con un pago exacto se muestra **Sin saldo pendiente**. Al ocultar los montos, la etiqueta vuelve a decir **Saldo**.
+
 Desde una cuenta propietaria, registra a una persona de enfermería con tarifa de media jornada de $65 MXN. Registra una media jornada de hoy para una ficha y un abono general de $50 MXN. **Ver montos** en el saldo debe mostrar $15 MXN pendientes. **Ver montos** en los últimos abonos revela únicamente los importes de ese listado. Los dos controles se ocultan por separado al cabo de 30 segundos. Confirma la cancelación del abono y comprueba el saldo de $65 MXN y la marca de cancelación en el listado.
 
 ## Pruebas

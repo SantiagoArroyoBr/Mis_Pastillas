@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — Etiquetas del saldo en el piloto
+
+Sobre `53fc616`, el saldo visible distingue **Saldo pendiente**, **Sin saldo pendiente** y **Saldo a favor**. Con jornadas de $300 y abonos de $400 se muestran $100 a favor. Al ocultar montos se restaura la etiqueta neutra. Se mantuvo el cálculo en centavos y se comprobó el crédito anticipado en SQL. Pasaron **5/5** pruebas del piloto. [Guía de prueba](backend/README.md).
+
 ## 2026-11-16 — RECONST-003 · Recorrido financiero del piloto
 
 Sobre `8e128ef` se registró la aprobación de RECONST-002. El piloto incorpora alta de enfermería, jornada a tarifa completa o media, abono general y cancelación confirmada. El saldo aplica el corte de jornadas por fecha local y conserva los abonos activos, incluidos los anticipos. El resumen y los últimos 20 abonos tienen botones independientes de **Ver montos** con ocultación a los 30 segundos. El saldo se calcula en PostgreSQL sobre todos los registros aplicables y se devuelve en centavos exactos.

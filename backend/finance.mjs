@@ -1,5 +1,4 @@
 const $ = id => document.getElementById(id);
-const amountFields = { cost: 'cost_cents', received: 'received_cents', balance: 'balance_cents' };
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const integerFormat = new Intl.NumberFormat('es-MX');
 
@@ -24,6 +23,15 @@ export function formatCents(value) {
     + '.' + (absolute % 100n).toString().padStart(2, '0') + ' MXN';
 }
 
+export function describeBalance(value) {
+  const cents = BigInt(value);
+  if (cents < 0n) return { label: 'Saldo a favor', amount: formatCents(-cents) };
+  return {
+    label: cents > 0n ? 'Saldo pendiente' : 'Sin saldo pendiente',
+    amount: formatCents(cents)
+  };
+}
+
 export function createFinance({ run, status, itemWithButton }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
@@ -40,7 +48,8 @@ export function createFinance({ run, status, itemWithButton }) {
     timer = undefined;
     toggle.textContent = 'Ver montos';
     toggle.setAttribute('aria-pressed', 'false');
-    for (const field of Object.keys(amountFields)) $('finance-' + field).textContent = '••••';
+    $('finance-balance-label').textContent = 'Saldo';
+    for (const field of ['cost', 'received', 'balance']) $('finance-' + field).textContent = '••••';
   }
 
   function showHistoryAmounts(show) {
@@ -153,9 +162,11 @@ export function createFinance({ run, status, itemWithButton }) {
 
   toggle.addEventListener('click', () => {
     if (!balance || timer) return hideAmounts();
-    for (const [field, key] of Object.entries(amountFields)) {
-      $('finance-' + field).textContent = formatCents(balance[key]);
-    }
+    $('finance-cost').textContent = formatCents(balance.cost_cents);
+    $('finance-received').textContent = formatCents(balance.received_cents);
+    const { label, amount } = describeBalance(balance.balance_cents);
+    $('finance-balance-label').textContent = label;
+    $('finance-balance').textContent = amount;
     toggle.textContent = 'Ocultar montos';
     toggle.setAttribute('aria-pressed', 'true');
     timer = setTimeout(hideAmounts, 30000);

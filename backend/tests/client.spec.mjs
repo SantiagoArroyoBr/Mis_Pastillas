@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '../supabase-client.mjs';
-import { parseCents, formatCents } from '../finance.mjs';
+import { parseCents, formatCents, describeBalance } from '../finance.mjs';
+
+test('pilot distinguishes credit, exact payment and an outstanding balance', () => {
+  assert.deepEqual(describeBalance('-10000'), { label: 'Saldo a favor', amount: '$100.00 MXN' });
+  assert.deepEqual(describeBalance('0'), { label: 'Sin saldo pendiente', amount: '$0.00 MXN' });
+  assert.deepEqual(describeBalance('10000'), { label: 'Saldo pendiente', amount: '$100.00 MXN' });
+});
 
 test('pilot amounts preserve cent precision and reject invalid input', () => {
   assert.equal(parseCents('65,01'), '6501');
