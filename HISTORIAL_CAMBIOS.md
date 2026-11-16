@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — Aprobación del recorrido en iPhone
+
+El propietario aprobó globalmente el recorrido de la Preview en iPhone que incluía instalación, restauración, modo offline y VoiceOver. Se registró la declaración y sus límites. MACRO-004 pasa a revisión con la decisión de lanzamiento pendiente. [Evidencia](docs/MACRO-004-preparacion.md#aprobación-del-recorrido-en-iphone).
+
 ## 2026-11-15 — Concurrencia en Preview y recorrido de iPhone
 
 En dos pestañas de la Preview `3a1c19b`, la segunda conservó su borrador y rechazó el guardado al detectar el cambio de la primera. Tras recargar, ambas mostraron la ficha guardada. El JSON confirmó que el único cambio persistido fue el nombre de la primera pestaña. El recorrido físico se adaptó a Safari y VoiceOver en el iPhone confirmado por el propietario. [Evidencia](docs/MACRO-004-preparacion.md#concurrencia-en-la-preview-vigente).
