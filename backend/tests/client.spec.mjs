@@ -7,7 +7,7 @@ import { auditBackup } from '../audit-backup.mjs';
 test('appointment history keeps its legacy dates and scopes each list before limiting', async () => {
   const filters = [];
   const client = { select(table, filter) {
-    assert.equal(table, 'appointments');
+    assert.equal(table, 'appointment_details');
     filters.push(filter);
     return filter.appointment_day === 'is.null' ? [{ legacy_day: '2026-02-30' }] : [];
   } };

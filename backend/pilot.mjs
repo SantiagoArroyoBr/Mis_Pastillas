@@ -5,10 +5,11 @@ const $ = id => document.getElementById(id);
 const families = $('families');
 const rename = $('rename-patient');
 const appointment = $('add-appointment');
+const editAppointment = $('edit-appointment');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 let client, userId, memberships = [], draft, busy = false;
-let appointmentRetry, renderedFamily;
+let appointmentRetry, renderedFamily, appointmentDraft;
 const status = message => { $('status').textContent = message; };
 const finance = createFinance({ run, status, itemWithButton });
 
@@ -24,6 +25,26 @@ function resetAppointments() {
   appointment.elements.patient.replaceChildren();
   appointment.reset();
   appointmentRetry = undefined;
+  closeAppointment();
+}
+
+function closeAppointment() {
+  appointmentDraft = undefined;
+  editAppointment.reset();
+  editAppointment.hidden = true;
+  $('edit-appointment-patient').textContent = '';
+}
+
+function openAppointment(row, family) {
+  appointmentDraft = { family, id: row.id, revision: row.revision, patient: row.patient_id };
+  editAppointment.elements.day.value = row.appointment_day;
+  editAppointment.elements.time.value = row.appointment_time?.slice(0, 5) ?? '';
+  editAppointment.elements.place.value = row.location;
+  editAppointment.elements.details.value = row.notes;
+  $('edit-appointment-patient').textContent = row.patient_name;
+  $('save-appointment').disabled = false;
+  editAppointment.hidden = false;
+  editAppointment.elements.day.focus();
 }
 
 function endSession() {
@@ -46,6 +67,7 @@ function endSession() {
 function run(action) {
   return async event => {
     event.preventDefault();
+    const trigger = event.currentTarget;
     if (busy) return;
     busy = true;
     families.disabled = true;
@@ -56,7 +78,10 @@ function run(action) {
         endSession();
         status('La sesión terminó. Vuelve a iniciar sesión.');
       } else if (error.status === 409 || error.code === 'PT409') {
-        status(event.currentTarget === rename
+        if (trigger === editAppointment) {
+          $('save-appointment').disabled = true;
+          status('La cita cambió en otro dispositivo. Tu borrador sigue abierto. Revisa la cita actualizada antes de volver a editar.');
+        } else status(trigger === rename
           ? 'La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.'
           : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.');
         await refreshFamily().catch(() => {});
@@ -116,6 +141,7 @@ async function refreshFamily() {
     if (archived && !confirm('¿Archivar la ficha de ' + patient.name + '? Se conservará su historial.')) return;
     await client.rpc('set_patient_archived', { family, patient: patient.id, expected_revision: patient.revision, archived });
     hideEditing();
+    if (archived && appointmentDraft?.patient === patient.id) closeAppointment();
     await refreshFamily();
     status(archived ? 'Ficha archivada.' : 'Ficha reactivada.');
   };
@@ -139,12 +165,20 @@ async function refreshFamily() {
   appointment.elements.patient.replaceChildren(...active.map(patient => new Option(patient.name, patient.id)));
   if (active.some(patient => patient.id === selection)) appointment.elements.patient.value = selection;
   appointment.querySelector('button').disabled = !active.length;
+  const activeIds = new Set(active.map(patient => patient.id));
   for (const list of appointmentLists) {
     const rows = appointments[list];
     const items = rows.map(row => {
+      const text = [row.appointment_day ?? row.legacy_day, row.appointment_time?.slice(0, 5),
+        row.patient_name, row.location, row.notes].filter(Boolean).join(' · ');
+      if (list !== 'legacy' && activeIds.has(row.patient_id)) {
+        return itemWithButton(text, 'Editar cita', () => {
+          if (appointmentDraft && !confirm('¿Descartar el borrador de la cita abierta?')) return;
+          openAppointment(row, family);
+        });
+      }
       const item = document.createElement('li');
-      item.textContent = [row.appointment_day ?? row.legacy_day, row.appointment_time?.slice(0, 5),
-        row.patients.name, row.location, row.notes].filter(Boolean).join(' · ');
+      item.textContent = text;
       return item;
     });
     if (!items.length && list !== 'legacy') {
@@ -280,4 +314,19 @@ rpcForm('add-appointment', async values => {
   }
   appointmentRetry = undefined;
 });
+rpcForm('edit-appointment', async values => {
+  if (!appointmentDraft || $('save-appointment').disabled) return;
+  await client.rpc('edit_appointment', {
+    family: appointmentDraft.family, appointment: appointmentDraft.id, expected_revision: appointmentDraft.revision,
+    day: values.get('day'), at_time: values.get('time') || null, place: values.get('place'), details: values.get('details')
+  });
+  closeAppointment();
+  try {
+    await refreshFamily();
+    status('Cita actualizada.');
+  } catch {
+    status('Cita actualizada. Usa Actualizar fichas para consultar la lista.');
+  }
+});
+$('cancel-edit-appointment').addEventListener('click', closeAppointment);
 $('cancel-rename').addEventListener('click', hideEditing);

@@ -70,6 +70,16 @@
             <label>Notas <textarea name="details" maxlength="500"></textarea></label>
             <button>Registrar cita</button>
           </form>
+          <form id="edit-appointment" hidden>
+            <h3>Editar cita</h3>
+            <p id="edit-appointment-patient"></p>
+            <label>Fecha de la cita <input name="day" type="date" required></label>
+            <label>Hora de la cita <input name="time" type="time"></label>
+            <label>Lugar de la cita <input name="place" maxlength="160"></label>
+            <label>Notas de la cita <textarea name="details" maxlength="500"></textarea></label>
+            <button id="save-appointment">Guardar cita</button>
+            <button id="cancel-edit-appointment" type="button">Cancelar edición de cita</button>
+          </form>
           <h3>Próximas citas</h3>
           <ul id="appointments-upcoming"></ul>
           <h3>Citas anteriores</h3>

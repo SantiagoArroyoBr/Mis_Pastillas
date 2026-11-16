@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-012 · Edición de citas y conflictos
+
+Sobre `4c09225` se añadieron edición de fecha, hora, lugar y notas, cambio de lista según la fecha actualizada y protección de borrador ante revisión obsoleta. Las ediciones se guardan aparte del alta original para que su reintento conserve el mismo ID. La agenda consulta la versión vigente con los permisos de la familia. Las citas con fecha histórica inválida y las de fichas archivadas quedan disponibles para consulta.
+
+Se exportaron las citas a JSON y se verificó la restauración exacta en una tabla temporal antes de aplicar `20261116000500` a Supabase local. Pasaron **12/12** pruebas del piloto, **1/1** integrada con dos cuentas que intentan guardar la misma versión y **102/102** de regresión PWA. En Edge se verificaron el aviso específico, el borrador conservado y el traslado de una cita editada de próximas a anteriores. También se corrigió el mismo manejo asíncrono del aviso de conflicto al renombrar una ficha. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-011 · Agenda e historial de citas
 
 Sobre `0821858`, la agenda muestra hoy y fechas futuras desde la más cercana, citas anteriores desde la más reciente y un historial aparte para fechas inválidas. Cada consulta se filtra por familia antes de aplicar su límite de 20. Se reutilizan el esquema y los permisos existentes.

@@ -77,10 +77,16 @@ test('archiving preserves appointments and shifts and rejects new activity for t
   await rpc(owner.query, recordShift, [family, shift, patient, nurse, day, 'full']);
   await assert.rejects(rpc(owner.query, appointment, [family, randomUUID(), foreign, day, null, '', '']), { code: 'PT422' });
   await assert.rejects(rpc(owner.query, appointment, [family, randomUUID(), duplicate, '2026-02-30', null, '', '']), { code: '22008' });
+  const legacy = randomUUID();
+  const edit = 'edit_appointment($1,$2,$3,$4,$5,$6,$7)';
   await db.query(`insert into public.appointments(family_id,id,patient_id,legacy_day,location,notes,actor_id)
-    values ($1,$2,$3,'2026-02-30','','',$4)`, [family, randomUUID(), patient, owner.id]);
+    values ($1,$2,$3,'2026-02-30','','',$4)`, [family, legacy, patient, owner.id]);
+  await assert.rejects(rpc(owner.query, edit, [family, legacy, 1, day, null, '', '']), { code: 'PT422' });
+  await assert.rejects(rpc(outsider.query, edit, [family, appointmentId, 1, day, null, '', '']), { code: '42501' });
+  assert.deepEqual(await outsider.query('select id from public.appointment_details where family_id = $1', [family]), []);
   await assert.rejects(rpc(caregiver.query, archive, [family, patient, 1, true]), { code: '42501' });
   assert.equal(await rpc(owner.query, archive, [family, patient, 1, true]), 2);
+  await assert.rejects(rpc(owner.query, edit, [family, appointmentId, 1, day, null, '', '']), { code: 'PT422' });
   await assert.rejects(rpc(owner.query, archive, [family, patient, 1, false]), { code: 'PT409' });
   assert.deepEqual(await caregiver.query('select id from public.patients where archived_at is null'), [{ id: duplicate }]);
   assert.equal(await rpc(caregiver.query, appointment, args), appointmentId);

@@ -119,9 +119,26 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.deepEqual(calendar.legacy, []);
   assert.deepEqual(await loadAppointments(outsider, family, day), { upcoming: [], past: [], legacy: [] });
 
+  const editBooking = { family, appointment: appointmentId, expected_revision: 1, day: previousDay, at_time: null, place: 'Lugar ficticio' };
+  const edits = await Promise.allSettled([
+    owner.rpc('edit_appointment', { ...editBooking, details: 'Cambio A' }),
+    caregiver.rpc('edit_appointment', { ...editBooking, details: 'Cambio B' })
+  ]);
+  assert.equal(edits.find(result => result.status === 'fulfilled')?.value, 2);
+  assert.equal(edits.find(result => result.status === 'rejected')?.reason.code, 'PT409');
+  const updated = await loadAppointments(owner, family, day);
+  const edited = updated.past.find(row => row.id === appointmentId);
+  assert.equal(edited?.appointment_day, previousDay);
+  assert.equal(edited?.appointment_time, null);
+  assert.equal(edited?.revision, 2);
+  assert.equal(updated.upcoming.some(row => row.id === appointmentId), false);
+  assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
+  await assert.rejects(outsider.rpc('edit_appointment', { ...editBooking, details: '' }), { status: 403 });
+
   await owner.rpc('revoke_caregiver', { family, member: caregiverId });
   assert.deepEqual(await caregiver.select('patients', byId), []);
   assert.deepEqual(await caregiver.select('appointments', appointments), []);
+  assert.deepEqual(await loadAppointments(caregiver, family, day), { upcoming: [], past: [], legacy: [] });
   await assert.rejects(caregiver.rpc('rename_patient', { ...edit, expected_revision: 2 }), { status: 403 });
   await caregiver.signOut();
   await assert.rejects(caregiver.select('patients', byId), error => [401, 403].includes(error.status));

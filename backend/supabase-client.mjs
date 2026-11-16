@@ -3,15 +3,15 @@ const API = 'http://127.0.0.1:54321';
 export async function loadAppointments(client, family, today) {
   const fields = {
     family_id: 'eq.' + family,
-    select: 'appointment_day,legacy_day,appointment_time,location,notes,patients(name)',
+    select: 'id,patient_id,patient_name,revision,appointment_day,legacy_day,appointment_time,location,notes',
     limit: 20
   };
   const [upcoming, past, legacy] = await Promise.all([
-    client.select('appointments', { ...fields, appointment_day: 'gte.' + today,
+    client.select('appointment_details', { ...fields, appointment_day: 'gte.' + today,
       order: 'appointment_day.asc,appointment_time.asc.nullslast,id.asc' }),
-    client.select('appointments', { ...fields, appointment_day: 'lt.' + today,
+    client.select('appointment_details', { ...fields, appointment_day: 'lt.' + today,
       order: 'appointment_day.desc,appointment_time.desc.nullslast,id.desc' }),
-    client.select('appointments', { ...fields, appointment_day: 'is.null',
+    client.select('appointment_details', { ...fields, appointment_day: 'is.null',
       order: 'legacy_day.desc,id.desc' })
   ]);
   return { upcoming, past, legacy };
