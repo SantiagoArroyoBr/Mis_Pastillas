@@ -1,14 +1,6 @@
 # Acompaña
 
-**Estado al 2026-11-14.** PREVIEW-M002 publicó MACRO-002 en `development` hasta `6ea578c`. MACRO-003 queda local con clasificación B, candidata condicionada. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
-
-PREVIEW-M001 publicó PLAN-012 y MACRO-001 en `development` hasta `6896774`. MACRO-002 incorporó cambios de persistencia, respaldo y compatibilidad histórica. [Evidencia de publicación, matriz de riesgos y QA](docs/MACRO-002-estabilidad-integridad-recuperacion.md).
-
-**Estado al 2026-11-14.** MACRO-001 consolida la gestión de fichas, el acceso a historiales y las escrituras de los flujos existentes en `development` local. La versión de caché es v16. [Alcance de Acompaña 1.0 y resultados de revisión](docs/MACRO-001-finalizacion-funcional-visual.md).
-
-**Estado al 2026-11-13.** PREVIEW-011 está publicado en `origin/development` hasta `f151111`. PLAN-012 queda local y mejora validaciones, inventario, calendario, Inicio y respaldos. [Informe y checklist de PLAN-012](docs/PLAN-012-consolidacion-funcional.md).
-
-**Estado al 2026-11-06.** PLAN-009 y UX-013 están en `origin/development` hasta `6968fec`. PLAN-010 está implementado localmente en `development` y queda pendiente de revisión del propietario. [Informe de PLAN-009](docs/PLAN-009-calidad-integral.md) · [Reglas y checklist de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).
+**Estado verificado el 15 de noviembre de 2026.** PREVIEW-M002 publicó MACRO-002 en `origin/development` hasta `6ea578c`. MACRO-003 sigue en revisión local como candidata condicionada. Consulta la [conciliación de entregas](docs/AUTONOMIA-001-conciliacion.md) y los [criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
 
 PLAN-007B organiza enfermeros activos e inactivos, aclara modalidades en el calendario y ofrece historial operativo por persona. [Alcance y validación](docs/PLAN-007B-mejoras-enfermeria-calendario-pagos.md).
 
@@ -26,10 +18,12 @@ Acompaña es una aplicación web progresiva para organizar información del cuid
 
 ## Documentación del proyecto
 
-- [Plan de desarrollo](PLAN_DESARROLLO.md): fuente única de tareas, objetivos, dependencias, prioridades y estados.
+- [Instrucciones para Codex](AGENTS.md) y [backlog operativo](BACKLOG.md) para iniciar una sesión y elegir trabajo autorizado.
+- [Plan de desarrollo](PLAN_DESARROLLO.md) para objetivos, versiones y registro de ciclos.
+- [Historial de cambios](HISTORIAL_CAMBIOS.md) e [inventario documental](docs/AUTONOMIA-001-inventario.md) para localizar entregas, informes y decisiones.
 - [Arquitectura](ARQUITECTURA.md): estado comprobado del sistema, reglas técnicas permanentes y propuestas diferenciadas.
 - [Inventario funcional FUNC-001](docs/auditorias/FUNC-001-inventario-funcional.md): inspección vigente de funcionalidades, reglas, límites y mejoras; [AUD-001](docs/auditorias/AUD-001-inventario-funcional.md) conserva su estado histórico anterior.
-- [Backlog PLAN-002](docs/PLAN-002-backlog-funcional.md): prioridades y propuestas funcionales; DEV-001 y DEV-002 están en la rama `development`.
+- [PLAN-002](docs/PLAN-002-backlog-funcional.md) conserva prioridades y propuestas del ciclo histórico de DEV-001 y DEV-002.
 - [Diagnóstico DEV-003A](docs/auditorias/DEV-003A-diagnostico-pagos-cobertura.md): reglas actuales de pagos/turnos, riesgos históricos, alternativas y decisiones pendientes; no cambia cálculos.
 - [Propuesta DEV-003B](docs/DEV-003B-propuesta-reglas-pagos-cobertura.md): alternativas de cobertura, costos, pagos parciales, periodos e historial; reglas pendientes de aprobación.
 - [Propuesta FIX-003](docs/FIX-003-propuesta-pagos-individuales.md): extensión compatible necesaria para identificar destinatarios sin atribuir pagos históricos por inferencia.
@@ -83,7 +77,7 @@ La suite crea un perfil temporal aislado, usa registros ficticios y borra sus ar
 
 **Validación local VAL-001 (2026-10-31):** 25/25 pruebas en Microsoft Edge 156.0.4314.50; incluye persistencia, respaldos, integraciones, PWA/offline, manifest y viewports de 320 a 768 px. No se verificó instalación desde el prompt del sistema operativo ni se probaron dispositivos físicos.
 
-**PREVIEW-001 (2026-10-31):** el responsable informó que completó el testeo manual del Preview. No se proporcionó una matriz de casos ni resultados por función, navegador o dispositivo. GitHub registró deployment de Vercel completado para `f381219e31e515ba34096446d5c7109d8ae73937`; la URL Preview requiere inicio de sesión en la sesión de revisión. Ver [evidencia y límites](docs/GUIA_INSTALACION_USO.md#preview-001--declaracion-de-validacion-manual).
+**PREVIEW-001 (2026-10-31):** el responsable informó que completó el testeo manual del Preview. No se proporcionó una matriz de casos ni resultados por función, navegador o dispositivo. GitHub registró deployment de Vercel completado para `f381219e31e515ba34096446d5c7109d8ae73937`; la URL Preview requiere inicio de sesión en la sesión de revisión. Ver [evidencia y límites](docs/GUIA_INSTALACION_USO.md#preview-001--declaración-de-validación-manual).
 
 **DEV-001 (2026-10-31):** la suite local pasó 26/26 en Microsoft Edge 156.0.4314.50 con perfil aislado y datos ficticios. El caso nuevo comprueba la selección de fichas con nombres duplicados y compatibilidad de edición, guardado/recarga, respaldo JSON, restauración y eliminación. La clave `pastillas-v1` y el esquema persistido no cambiaron.
 
@@ -99,7 +93,7 @@ La rama `development` es la rama de trabajo. `main` es producción y no se modif
 
 El contenido de este README es una guía de entrada. El plan, la arquitectura y el historial enlazados arriba son las referencias centrales para sus respectivos temas.
 
-**BACKUP-001 / NOTIF-001 / QA-005 (2026-10-31):** se aclararon los mensajes de exportación/restauración, la cancelación y los avisos de cobertura/saldo. La restauración conserva sus validaciones y confirmaciones; `pastillas-v1` y el esquema no cambiaron. Regresión local: 45/45 en Edge 156.0.4314.50, perfil aislado y datos ficticios. Detalle y límites en [guía de uso](docs/GUIA_INSTALACION_USO.md#backup-001-y-notif-001).
+**BACKUP-001 / NOTIF-001 / QA-005 (2026-10-31):** se aclararon los mensajes de exportación/restauración, la cancelación y los avisos de cobertura/saldo. La restauración conserva sus validaciones y confirmaciones; `pastillas-v1` y el esquema no cambiaron. Regresión local: 45/45 en Edge 156.0.4314.50, perfil aislado y datos ficticios. Detalle y límites en [guía de uso](docs/GUIA_INSTALACION_USO.md#backup-001-y-notif-001--2026-10-31).
 
 **CIERRE-002 / PREVIEW-003 (2026-10-31):** el propietario declaró: “He probado PREVIEW-003 y autorizo el cierre funcional de BACKUP-001, NOTIF-001, QA-005 y PREVIEW-003.” Se registra la aprobación manual sin atribuir casos, dispositivos ni resultados individuales. PREVIEW-003 fue publicada en `development`; el check de GitHub Vercel fue exitoso. Producción no está aprobada para publicación. Auditoría funcional y plan siguiente quedan en informes locales pendientes de aprobación.
 
@@ -121,4 +115,4 @@ En la versión local de PLAN-005A, Medicinas permite añadir fichas y editar el 
 
 ADMIN-001 centralizó las tarifas completas y medias por enfermero en Pagos, fijó el costo al crear cada jornada y estableció un saldo general verificable con la administradora. PLAN-010 incorpora las jornadas con costo guardado hasta hoy y resta los abonos generales activos. Las jornadas futuras permanecen en el calendario y entran al saldo al llegar su fecha. Un excedente se muestra como saldo a favor. Se conserva `pastillas-v1`, el respaldo JSON y el historial de abonos y cancelaciones. [Modelo de ADMIN-001](docs/ADMIN-001-tarifas-adeudo-general.md) · [Estado de cuenta de PLAN-010](docs/PLAN-010-turnos-pagos-abonos.md).
 
-La validación automatizada local pasó **42/42** en Microsoft Edge 156.0.4314.50 con perfil aislado y datos ficticios, incluida la regresión PAG-001 y PWA/offline. En PREVIEW-002 se publicaron los seis commits hasta `e5e00f1f51dcaf00d582a8094a567f809563e362` exclusivamente en `development`; GitHub mostró `Vercel: success`. La URL Preview redirigió a inicio de sesión, por lo que esta revisión no verificó su contenido ni ejecutó pruebas funcionales allí. El dominio de producción respondió por HTTPS y mostró “Cuidados v9”, con la interfaz anterior; no se consultó la configuración de rama de producción. `main` no cambió. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales individuales; la declaración no acredita despliegue ni aprobación de producción. Véase [cierre y limitaciones](docs/GUIA_INSTALACION_USO.md#cierre-de-admin-001-y-preview-002).
+La validación automatizada local pasó **42/42** en Microsoft Edge 156.0.4314.50 con perfil aislado y datos ficticios, incluida la regresión PAG-001 y PWA/offline. En PREVIEW-002 se publicaron los seis commits hasta `e5e00f1f51dcaf00d582a8094a567f809563e362` exclusivamente en `development`; GitHub mostró `Vercel: success`. La URL Preview redirigió a inicio de sesión, por lo que esta revisión no verificó su contenido ni ejecutó pruebas funcionales allí. El dominio de producción respondió por HTTPS y mostró “Cuidados v9”, con la interfaz anterior; no se consultó la configuración de rama de producción. `main` no cambió. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales individuales; la declaración no acredita despliegue ni aprobación de producción. Véase [cierre y limitaciones](docs/GUIA_INSTALACION_USO.md#cierre-de-admin-001-y-preview-002--2026-10-31).

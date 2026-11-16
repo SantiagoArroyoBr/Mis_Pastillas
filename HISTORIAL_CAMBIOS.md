@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — AUTONOMÍA-001
+
+Se incorporaron [las instrucciones de Codex](AGENTS.md) y [el backlog operativo](BACKLOG.md) a `development`. La [conciliación](docs/AUTONOMIA-001-conciliacion.md) registra las entregas y el [inventario](docs/AUTONOMIA-001-inventario.md) conserva la trazabilidad documental. La [estrategia de agentes](docs/AUTONOMIA-001-agentes.md) describe la configuración local propuesta.
+
 ## 2026-11-14 — PREVIEW-M002 y MACRO-003 local
 
 MACRO-002 se publicó en `development` hasta `6ea578c`. MACRO-003 valida flujos con datos ficticios, corrige el desbordamiento de cantidades en compras, mejora foco y Calendar, reduce el costo de proyectar existencias y sube la caché local a v18. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
@@ -158,7 +162,7 @@ Se publicó a `origin/development` la serie de seis commits pendientes hasta `e5
 
 Antes del push, 12 scripts JS pasaron `node --check`, `manifest.json` validó con tema/fondo `#315B50`, la suite `node --test tests/payments.spec.js tests/persistence.spec.js` pasó 42/42 en Edge 156.0.4314.50, con perfil aislado/fixtures ficticios, y `git diff origin/development...development --check` pasó.
 
-GitHub devolvió `Vercel: success` para el SHA publicado. La URL Preview conocida redirige a login; no se inició sesión ni se eludió la protección, así que no se hicieron pruebas funcionales contra Preview. La URL de producción respondió por HTTPS y mostró `Cuidados v9` y la UI anterior; no se tuvo acceso al panel para confirmar el mapeo de rama o SHA productivo. La revisión manual del responsable queda pendiente. El registro y la lista de pruebas están en [la guía PREVIEW-002](docs/GUIA_INSTALACION_USO.md#preview-002-publicacion-de-admin-001).
+GitHub devolvió `Vercel: success` para el SHA publicado. La URL Preview conocida redirige a login; no se inició sesión ni se eludió la protección, así que no se hicieron pruebas funcionales contra Preview. La URL de producción respondió por HTTPS y mostró `Cuidados v9` y la UI anterior; no se tuvo acceso al panel para confirmar el mapeo de rama o SHA productivo. La revisión manual del responsable queda pendiente. El registro y la lista de pruebas están en [la guía PREVIEW-002](docs/GUIA_INSTALACION_USO.md#preview-002--publicación-de-admin-001--2026-10-31).
 
 La documentación de PREVIEW-002 se actualizó después de publicar y quedó pendiente de consolidación. En el cierre del 2026-10-31, el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se entregaron resultados por caso. CONS-004 consolida el registro en los cinco documentos listados en este commit. No se afirma validación independiente del Preview ni autorización de publicación a producción; `main` y producción no se modificaron.
 

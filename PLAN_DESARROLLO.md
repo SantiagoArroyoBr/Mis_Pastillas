@@ -1,5 +1,7 @@
 # Plan de desarrollo — Acompaña
 
+Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [conciliación de entregas](docs/AUTONOMIA-001-conciliacion.md) para comprobar qué quedó publicado, probado y pendiente. Las fichas de ciclo y tablas conservan su contexto original.
+
 ## MACRO-003 — Validación integral y candidata 1.0
 
 Entrega local para revisión, con clasificación B. La siguiente etapa propuesta es MACRO-004 para validación manual, revisión de la Preview autenticada y decisión de lanzamiento. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
@@ -62,7 +64,7 @@ PREVIEW-006 publicó los seis commits de PLAN-006 hasta 972a856. DATA-002 docume
 
 PREVIEW-005 publicó PLAN-005A hasta `e27bea8` con Vercel success. CONS-008, UX-005, HOME-001, FICHAS-002, HIST-001 y GLASS-001 se implementan localmente. QA-010 pasó 55/55. La revisión del propietario precede a la publicación de este ciclo. Véase [alcance, compatibilidad y checklist](docs/PLAN-006-evolucion-integral-ux.md).
 
-Este documento es la fuente única de verdad para tareas, objetivos, prioridades, dependencias y estados. Las prioridades pendientes de esta tabla son una **propuesta técnica ordenada**, basada en dependencias, protección de datos y secuencia de trabajo; no representan prioridades elegidas por el usuario. Se pueden revisar y ajustar. Las tareas ordinarias se desglosan y ejecutan dentro del plan, con cambios pequeños y verificables.
+La tabla conserva la propuesta técnica de su ciclo y la trazabilidad de las decisiones. Para ejecutar una propuesta anterior, contrasta el alcance con el backlog operativo y verifica su autorización.
 
 ### Escala de prioridad propuesta
 
@@ -82,12 +84,7 @@ Este documento es la fuente única de verdad para tareas, objetivos, prioridades
 
 ## Criterios técnicos permanentes
 
-- Mantener compatibilidad con `localStorage` y la clave `pastillas-v1`, los datos ya guardados y el formato vigente.
-- Preservar exportación y restauración JSON, la PWA instalable y el comportamiento offline.
-- Una tarea que afecte persistencia, estructura de datos, migraciones o flujos JSON debe incluir una estrategia compatible de respaldo, restauración, recuperación y validación antes de cambiar el código.
-- No eliminar funciones o datos existentes como efecto colateral. Usar datos ficticios en pruebas; no compartir información médica real.
-- Revisar la rama, el estado Git, la versión remota y el alcance afectado antes de editar. Registrar en el historial pruebas realmente ejecutadas y limitaciones.
-- Trabajar en `development`. No modificar `main` ni desplegar a producción como parte del trabajo ordinario.
+Consulta el [procedimiento y los límites de autorización](AGENTS.md) y las [reglas de arquitectura](ARQUITECTURA.md).
 
 ## Tareas
 
@@ -245,4 +242,4 @@ La autorización expresa posterior resolvió las reglas de tarifas independiente
 
 ## PREVIEW-002 — publicación de ADMIN-001 — 2026-10-31
 
-Se publicaron los seis commits locales en `development` hasta `e5e00f1f51dcaf00d582a8094a567f809563e362`. GitHub confirmó `Vercel: success`; la URL Preview conocida redirigió a inicio de sesión y esta revisión no ejecutó pruebas funcionales allí. El dominio productivo respondió por HTTPS mostrando “Cuidados v9” y la interfaz previa; no se pudo leer la configuración de Vercel para confirmar rama o SHA productivos. La suite automatizada local previamente verificada fue 42/42. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales individuales; esto registra la declaración, no una verificación independiente ni aprobación de producción. `main` no cambió. Detalle: [guía de uso](docs/GUIA_INSTALACION_USO.md#cierre-de-admin-001-y-preview-002).
+Se publicaron los seis commits locales en `development` hasta `e5e00f1f51dcaf00d582a8094a567f809563e362`. GitHub confirmó `Vercel: success`; la URL Preview conocida redirigió a inicio de sesión y esta revisión no ejecutó pruebas funcionales allí. El dominio productivo respondió por HTTPS mostrando “Cuidados v9” y la interfaz previa; no se pudo leer la configuración de Vercel para confirmar rama o SHA productivos. La suite automatizada local previamente verificada fue 42/42. El 2026-10-31 el responsable declaró: “ADMIN-001 y PREVIEW-002 han sido probadas manualmente y aprobadas para continuar el desarrollo.” No se documentaron casos ni resultados manuales individuales; esto registra la declaración, no una verificación independiente ni aprobación de producción. `main` no cambió. Detalle: [guía de uso](docs/GUIA_INSTALACION_USO.md#cierre-de-admin-001-y-preview-002--2026-10-31).
