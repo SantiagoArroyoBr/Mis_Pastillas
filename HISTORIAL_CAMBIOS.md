@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — Recarga offline en Preview
+
+En Microsoft Edge se desconectó solo la pestaña de la Preview `3a1c19b` mediante DevTools. El service worker respondió a la recarga y el control de saldo funcionó. Se restableció la conexión de la pestaña y se cerró DevTools. Se cerró QA-PREVIEW-001. [Evidencia](docs/MACRO-004-preparacion.md#recarga-offline-en-la-preview-vigente).
+
 ## 2026-11-15 — Preview histórica de MACRO-002
 
 Se validó la Preview autenticada de `6ea578c` en su dominio propio con un respaldo ficticio de la candidata v18. Pasaron alta, recarga, cancelación, restauración y exportación. La comparación JSON confirmó que v17 conservó las fichas, inventario, citas, enfermería y registros de pago de ese respaldo. Sigue pendiente la recarga offline en las Previews. [Evidencia](docs/MACRO-004-preparacion.md#verificación-autenticada-de-macro-002).

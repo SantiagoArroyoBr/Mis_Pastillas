@@ -41,7 +41,7 @@ Se probó el dominio propio del deployment `39mivWzhzKtcebkHnBL3teAZV36R` en el 
 | Exportación JSON | Se descargó el respaldo y se inspeccionaron dos pautas, inventario de 30, compra de 10 por 60 MXN, ambas tarifas y abono de 5 000 centavos. El respaldo validado mostró tres fichas, un producto, una cita y una persona de enfermería. |
 | Cancelación y restauración | Tras corregir la existencia a 31, cancelar en la confirmación final conservó 31. Confirmar recuperó las 30 unidades exportadas y la interfaz anunció que la restauración había terminado. |
 
-Queda pendiente la recarga offline en Preview. La evidencia offline de la candidata corresponde a la [prueba local](QA-RC-LOCAL-001-candidata.md). [Preview específica de la candidata](https://pastillas-1-q3p9b4vfl-dinamita20.vercel.app/).
+La recarga offline en Vercel se verificó después en la Preview vigente v20. La evidencia offline del SHA `6b0d84c` corresponde a la [prueba local](QA-RC-LOCAL-001-candidata.md). [Preview específica de la candidata](https://pastillas-1-q3p9b4vfl-dinamita20.vercel.app/).
 
 ### Verificación autenticada de MACRO-002
 
@@ -50,6 +50,10 @@ Vercel mostró el deployment `62wNELnkgumi7b9WT8FHwir2Sbqa` como **Ready** en **
 Se seleccionó el respaldo ficticio exportado desde la candidata v18. La revisión previa mostró tres fichas, un medicamento, una cita y una persona de enfermería. Cancelar desde la confirmación final conservó la ficha temporal. Tras confirmar, se recuperó la cita de la ficha ficticia y se pudo exportar un nuevo JSON. La comparación verificó igualdad en fichas e inventario, citas, enfermería, asignaciones, libros de pagos y configuración. El respaldo de la candidata fue aceptado por v17 en este conjunto de prueba.
 
 El recorrido fue en línea. El navegador integrado permitió usar la sesión autenticada y restaurar el archivo, pero su control de pestañas no ofreció desconexión de red para comprobar la recarga offline. [Panel del deployment](https://vercel.com/dinamita20/pastillas-1/62wNELnkgumi7b9WT8FHwir2Sbqa) · [Preview histórica](https://pastillas-1-keiu5ycew-dinamita20.vercel.app/).
+
+### Recarga offline en la Preview vigente
+
+El 15 de noviembre de 2026, en Microsoft Edge para Windows con sesión autenticada, se activó **Offline** en la pestaña Network de DevTools del dominio propio de `3a1c19b` y se pulsó **Actualizar**. El documento y los recursos de Acompaña, incluidos CSS, `app.js`, `care-ui.js`, iconos y fuente, respondieron con HTTP 200 desde el service worker. Pagos volvió a abrir. El botón **Ver montos del saldo general** mostró el saldo de 0 MXN del perfil de prueba. La verificación se limitó a recarga y lectura del saldo. Se devolvió Network a **No throttling** y se cerró DevTools. [Preview v20](https://pastillas-1-l7htimurn-dinamita20.vercel.app/).
 
 ### Zoom efectivo en flujos críticos
 
