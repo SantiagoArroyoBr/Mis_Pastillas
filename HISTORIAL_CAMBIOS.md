@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — Preparación del entorno local de Supabase
+
+Se instaló WSL 3.0.5 y Docker Desktop 4.99.0 para el usuario actual. Los instaladores devolvieron código 0. La CLI oficial de Supabase 3.2.0 quedó instalada y fijada en `backend/package-lock.json`. Pasaron **3/3** pruebas del piloto sin contenedores y se verificó la opción de red del comando de arranque. Windows informa un reinicio pendiente y WSL 2 todavía indica que no puede iniciar su máquina virtual. Sigue pendiente comprobar Docker después del reinicio, arrancar el stack aislado y ejecutar la prueba integrada de Auth. [Guía local](backend/README.md).
+
 ## 2026-11-16 — RECONST-002 · Piloto de datos y cuentas
 
 Sobre `b3b7d2c` se preparó un piloto local de Supabase separado de la PWA. Incluye cuentas, invitaciones revocables vinculadas al correo, familias, fichas con revisión de edición y operaciones financieras de prueba que conservan centavos y evitan duplicados al reintentar. Los cuidadores activos pueden editar fichas, y la administración de membresías y los datos financieros se reservan a la cuenta propietaria durante el piloto.

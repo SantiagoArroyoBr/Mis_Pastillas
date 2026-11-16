@@ -4,14 +4,17 @@ El piloto corre en `127.0.0.1` y tiene su propio servidor, origen y configuraci�
 
 ## Ejecutar
 
-Requiere Node.js 22+, Supabase CLI y un motor de contenedores compatible con Docker. Ejecuta los comandos desde este directorio. La [guía de instalación de Supabase](https://supabase.com/docs/guides/local-development) cubre el motor y la CLI.
+Requiere Node.js 22+ y un motor de contenedores compatible con Docker. `npm ci` instala la versión fijada de Supabase CLI en este directorio. Ejecuta los comandos desde aquí con Docker ya iniciado. La [guía de instalación de Supabase](https://supabase.com/docs/guides/local-development) cubre el motor, la CLI y la red local.
 
 ```text
 npm ci
-supabase start
-supabase status
+docker network create -o com.docker.network.bridge.host_binding_ipv4=127.0.0.1 acompana-pilot-loopback
+npx supabase start --network-id acompana-pilot-loopback
+npx supabase status
 npm start
 ```
+
+Crea la red una sola vez. Reutilízala al iniciar de nuevo. En Windows, la primera instalación de WSL 2 puede requerir un reinicio antes de que Docker pueda arrancar. [Instalación de WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 Abre `http://127.0.0.1:4173` y usa la clave **Publishable** local de `supabase status`. Utiliza correos `@acompana.test` y contraseñas exclusivas del piloto. Crea una familia y una ficha, genera una invitación, y acéptala desde otra cuenta en una ventana aparte. Guarda un nombre desde una cuenta y pulsa **Actualizar fichas** en la otra. Puedes revocar a la segunda cuenta desde la propietaria y actualizar sus fichas para comprobar la pérdida de acceso.
 
