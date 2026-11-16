@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2026-11-15 — Publicación y Preview de UX-MONTOS-001
+
+Con autorización del propietario y **102/102** pruebas locales aprobadas, se avanzó `origin/development` de `6b0d84c` a `3a1c19bab068c6a5da9cfb494f0bf6084ea65356`. El avance incluyó dos commits del ajuste y cinco de documentación y QA ya presentes en su ascendencia. Se confirmó el SHA remoto y el check de Vercel `success`. `main` seguía en `92c4034`. [Despliegue de Vercel](https://vercel.com/dinamita20/pastillas-1/2egFGktkHecswWBWWKJzwp85J3Df).
+
+En el dominio propio del despliegue, con sesión autenticada y un respaldo ficticio, se verificaron dos tarifas de enfermería independientes, apertura simultánea, ocultamiento manual y activación con Espacio. El saldo general, el historial de abonos, el costo de asignaciones y el historial anterior revelaron solo el importe de su apartado. El ocultamiento automático se confirmó a los 8,2 segundos de iniciar la interacción y conservó el foco. La recarga ocultó los montos y conservó las dos tarjetas. El nuevo JSON exportado coincidió con los registros ficticios de ficha, tarifas, asignación, abono y pago histórico. [Preview probada](https://pastillas-1-l7htimurn-dinamita20.vercel.app/).
+
+Este recorrido de Preview se hizo en línea. Las dos pruebas de actualización offline a v20 corresponden al arnés local.
+
 ## 2026-11-15 — UX-MONTOS-001 · Control independiente
 
 Pagos tiene controles independientes para saldo general, historial de abonos y cancelaciones, tarifas de cada enfermero, costos de sus asignaciones e historial anterior de cada ficha. Cada control usa su propio plazo de ocho segundos. Se pueden consultar varios apartados a la vez y ocultar cualquiera por separado. La visibilidad se guarda en memoria y se borra al salir de Pagos o restaurar un respaldo.
