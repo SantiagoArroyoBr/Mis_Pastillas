@@ -4,7 +4,7 @@ Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [co
 
 ## MACRO-004 — Preparación de la validación de RC 1.0
 
-La revisión local de la candidata fue aprobada. Se preparó un lote con la referencia exacta de publicación, casos por entorno y decisiones sobre datos históricos y coexistencia. El alcance y el inicio quedan pendientes de revisión. [Propuesta y matriz](docs/MACRO-004-preparacion.md).
+La revisión local de la candidata fue aprobada y `6b0d84c` se publicó en `development` con check Vercel `success`. El lote en curso contempla Preview autenticada, dispositivos físicos y revisión asistiva. Quedan pendientes las decisiones sobre datos históricos, coexistencia y lanzamiento. [Evidencia y matriz](docs/MACRO-004-preparacion.md).
 
 ## MACRO-003 — Validación integral y candidata 1.0
 

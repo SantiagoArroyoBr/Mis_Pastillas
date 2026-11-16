@@ -1,6 +1,6 @@
 # MACRO-004 · Preparación de la validación de RC 1.0
 
-El propietario aprobó la revisión local documentada en `90a15be1e6cb5801e0c9825f884020076337c143` y pidió agrupar el trabajo en lotes mayores. La propuesta agrupa Preview, dispositivos, accesibilidad y recuperación de la misma candidata. El inicio depende del acceso a esos entornos y la clasificación sigue en [B · Candidata condicionada](RC-1.0-criterios-lanzamiento.md).
+El propietario aprobó la revisión local documentada en `90a15be1e6cb5801e0c9825f884020076337c143` y autorizó continuar con la publicación de la candidata y su validación. El lote agrupa Preview, dispositivos, accesibilidad y recuperación de la misma candidata. La ejecución de cada recorrido depende del acceso a su entorno. La clasificación sigue en [B · Candidata condicionada](RC-1.0-criterios-lanzamiento.md).
 
 ## Paquete de publicación
 
@@ -13,7 +13,9 @@ La consulta de solo lectura a GitHub devolvió `6ea578c1dad72f1fb2a43f00cf870819
 | `d59b4f9b8f7692af105afc4c8f57bb9e0a91cf0c` | Regresión integral, escala y cuota. |
 | `6b0d84c046e82c05eb0a7910d296b50811d88817` | Evidencia de MACRO-003 y criterios de la candidata. |
 
-El paquete termina en `6b0d84c`. Los commits posteriores de coordinación y QA permanecen locales. La [validación de la candidata](QA-RC-LOCAL-001-candidata.md) acredita 101/101 pruebas y una actualización exacta v17 → v18. Antes de publicar, confirmar autorización específica de ese SHA y destino y volver a leer la referencia remota. Tras la publicación autorizada, registrar por separado SHA remoto, check de Vercel, autenticación y resultado funcional.
+El 15 de noviembre de 2026 se publicó el paquete de cuatro commits hasta `6b0d84c` en `origin/development`, tras comprobar que la [validación local](QA-RC-LOCAL-001-candidata.md) pasó 101/101 pruebas y la actualización exacta v17 → v18. El SHA remoto se verificó después del push. `origin/main` seguía en `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Los commits posteriores de coordinación y QA quedaron en el checkout local.
+
+El estado de Vercel para ese SHA pasó de `pending` a `success`. La URL de rama respondió HTTP 302 hacia el inicio de sesión. La prueba funcional queda pendiente de acceso autenticado. [Deployment registrado por GitHub](https://vercel.com/dinamita20/pastillas-1/39mivWzhzKtcebkHnBL3teAZV36R) · [Preview de development](https://pastillas-1-git-development-dinamita20.vercel.app/).
 
 ## Lote de validación
 

@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — PUB-M003
+
+Con autorización del propietario y 101/101 pruebas locales aprobadas, se publicaron cuatro commits de MACRO-003 hasta `6b0d84c` en `origin/development`. GitHub confirmó el SHA y Vercel reportó `success`. La URL de rama redirigió al inicio de sesión. La revisión funcional autenticada, la validación en dispositivos físicos y la decisión de lanzamiento siguen pendientes. [Evidencia](docs/MACRO-004-preparacion.md#paquete-de-publicación).
+
 ## 2026-11-15 — Aprobación de QA local y preparación de MACRO-004
 
 El propietario aprobó la revisión local registrada en `90a15be`. Se verificaron los cuatro commits de la candidata y se documentaron el paquete propuesto para `origin/development`, el lote de validación y las decisiones pendientes. La regresión dirigida de datos legados y concurrencia pasó 6/6. Los cuatro escenarios de calendario, pautas, pagos y restauración pasaron con zoom efectivo al 200 % y al 400 %. La autorización de publicación y la decisión de lanzamiento siguen pendientes. [Preparación de MACRO-004](docs/MACRO-004-preparacion.md).
