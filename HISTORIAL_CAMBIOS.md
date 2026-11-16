@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — Recuperación v20 → v17 y recorrido físico
+
+La Preview v17 restauró un respaldo ficticio de v20, mantuvo el saldo pendiente de 30 MXN tras recargar y reexportó los mismos registros financieros. Se agrupó la validación pendiente de instalación, recuperación, modo offline, móvil y lector de pantalla en un solo recorrido. [Evidencia y recorrido](docs/MACRO-004-preparacion.md#recuperación-de-un-respaldo-v20-en-preview-v17).
+
 ## 2026-11-15 — Instalabilidad y actualización directa v17 → v20
 
 Edge ofreció instalar la Preview `3a1c19b`. En un perfil temporal pasó la actualización desde `6ea578c` y pasaron tres casos de respaldo grande, cuota y recorrido familiar. Quedan pendientes la instalación y apertura desde el icono, el móvil físico y el lector de pantalla. [Evidencia](docs/MACRO-004-preparacion.md#instalabilidad-en-edge-y-actualización-directa).
