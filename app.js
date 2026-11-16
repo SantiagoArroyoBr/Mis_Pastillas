@@ -654,7 +654,7 @@ function setBackupStatus(message){
   if(status){status.textContent=message;status.hidden=false;}
 }
 
-function confirmRestore(candidate){
+function confirmRestore(candidate,fileName){
   let expected;
   try{expected=localStorage.getItem(STORAGE_KEY)}
   catch(error){
@@ -677,15 +677,19 @@ function confirmRestore(candidate){
   const timestampValid=typeof rawDate==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(rawDate)&&Number.isFinite(Date.parse(rawDate));
   const backupDate=dateValid&&(rawDate===datePart||timestampValid)
     ?rawDate===datePart?rawDate:new Date(rawDate).toLocaleString('es-MX'):'no incluida o no válida';
-  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">Revisa el respaldo</h2><p>Fecha: '+esc(backupDate)+'.</p><ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(expected===null&&!persistenceReady?'disabled':'')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">Revisa el respaldo</h2>'+restoreFileSummary(fileName)+(rawDate==null?'':'<p>Fecha: '+esc(backupDate)+'.</p>')+'<ul><li>'+candidate.p.length+' '+(candidate.p.length===1?'persona':'personas')+'</li><li>'+meds+' medicinas o insumos</li><li>'+appts+' citas</li><li>'+nurses+' enfermeros registrados</li></ul><p>Al restaurar se reemplazarán los datos actuales de esta instalación. Se recomienda descargar una copia actual antes de continuar. Cancelar deja los datos actuales sin cambios.</p><div class="stack"><button type="button" class="btn ghost" id="exportBeforeRestore" '+(expected===null&&!persistenceReady?'disabled':'')+'>Exportar datos actuales</button><button type="button" class="btn" id="continueRestore">Continuar</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   $('#exportBeforeRestore').onclick=()=>expected===null?$('#exp').click():exportStoredValue();
-  $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate,expected);
+  $('#continueRestore').onclick=()=>showRestoreConfirmation(candidate,expected,fileName);
   focusBackupDialog();
 }
 
-function showRestoreConfirmation(candidate,expected){
-  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2><p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><p class="err" id="restoreError" role="alert" tabindex="-1"></p><div class="stack"><button type="button" class="btn" id="restoreConfirm">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
+function restoreFileSummary(fileName){
+  return '<p id="restoreFileName">Archivo: <strong>'+esc(fileName)+'</strong></p>';
+}
+
+function showRestoreConfirmation(candidate,expected,fileName){
+  dlg.innerHTML='<h2 id="formTitle" tabindex="-1">¿Reemplazar los datos locales?</h2>'+restoreFileSummary(fileName)+'<p>Se reemplazará la información local de esta instalación por el respaldo revisado. La copia descargada no cambia. Confirma solo si deseas sustituir los datos actuales.</p><p class="err" id="restoreError" role="alert" tabindex="-1"></p><div class="stack"><button type="button" class="btn" id="restoreConfirm" aria-describedby="restoreFileName">Sí, restaurar y reemplazar todo</button><button type="button" class="btn ghost" id="cancelRestore">Cancelar</button></div>';
   $('#cancelRestore').onclick=()=>{dlg.close();setBackupStatus('Restauración cancelada. Los datos actuales no se modificaron.');};
   const confirm=$('#restoreConfirm');
   confirm.onclick=()=>{
@@ -740,7 +744,7 @@ $('#impFile').addEventListener('change',e=>{
       return;
     }
     setBackupStatus('Archivo validado. Revisa su contenido; los datos actuales siguen sin cambios.');
-    confirmRestore(candidate);
+    confirmRestore(candidate,file.name);
   };
   reader.onerror=()=>{
     if(selection===importSelection)importMessage('No se pudo leer el archivo','El navegador no pudo leer el archivo seleccionado. No se modificó el almacenamiento actual.');

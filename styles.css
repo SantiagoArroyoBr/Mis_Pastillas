@@ -212,5 +212,6 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
   .nurse-record .sidebtns .btn{flex:1 1 auto}
 }
 .care-staff .legacy-payments{margin-top:10px;border-top:1px solid var(--line)}
+#restoreFileName{overflow-wrap:anywhere}
 @media(max-width:360px){.admin-summary .vrow,.care-staff .vrow{align-items:flex-start}.admin-summary .vrow{font-size:14px}.care-staff .btn.small{min-width:80px}}
 @media(max-width:360px){.backup{flex-direction:column}.backup .btn{width:100%}}

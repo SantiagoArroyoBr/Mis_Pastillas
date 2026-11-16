@@ -632,7 +632,9 @@ test('una lectura de respaldo atrasada no desplaza la selección más reciente',
   await uploadJson(validBackup('Segunda copia ficticia'),'segunda-copia.json');
   const copies=[validBackup('Primera copia ficticia'),validBackup('Segunda copia ficticia')];
   await evaluate(`[1,0].forEach(i=>{const reader=pendingReads[i];reader.result=JSON.stringify(${JSON.stringify(copies)}[i]);reader.onload()})`);
+  assert.equal(await evaluate("$('#restoreFileName strong').textContent"),'segunda-copia.json');
   await continueRestore();
+  assert.equal(await evaluate("$('#restoreFileName strong').textContent"),'segunda-copia.json');
   await evaluate("$('#restoreConfirm').click()");
   assert.equal(JSON.parse(await evaluate('__persistenceTest.read()')).p[0].name,'Segunda copia ficticia');
   assert.equal(await evaluate('__persistenceTest.writes'),1);
@@ -681,8 +683,18 @@ test('el respaldo JSON exportado puede restaurarse en el perfil aislado', async 
   assert.equal(parsed.p[0].meds[0].name, fixture.p[0].meds[0].name);
   assert.equal(parsed.p[0].meds[0].base, 12);
 
-  await uploadJson(exported, 'respaldo-exportado-ficticio.json');
-  await continueRestore();
+  const fileName='respaldo-&-'+ 'ficticio'.repeat(18)+'.json';
+  await uploadJson(exported,fileName);
+  await waitFor("$('#restoreFileName')");
+  assert.equal(await evaluate("$('#restoreFileName strong').textContent"),fileName);
+  assert.doesNotMatch(await evaluate("$('#dlg').textContent"),/Fecha:/);
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:true});
+  try{
+    await continueRestore();
+    assert.equal(await evaluate("$('#restoreFileName strong').textContent"),fileName);
+    assert.equal(await evaluate("$('#restoreConfirm').getAttribute('aria-describedby')"),'restoreFileName');
+    assert.equal(await evaluate("$('#dlg').scrollWidth<=$('#dlg').clientWidth"),true);
+  }finally{await cdp.send('Emulation.clearDeviceMetricsOverride')}
   assert.equal(await evaluate('__persistenceTest.writes'), 0);
   await evaluate("document.querySelector('#restoreConfirm').click()");
   await waitFor("persistenceReady === true && S.p[0].name === 'Cuidadora ficticia de prueba'", 'restauración del respaldo exportado');
@@ -891,6 +903,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const storageUpdate = initialVersion==='v16'&&updatedVersion==='v17'&&PREVIOUS_ASSETS;
   const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
   const amountsUpdate = ['v17','v18','v19'].includes(initialVersion)&&updatedVersion==='v20'&&PREVIOUS_ASSETS;
+  const restoreNameUpdate = initialVersion==='v20'&&updatedVersion==='v21'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -944,7 +957,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = amountsUpdate ? "patientHTML(S.p[0],0).includes('data-amount-scope=')"
+    const updatedAssets = restoreNameUpdate ? "typeof restoreFileSummary==='function'"
+      : amountsUpdate ? "patientHTML(S.p[0],0).includes('data-amount-scope=')"
       : candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
       : storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
       : patientPickerUpdate ? "typeof navigateTo==='function' && document.querySelector('#patientPicker')!==null"
@@ -961,7 +975,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = amountsUpdate||candidateUpdate||storageUpdate ? updatedAssets
+    const newAssets = restoreNameUpdate||amountsUpdate||candidateUpdate||storageUpdate ? updatedAssets
       : patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
       : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"
@@ -974,6 +988,13 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
       await navigate('?offline=updated');
       assert.equal(await evaluate(newAssets),true);
       assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+      if(restoreNameUpdate){
+        await uploadJson(raw,'respaldo-offline-ficticio.json');
+        await continueRestore();
+        assert.equal(await evaluate("$('#restoreFileName strong').textContent"),'respaldo-offline-ficticio.json');
+        await evaluate("$('#cancelRestore').click()");
+        assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
+      }
       if(amountsUpdate){
         await evaluate("$('[data-m=pay]').click();$('.nurse-record [data-pa=show]').click()");
         assert.equal(await evaluate("$('.nurse-record [data-pa=show]').textContent.includes('Ocultar') && $('.account-balance [data-pa=show]').textContent.includes('Ver montos')"),true);

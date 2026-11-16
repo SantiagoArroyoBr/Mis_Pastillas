@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — UX-RESPALDO-001
+
+La revisión y la confirmación final de una restauración muestran el nombre del archivo seleccionado. El botón de confirmación usa ese nombre como descripción accesible. Si el JSON carece de fecha de exportación, se omite la línea de fecha. Las fechas incluidas siguen mostrando su valor o el aviso de fecha inválida. Se conservaron el formato JSON, `pastillas-v1`, la validación y las dos confirmaciones.
+
+La suite conjunta pasó **102/102** en Node.js 24.20.0 y Edge 157.0.4341.60 con datos ficticios. Se comprobó el nombre de la selección más reciente, su lectura literal, el reflujo a 320 px y su vínculo accesible. La actualización exacta **v20 → v21** desde `3a1c19b` pasó **1/1** en Edge aislado. El escenario verificó el nombre del archivo en la confirmación offline y que cancelar conservó los datos.
+
 ## 2026-11-16 — Aprobación del recorrido en iPhone
 
 El propietario aprobó globalmente el recorrido de la Preview en iPhone que incluía instalación, restauración, modo offline y VoiceOver. Se registró la declaración y sus límites. MACRO-004 pasa a revisión con la decisión de lanzamiento pendiente. [Evidencia](docs/MACRO-004-preparacion.md#aprobación-del-recorrido-en-iphone).
