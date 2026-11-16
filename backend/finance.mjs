@@ -32,6 +32,27 @@ export function describeBalance(value) {
   };
 }
 
+function historyAmounts(list, button) {
+  let timer;
+  function show(visible) {
+    clearTimeout(timer);
+    timer = visible ? setTimeout(() => show(false), 30000) : undefined;
+    button.textContent = visible ? 'Ocultar montos' : 'Ver montos';
+    button.setAttribute('aria-pressed', String(visible));
+    for (const amount of list.querySelectorAll('[data-cents]')) {
+      amount.textContent = visible ? formatCents(amount.dataset.cents) : '••••';
+    }
+  }
+  button.addEventListener('click', () => show(!timer));
+  return () => show(false);
+}
+
+function historyAmount(cents) {
+  const amount = document.createElement('span');
+  amount.dataset.cents = cents;
+  return amount;
+}
+
 export function createFinance({ run, status, itemWithButton }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
@@ -39,9 +60,11 @@ export function createFinance({ run, status, itemWithButton }) {
   const receipt = $('record-receipt');
   const cancel = $('cancel-receipt');
   const history = $('finance-receipts');
-  const historyToggle = $('receipt-toggle');
+  const shiftHistory = $('finance-shifts');
+  const hideReceiptAmounts = historyAmounts(history, $('receipt-toggle'));
+  const hideShiftAmounts = historyAmounts(shiftHistory, $('shift-toggle'));
   const pending = new Map();
-  let family, client, patients, balance, selected, timer, historyTimer;
+  let family, client, patients, balance, selected, timer;
 
   function hideAmounts() {
     clearTimeout(timer);
@@ -50,16 +73,6 @@ export function createFinance({ run, status, itemWithButton }) {
     toggle.setAttribute('aria-pressed', 'false');
     $('finance-balance-label').textContent = 'Saldo';
     for (const field of ['cost', 'received', 'balance']) $('finance-' + field).textContent = '••••';
-  }
-
-  function showHistoryAmounts(show) {
-    clearTimeout(historyTimer);
-    historyTimer = show ? setTimeout(() => showHistoryAmounts(false), 30000) : undefined;
-    historyToggle.textContent = show ? 'Ocultar montos' : 'Ver montos';
-    historyToggle.setAttribute('aria-pressed', String(show));
-    for (const amount of history.querySelectorAll('[data-cents]')) {
-      amount.textContent = show ? formatCents(amount.dataset.cents) : '••••';
-    }
   }
 
   function dismissCancellation() {
@@ -76,9 +89,11 @@ export function createFinance({ run, status, itemWithButton }) {
     balance = undefined;
     pending.clear();
     hideAmounts();
-    showHistoryAmounts(false);
+    hideReceiptAmounts();
+    hideShiftAmounts();
     dismissCancellation();
     history.replaceChildren();
+    shiftHistory.replaceChildren();
     $('add-nurse').reset();
     shift.reset();
     receipt.reset();
@@ -98,10 +113,14 @@ export function createFinance({ run, status, itemWithButton }) {
     patients = nextPatients;
     const today = dateFormat.format(new Date());
     const filter = { family_id: 'eq.' + family };
-    const [nurses, receipts, totals] = await Promise.all([
+    const [nurses, receipts, totals, shifts] = await Promise.all([
       client.select('nurses', { ...filter, select: 'id,name', order: 'name.asc,id.asc' }),
       client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents', order: 'paid_on.desc,id.desc', limit: 20 }),
-      client.rpc('financial_balance', { family, as_of: today })
+      client.rpc('financial_balance', { family, as_of: today }),
+      client.select('shifts', {
+        ...filter, select: 'service_day,modality,cost_cents,patients(name),nurses(name)',
+        order: 'service_day.desc,id.desc', limit: 20
+      })
     ]);
     const cancellations = receipts.length ? await client.select('receipt_cancellations', {
       ...filter, select: 'receipt_id,cancelled_on', receipt_id: 'in.(' + receipts.map(row => row.id).join(',') + ')'
@@ -113,9 +132,22 @@ export function createFinance({ run, status, itemWithButton }) {
     options(shift.elements.nurse, nurses);
     shift.querySelector('button').disabled = !patients.length || !nurses.length;
     for (const form of [shift, receipt]) form.elements.day.value ||= today;
+    shiftHistory.replaceChildren(...shifts.map(row => {
+      const item = document.createElement('li');
+      const modality = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';
+      const date = row.service_day + (row.service_day > today ? ' (programada)' : '');
+      item.append([date, row.patients.name, row.nurses.name, modality].join(' · ') + ' · ', historyAmount(row.cost_cents));
+      return item;
+    }));
+    if (!shifts.length) {
+      const empty = document.createElement('li');
+      empty.textContent = 'Aún no hay jornadas registradas.';
+      shiftHistory.append(empty);
+    }
+    $('shift-toggle').disabled = !shifts.length;
+    hideShiftAmounts();
     history.replaceChildren(...receipts.map(row => {
-      const amount = document.createElement('span');
-      amount.dataset.cents = row.amount_cents;
+      const amount = historyAmount(row.amount_cents);
       if (cancelled.has(row.id)) {
         const item = document.createElement('li');
         item.append(row.paid_on + ' · Cancelado el ' + cancelled.get(row.id) + ' · ', amount);
@@ -131,7 +163,7 @@ export function createFinance({ run, status, itemWithButton }) {
       item.append(' · ', amount);
       return item;
     }));
-    showHistoryAmounts(false);
+    hideReceiptAmounts();
     panel.hidden = false;
   }
 
@@ -172,7 +204,6 @@ export function createFinance({ run, status, itemWithButton }) {
     timer = setTimeout(hideAmounts, 30000);
   });
   $('dismiss-cancel-receipt').addEventListener('click', dismissCancellation);
-  historyToggle.addEventListener('click', () => showHistoryAmounts(!historyTimer));
   register('add-nurse', 'add_nurse', values => {
     const full = parseCents(values.get('full'), true);
     const half = parseCents(values.get('half'), true);

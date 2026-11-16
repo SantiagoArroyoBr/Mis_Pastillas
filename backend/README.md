@@ -28,6 +28,8 @@ El saldo visible muestra el crédito disponible con signo positivo y el importe 
 
 Desde una cuenta propietaria, registra a una persona de enfermería con tarifa de media jornada de $65 MXN. Registra una media jornada de hoy para una ficha y un abono general de $50 MXN. **Ver montos** en el saldo debe mostrar $15 MXN pendientes. **Ver montos** en los últimos abonos revela únicamente los importes de ese listado. Los dos controles se ocultan por separado al cabo de 30 segundos. Confirma la cancelación del abono y comprueba el saldo de $65 MXN y la marca de cancelación en el listado.
 
+**Últimas jornadas registradas** muestra hasta 20 jornadas ordenadas por fecha, con ficha, enfermero, modalidad y costo registrado. Una fecha futura aparece como programada. Su botón **Ver montos** revela esos costos durante 30 segundos y funciona de forma independiente del saldo y de los abonos.
+
 ## Pruebas
 
 - `npm test` aplica el SQL real a PostgreSQL embebido en memoria. Las pruebas simulan la identidad que Supabase aporta a PostgreSQL y comprueban permisos de lectura y escritura, aislamiento, conflictos, revocación e integridad de pagos. También verifican el cliente HTTP con respuestas simuladas. Este comando funciona sin contenedores.

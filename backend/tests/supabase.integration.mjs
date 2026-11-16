@@ -40,6 +40,16 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   const nurse = await owner.rpc('add_nurse', { family, nurse_name: 'Enfermería ficticia', full_rate: '12000', half_rate: '6500' });
   const day = '2026-11-16';
   await owner.rpc('record_shift', { family, request_id: randomUUID(), patient, nurse, day, shift_type: 'half' });
+  const shiftHistory = {
+    family_id: 'eq.' + family, select: 'service_day,modality,cost_cents,patients(name),nurses(name)',
+    order: 'service_day.desc,id.desc', limit: 20
+  };
+  assert.deepEqual(await owner.select('shifts', shiftHistory), [{
+    service_day: day, modality: 'half', cost_cents: 6500,
+    patients: { name: 'Ficha compartida' }, nurses: { name: 'Enfermería ficticia' }
+  }]);
+  assert.deepEqual(await caregiver.select('shifts', shiftHistory), []);
+  assert.deepEqual(await outsider.select('shifts', shiftHistory), []);
   const receipt = randomUUID();
   const args = { family, request_id: receipt, day, cents: '5000' };
   assert.deepEqual(await Promise.all([owner.rpc('record_receipt', args), owner.rpc('record_receipt', args)]), [receipt, receipt]);

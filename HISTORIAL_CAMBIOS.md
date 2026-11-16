@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-004 · Historial de jornadas
+
+Sobre `255120c` se registró la aprobación de RECONST-003. El piloto muestra hasta 20 jornadas por fecha con ficha, enfermería, modalidad y un botón independiente para revelar el costo durante 30 segundos. Las jornadas futuras se marcan como programadas. Se utilizan las relaciones y permisos existentes de Supabase.
+
+Pasaron **5/5** pruebas del piloto y **1/1** prueba integrada de Auth y PostgREST. La consulta del historial devolvió nombres y costo a la cuenta propietaria y ninguna jornada al cuidador o a otra familia. En Edge con perfil temporal se comprobó el estado vacío, una media jornada programada de $65, la independencia de los tres controles de montos y la limpieza del historial al cerrar sesión. El lote quedó local. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — Signo del saldo visible
 
 Sobre `fd70ca5`, por indicación del propietario, el piloto muestra el saldo pendiente con signo negativo, el crédito a favor con signo positivo y el saldo liquidado como cero. La convención se aplica al mostrar el importe. Pasaron **5/5** pruebas del piloto. [Guía de prueba](backend/README.md).
