@@ -2,6 +2,10 @@
 
 Consulta el [backlog operativo](BACKLOG.md) para elegir tareas vigentes y la [conciliación de entregas](docs/AUTONOMIA-001-conciliacion.md) para comprobar qué quedó publicado, probado y pendiente. Las fichas de ciclo y tablas conservan su contexto original.
 
+## MACRO-004 — Preparación de la validación de RC 1.0
+
+La revisión local de la candidata fue aprobada. Se preparó un lote con la referencia exacta de publicación, casos por entorno y decisiones sobre datos históricos y coexistencia. El alcance y el inicio quedan pendientes de revisión. [Propuesta y matriz](docs/MACRO-004-preparacion.md).
+
 ## MACRO-003 — Validación integral y candidata 1.0
 
 Entrega local para revisión, con clasificación B. La siguiente etapa propuesta es MACRO-004 para validación manual, revisión de la Preview autenticada y decisión de lanzamiento. [Validación integral](docs/MACRO-003-validacion-integral.md) · [Criterios de lanzamiento](docs/RC-1.0-criterios-lanzamiento.md).
