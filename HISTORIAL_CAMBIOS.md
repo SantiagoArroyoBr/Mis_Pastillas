@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-15 — Concurrencia en Preview y recorrido de iPhone
+
+En dos pestañas de la Preview `3a1c19b`, la segunda conservó su borrador y rechazó el guardado al detectar el cambio de la primera. Tras recargar, ambas mostraron la ficha guardada. El JSON confirmó que el único cambio persistido fue el nombre de la primera pestaña. El recorrido físico se adaptó a Safari y VoiceOver en el iPhone confirmado por el propietario. [Evidencia](docs/MACRO-004-preparacion.md#concurrencia-en-la-preview-vigente).
+
 ## 2026-11-15 — Recuperación v20 → v17 y recorrido físico
 
 La Preview v17 restauró un respaldo ficticio de v20, mantuvo el saldo pendiente de 30 MXN tras recargar y reexportó los mismos registros financieros. Se agrupó la validación pendiente de instalación, recuperación, modo offline, móvil y lector de pantalla en un solo recorrido. [Evidencia y recorrido](docs/MACRO-004-preparacion.md#recuperación-de-un-respaldo-v20-en-preview-v17).
