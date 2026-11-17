@@ -25,6 +25,13 @@
       </form>
     </section>
     <section id="session" hidden>
+      <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
+        <a href="#family">Fichas</a>
+        <a href="#appointments-heading">Citas</a>
+        <a href="#inventory">Inventario</a>
+        <a href="#finance" id="finance-link" hidden>Enfermería y pagos</a>
+        <a href="#backup-review">Respaldo</a>
+      </nav>
       <button id="logout" type="button">Cerrar sesión</button>
       <h2>Familias</h2>
       <form id="create-family">
@@ -102,6 +109,7 @@
             <div id="inventory-schedules"></div>
             <button id="add-schedule" type="button">Agregar otra pauta</button>
             <button id="save-inventory">Guardar artículo</button>
+            <button id="cancel-inventory-edit" type="button" hidden>Cancelar edición</button>
           </form>
           <template id="inventory-schedule">
             <fieldset>
@@ -133,13 +141,14 @@
           <label>Filtrar existencias y compras por ficha <select id="inventory-filter"></select></label>
           <ul id="inventory-items"></ul>
           <form id="inventory-purchase">
+            <label>Tipo de registro <select name="mode"><option value="buy">Compra</option><option value="quote">Cotización</option></select></label>
             <label>Artículo de la compra <select name="item" required></select></label>
-            <label>Cantidad comprada <input name="quantity" inputmode="decimal" required></label>
+            <label>Cantidad de unidades <input name="quantity" inputmode="decimal" required></label>
             <label>Precio total (MXN, opcional) <input name="price" inputmode="decimal"></label>
             <label>Tienda (opcional) <input name="shop" maxlength="40"></label>
-            <button>Registrar compra</button>
+            <button id="save-inventory-movement">Registrar compra</button>
           </form>
-          <h3>Últimas compras</h3>
+          <h3>Compras y cotizaciones recientes</h3>
           <button id="inventory-price-toggle" type="button" aria-controls="inventory-purchases" aria-pressed="false">Ver montos</button>
           <ul id="inventory-purchases"></ul>
         </section>
@@ -192,6 +201,13 @@
             <button>Confirmar cancelación del abono</button>
             <button id="dismiss-cancel-receipt" type="button">Volver</button>
           </form>
+        </section>
+        <section id="backup-review">
+          <h2>Revisar respaldo de prueba</h2>
+          <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
+          <label>Respaldo JSON ficticio <input id="backup-review-file" type="file" accept=".json,application/json"></label>
+          <p id="backup-review-status" role="status"></p>
+          <dl id="backup-review-counts"></dl>
         </section>
       </section>
     </section>

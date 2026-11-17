@@ -1,6 +1,7 @@
 import { createClient, loadAppointments } from './supabase-client.mjs';
 import { createFinance } from './finance.mjs';
 import { createInventory } from './inventory.mjs';
+import { auditBackupRaw, maxBytes } from './backup-diagnostics.mjs';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
@@ -16,6 +17,15 @@ let appointmentFilterValue = '', activeAppointmentPatients = new Set();
 const status = message => { $('status').textContent = message; };
 const finance = createFinance({ run, status, itemWithButton });
 const inventory = createInventory({ run, status });
+const backupFile = $('backup-review-file');
+let backupRequest = 0;
+
+function clearBackup() {
+  backupRequest++;
+  backupFile.value = '';
+  $('backup-review-status').textContent = '';
+  $('backup-review-counts').replaceChildren();
+}
 
 function hideEditing() {
   draft = undefined;
@@ -55,6 +65,7 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  clearBackup();
   finance.scope(undefined);
   inventory.scope(undefined);
   client = userId = undefined;
@@ -91,8 +102,10 @@ function run(action) {
         if (trigger === editAppointment) {
           $('save-appointment').disabled = true;
           status('La cita cambió en otro dispositivo. Tu borrador sigue abierto. Revisa la cita actualizada antes de volver a editar.');
+        } else if (trigger.id === 'add-inventory') {
+          status('El artículo cambió. Conservamos tu borrador. Revisa las existencias y vuelve a abrir la edición.');
         } else if (trigger.id === 'inventory-purchase') {
-          status('El inventario cambió. Conservamos la compra. Revisa las existencias antes de volver a guardar.');
+          status('El inventario cambió. Conservamos tu borrador. Revisa las existencias antes de volver a guardar.');
         } else status(trigger === rename
           ? 'La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.'
           : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.');
@@ -133,8 +146,11 @@ async function refreshFamily() {
   finance.scope(owner ? family : undefined);
   inventory.scope(family || undefined);
   $('family').hidden = !family;
+  $('pilot-navigation').hidden = !family;
+  $('finance-link').hidden = !owner;
   $('owner-actions').hidden = !owner;
   if (renderedFamily !== family) {
+    clearBackup();
     $('patients').replaceChildren();
     $('archived-patients').replaceChildren();
     resetAppointments();
@@ -358,6 +374,51 @@ rpcForm('edit-appointment', async values => {
   }
 });
 $('cancel-edit-appointment').addEventListener('click', closeAppointment);
+
+backupFile.addEventListener('change', async () => {
+  const request = ++backupRequest;
+  const file = backupFile.files[0];
+  const feedback = $('backup-review-status');
+  const counts = $('backup-review-counts');
+  counts.replaceChildren();
+  feedback.textContent = '';
+  if (!file) return;
+  if (file.size > maxBytes) {
+    feedback.textContent = 'El respaldo supera el límite de 10 MiB.';
+    return;
+  }
+  let result;
+  try {
+    result = auditBackupRaw(await file.text(), window.AcompanaCompatibility);
+  } catch {
+    if (request === backupRequest) feedback.textContent = 'No se pudo leer el respaldo.';
+    return;
+  }
+  if (request !== backupRequest) return;
+  if (result.estado === 'rechazado') {
+    feedback.textContent = result.motivo === 'json-no-valido' ? 'El archivo no contiene JSON válido.'
+      : 'El respaldo no pasó la validación de Acompaña.';
+    return;
+  }
+  feedback.textContent = 'Respaldo válido para revisión. Estos conteos no acreditan una restauración.';
+  const labels = {
+    fichas: 'Fichas', personal: 'Personal de enfermería', jornadasConCosto: 'Jornadas con costo',
+    abonosIndividuales: 'Abonos individuales', abonosGenerales: 'Abonos generales',
+    cancelacionesGenerales: 'Cancelaciones generales', fichasArchivadas: 'Fichas archivadas',
+    fichasConNombreRepetido: 'Fichas con nombres repetidos', medicinas: 'Registros de inventario',
+    citas: 'Citas', prepagosDeCobertura: 'Prepagos de cobertura', personalInactivo: 'Personal inactivo',
+    personalSinTarifa: 'Personal sin tarifa', asignacionesSinServicio: 'Asignaciones sin jornada con costo',
+    turnosLegados: 'Turnos históricos', fechasFinancierasInvalidas: 'Fechas financieras inválidas',
+    movimientosConConcepto: 'Movimientos con concepto'
+  };
+  for (const [key, total] of Object.entries({ ...result.registros, ...result.hallazgosConocidos })) {
+    const label = document.createElement('dt');
+    const value = document.createElement('dd');
+    label.textContent = labels[key];
+    value.textContent = String(total);
+    counts.append(label, value);
+  }
+});
 appointmentFilter.addEventListener('change', run(async () => {
   const family = families.value;
   const today = localDay.format(new Date());

@@ -44,6 +44,20 @@ Desde una cuenta propietaria, registra a una persona de enfermería con tarifa d
 
 **Abonos individuales** aplica el pago a las jornadas pendientes del enfermero, de la más antigua a la más reciente y hasta la fecha indicada. Para probarlo, registra dos jornadas de $100 para el mismo enfermero y abona $150 con fecha igual o posterior a ambas. Pulsa **Ver montos** en el historial de jornadas. La primera mostrará $100 abonados y $0 pendientes. La segunda mostrará $50 abonados y $50 pendientes. Un intento de abonar $51 se rechaza y conserva el importe en el formulario. Puedes consultar los últimos 20 abonos individuales con su propio **Ver montos**. El saldo general sigue la regla de la PWA y considera los abonos generales activos.
 
+## Recorrido del esqueleto local
+
+Usa una cuenta y una familia ficticias. El menú de la familia permite ir directamente a cada sección.
+
+| Sección | Qué revisar |
+| --- | --- |
+| Cuenta y fichas | Inicia sesión, crea dos fichas, invita a una cuenta cuidadora y verifica que archivar y reactivar conserva el historial. |
+| Citas | Registra una cita, cambia su fecha, verifica su lista y filtra por ficha. Al editar desde dos cuentas, una revisión obsoleta conserva el borrador. |
+| Inventario | Registra un artículo con dos pautas, consulta la proyección, compra unidades, edita su nombre o pauta y registra una cotización. La cotización deja las existencias intactas. Los precios se ocultan al inicio. |
+| Enfermería y pagos | Registra una jornada y un abono individual. Comprueba costo, abonado y pendiente. Registra y cancela un abono general y revisa el signo del saldo. |
+| Respaldo | Selecciona un JSON ficticio válido y uno inválido. El diagnóstico usa el validador de la PWA, muestra conteos y procesa el archivo en el navegador. |
+
+Este recorrido cubre el esqueleto local con conexión. La importación completa, el trabajo sin conexión, la sincronización entre teléfonos, los recordatorios y la reconstrucción visual de los HUDs tienen validaciones y alcance pendientes.
+
 ## Pruebas
 
 - `npm test` aplica el SQL real a PostgreSQL embebido en memoria. Las pruebas simulan la identidad que Supabase aporta a PostgreSQL y comprueban permisos de lectura y escritura, aislamiento, conflictos, revocación e integridad de pagos. También verifican el cliente HTTP con respuestas simuladas. Este comando funciona sin contenedores.
@@ -51,7 +65,7 @@ Desde una cuenta propietaria, registra a una persona de enfermería con tarifa d
 
 ## Alcance
 
-El modelo local de inventario incluye `inventory_items` e `inventory_purchases`. Conserva una cantidad medida y su instante de referencia por artículo, junto con las pautas independientes de la PWA. Se guarda la cantidad comprada, fecha, tienda y precio total opcional en la misma transacción que actualiza el stock. El piloto calcula el remanente a la hora de la compra con `AcompanaDomain.calc`, en la zona horaria del navegador. La RPC recibe ese remanente y exige la revisión observada, para que dos compras sobre el mismo stock no puedan aplicarse juntas. La edición de artículos, las anotaciones de precio sin compra y el criterio de zona horaria entre dispositivos quedan pendientes.
+El modelo local de inventario conserva una cantidad medida y su instante de referencia por artículo, junto con las pautas independientes de la PWA. Las compras guardan cantidad, fecha, tienda y precio opcional en la misma transacción que actualiza el stock. El piloto calcula el remanente con `AcompanaDomain.calc`, en la zona horaria del navegador. La revisión protege escrituras simultáneas de edición y compra. Las cotizaciones guardan precio y cantidad de referencia sin aplicar stock. El criterio de zona horaria compartida sigue pendiente.
 
 Las migraciones incluyen familias, membresías, fichas, enfermería, jornadas, recibos y cancelaciones. Los miembros activos pueden editar fichas de su familia. La cuenta propietaria administra membresías y valores financieros. Las escrituras de fichas detectan una revisión obsoleta. Jornada, abono y cancelación aceptan un ID de operación reutilizable en un reintento durante la sesión. Los importes se guardan en centavos y el costo de una jornada se fija con la tarifa registrada. El saldo usa la fecha local como corte de devengo, considera todos los abonos generales activos y se puede consultar con conexión. El listado muestra los últimos 20 abonos y sus cancelaciones. El piloto todavía requiere conexión para acceder a los datos.
 

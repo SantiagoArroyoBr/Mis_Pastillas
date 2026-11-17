@@ -38,8 +38,16 @@ export function loadInventoryPurchases(client, family, patient = '') {
   return client.select('inventory_purchases', {
     family_id: 'eq.' + family,
     ...(patient && { 'inventory_items.patient_id': 'eq.' + patient }),
-    select: 'quantity,total_price,purchased_on,shop,inventory_items!inner(name,patient_id,patients(name))',
+    select: 'quantity,total_price,purchased_on,shop,inventory_items!inner(id,name,patient_id,patients(name))',
     order: 'purchased_on.desc,observed_at.desc,id.desc', limit: 20
+  });
+}
+
+function loadInventoryQuotes(client, family, patient) {
+  return client.select('inventory_quotes', {
+    family_id: 'eq.' + family, ...(patient && { 'inventory_items.patient_id': 'eq.' + patient }),
+    select: 'quantity,total_price,quoted_on,shop,inventory_items!inner(id,name,patient_id,patients(name))',
+    order: 'quoted_on.desc,id.desc', limit: 20
   });
 }
 
@@ -53,6 +61,7 @@ export function createInventory({ run, status }) {
   const toggle = $('inventory-price-toggle');
   let client, family, patients = [], items = [], pendingAdd, pendingBuy, timer;
   let visiblePatient = '', patientNames = new Map();
+  let editDraft;
   const openDetails = new Set();
   const patientLabel = (id, name) => name + (patientNames.get(name) > 1 ? ' · ' + id.slice(0, 8) : '');
 
@@ -70,12 +79,24 @@ export function createInventory({ run, status }) {
     for (const button of schedules.querySelectorAll('[data-remove]')) button.disabled = schedules.childElementCount <= 1;
   }
 
-  function addSchedule(focus = false) {
+  function addSchedule(focus = false, consumption) {
     const row = $('inventory-schedule').content.firstElementChild.cloneNode(true);
     const frequency = row.querySelector('[data-field=frequency]');
     frequency.addEventListener('change', () => {
       for (const group of row.querySelectorAll('[data-group]')) group.hidden = group.dataset.group !== frequency.value;
     });
+    if (consumption) {
+      const { dose, times, schedule } = consumption;
+      row.querySelector('[data-field=dose]').value = dose;
+      row.querySelector('[data-field=times]').value = times.join(', ');
+      frequency.value = schedule.type;
+      frequency.dispatchEvent(new Event('change'));
+      for (const field of row.querySelectorAll('[type=checkbox]')) field.checked = schedule.days?.includes(Number(field.value)) ?? false;
+      if (schedule.type === 'interval') {
+        row.querySelector('[data-field=interval]').value = schedule.n;
+        row.querySelector('[data-field=start]').value = dateFormat.format(schedule.start);
+      }
+    }
     row.querySelector('[data-remove]').addEventListener('click', () => {
       row.remove();
       updateRemoveButtons();
@@ -110,9 +131,36 @@ export function createInventory({ run, status }) {
   }
 
   function resetAdd() {
+    editDraft = undefined;
     add.reset();
+    add.elements.patient.disabled = add.elements.kind.disabled = false;
+    $('cancel-inventory-edit').hidden = true;
+    $('save-inventory').textContent = 'Guardar artículo';
     schedules.replaceChildren();
     addSchedule();
+  }
+
+  function startEdit(item, stock) {
+    if (editDraft && !confirm('¿Descartar el borrador de inventario abierto?')) return;
+    editDraft = { item: item.id, revision: item.revision };
+    add.elements.patient.value = item.patient_id;
+    add.elements.kind.value = item.kind;
+    add.elements.patient.disabled = add.elements.kind.disabled = true;
+    add.elements.name.value = item.name;
+    add.elements.quantity.value = stock.rem;
+    schedules.replaceChildren();
+    for (const consumption of item.consumptions) addSchedule(false, consumption);
+    $('save-inventory').textContent = 'Guardar cambios';
+    $('cancel-inventory-edit').hidden = false;
+    add.elements.name.focus();
+  }
+
+  async function movements(patient) {
+    const [purchases, quotes] = await Promise.all([
+      loadInventoryPurchases(client, family, patient), loadInventoryQuotes(client, family, patient)
+    ]);
+    return [...purchases, ...quotes].sort((a, b) =>
+      (b.purchased_on ?? b.quoted_on).localeCompare(a.purchased_on ?? a.quoted_on));
   }
 
   function scope(nextFamily) {
@@ -125,6 +173,7 @@ export function createInventory({ run, status }) {
     openDetails.clear();
     resetAdd();
     buy.reset();
+    $('save-inventory-movement').textContent = 'Registrar compra';
     add.elements.patient.replaceChildren();
     purchaseItem.replaceChildren();
     patientFilter.replaceChildren();
@@ -140,11 +189,11 @@ export function createInventory({ run, status }) {
     const filter = { family_id: 'eq.' + family };
     const [available, purchases] = await Promise.all([
       client.select('inventory_items', { ...filter,
-        select: 'id,patient_id,name,kind,base_quantity,base_at,consumptions,revision,patients(name,archived_at)',
+        select: 'id,patient_id,name,kind,base_quantity,base_at,consumptions,revision,patients(name,archived_at),inventory_profiles(name,consumptions)',
         order: 'name.asc,id.asc' }),
-      loadInventoryPurchases(client, family, visiblePatient)
+      movements(visiblePatient)
     ]);
-    items = available;
+    items = available.map(row => ({ ...row, ...row.inventory_profiles }));
     const active = patients.filter(patient => !patient.archived_at);
     patientNames = new Map();
     for (const patient of patients) patientNames.set(patient.name, (patientNames.get(patient.name) ?? 0) + 1);
@@ -202,12 +251,21 @@ export function createInventory({ run, status }) {
         else openDetails.delete(row.id);
       });
       item.append(details);
+      if (!row.patients.archived_at) {
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.textContent = 'Editar artículo';
+        edit.addEventListener('click', run(() => startEdit(row, projectStock(domain, row, Date.now()))));
+        item.append(edit);
+      }
       return item;
     });
     const purchaseRows = purchases.map(row => {
       const item = document.createElement('li');
       const product = row.inventory_items;
-      item.textContent = [row.purchased_on, product.name, patientLabel(product.patient_id, product.patients.name),
+      const name = items.find(entry => entry.id === product.id)?.name ?? product.name;
+      item.textContent = [row.purchased_on ?? row.quoted_on, row.quoted_on ? 'Cotización' : 'Compra', name,
+        patientLabel(product.patient_id, product.patients.name),
         row.quantity + ' unidades', row.shop]
         .filter(Boolean).join(' · ');
       if (row.total_price !== null) {
@@ -219,7 +277,7 @@ export function createInventory({ run, status }) {
     });
     for (const [list, rows, emptyText] of [
       [$('inventory-items'), stockRows, 'No hay artículos para esta selección.'],
-      [history, purchaseRows, 'No hay compras para esta selección.']
+      [history, purchaseRows, 'No hay compras ni cotizaciones para esta selección.']
     ]) {
       if (!rows.length) {
         const empty = document.createElement('li');
@@ -243,10 +301,14 @@ export function createInventory({ run, status }) {
   }
 
   $('add-schedule').addEventListener('click', () => addSchedule(true));
+  $('cancel-inventory-edit').addEventListener('click', resetAdd);
+  buy.elements.mode.addEventListener('change', () => {
+    $('save-inventory-movement').textContent = buy.elements.mode.value === 'quote' ? 'Guardar cotización' : 'Registrar compra';
+  });
   patientFilter.addEventListener('change', run(async () => {
     const chosen = patientFilter.value;
     try {
-      const purchases = await loadInventoryPurchases(client, family, chosen);
+      const purchases = await movements(chosen);
       visiblePatient = chosen;
       renderLists(purchases);
       status('Inventario filtrado.');
@@ -263,6 +325,16 @@ export function createInventory({ run, status }) {
       quantity: inventoryNumber(form.get('quantity'), 'la cantidad actual'), schedules: readSchedules()
     };
     if (!args.item_name) throw new Error('Escribe el nombre del artículo.');
+    if (editDraft) {
+      const { item, revision } = editDraft;
+      await client.rpc('edit_inventory_item', {
+        family, item, expected_revision: revision, item_name: args.item_name, quantity: args.quantity,
+        counted_at: Date.now(), schedules: args.schedules
+      });
+      resetAdd();
+      await refreshAfterWrite('Artículo actualizado.');
+      return;
+    }
     const key = JSON.stringify(args);
     if (pendingAdd?.key !== key) pendingAdd = { key, id: crypto.randomUUID(), stamp: Date.now() };
     await client.rpc('add_inventory_item', { ...args, counted_at: pendingAdd.stamp, request_id: pendingAdd.id });
@@ -275,23 +347,27 @@ export function createInventory({ run, status }) {
     const item = items.find(row => row.id === form.get('item'));
     if (!item) return;
     const price = form.get('price').trim();
+    const isQuote = form.get('mode') === 'quote';
+    if (isQuote && !price) throw new Error('Indica el precio total de la cotización.');
     const args = { family, item: item.id, quantity: inventoryNumber(form.get('quantity'), 'la cantidad comprada', true),
       price: price ? inventoryNumber(price, 'el precio total') : null, shop_name: form.get('shop').trim() };
-    const key = JSON.stringify(args);
+    const key = JSON.stringify([isQuote, args]);
     if (pendingBuy?.key !== key) {
       const now = Date.now();
-      pendingBuy = { key, args: { ...args, request_id: crypto.randomUUID(), counted_at: now, day: dateFormat.format(now),
-        expected_revision: item.revision, remaining: remainingStock(window.AcompanaDomain, item, now) } };
+      pendingBuy = { key, args: { ...args, request_id: crypto.randomUUID(), day: dateFormat.format(now),
+        ...(!isQuote && { counted_at: now, expected_revision: item.revision,
+          remaining: remainingStock(window.AcompanaDomain, item, now) }) } };
     }
     try {
-      await client.rpc('record_inventory_purchase', pendingBuy.args);
+      await client.rpc(isQuote ? 'record_inventory_quote' : 'record_inventory_purchase', pendingBuy.args);
     } catch (error) {
       if (error.status === 409 || error.code === 'PT409') pendingBuy = undefined;
       throw error;
     }
     pendingBuy = undefined;
     buy.reset();
-    await refreshAfterWrite('Compra registrada.');
+    $('save-inventory-movement').textContent = 'Registrar compra';
+    await refreshAfterWrite(isQuote ? 'Cotización guardada.' : 'Compra registrada.');
   }));
   return { load, scope };
 }

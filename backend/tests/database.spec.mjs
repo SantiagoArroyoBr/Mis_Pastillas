@@ -155,6 +155,16 @@ test('inventory keeps independent schedules on one stock and purchases rebase at
     [family, overflow, large, 1, '1e308', null, '2026-11-17', '', '1e308', current]), { code: '23514' });
   assert.deepEqual(await owner.query('select id from public.inventory_purchases where id = $1', [overflow]), []);
   assert.deepEqual(await owner.query('select revision from public.inventory_items where id = $1', [large]), [{ revision: 1 }]);
+  const updated = [{ dose: 2, times: ['09:00'], schedule: { type: 'daily' } }];
+  assert.equal(await rpc(owner.query, 'edit_inventory_item($1,$2,$3,$4,$5,$6,$7)',
+    [family, item, 2, 'Nombre nuevo', '29.75', current, updated]), 3);
+  assert.equal(await rpc(owner.query, add, args), item);
+  await assert.rejects(rpc(owner.query, purchase, [family, randomUUID(), item, 2, '1', null,
+    '2026-11-17', '', '29.75', current]), { code: 'PT409' });
+  assert.deepEqual(await owner.query('select name,consumptions from public.inventory_profiles'),
+    [{ name: 'Nombre nuevo', consumptions: updated }]);
+  assert.deepEqual(await owner.query('select quantity::text,total_price::text from public.inventory_purchases'),
+    [{ quantity: '12.5', total_price: '180.125' }]);
 });
 
 test('families protect data from anonymous users, other families and revoked members', async t => {

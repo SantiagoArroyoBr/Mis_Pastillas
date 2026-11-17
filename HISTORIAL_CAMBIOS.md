@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-018 y RECONST-019 · Esqueleto local navegable
+
+Sobre `069b90e` se añadió navegación directa de fichas, citas, inventario, enfermería y pagos, y respaldo. El diagnóstico de respaldo comparte el validador del comando local, lee el JSON en el navegador y muestra conteos sin transmitir el archivo. La guía reúne un recorrido por sección con datos ficticios.
+
+El inventario permite editar nombre, existencias y pautas con comprobación de revisión. Las cotizaciones guardan precio y unidades de referencia sin mover stock. La edición conserva la solicitud de alta original para reintentos y el historial de compras. Se verificó la restauración JSON de inventario y compras en tablas temporales antes de aplicar `20261116000700` a Supabase local.
+
+Pasaron **17/17** pruebas del piloto, **2/2** integradas con Supabase y **102/102** de regresión PWA. En Edge se recorrieron las cinco secciones y se verificaron edición, una cotización sin cambio de existencias y un diagnóstico que no hizo solicitudes de red. Siguen pendientes la restauración completa, sincronización entre teléfonos, operación offline, recordatorios y reconstrucción visual. [Recorrido](backend/README.md#recorrido-del-esqueleto-local).
+
 ## 2026-11-16 — RECONST-017 · Pautas y proyección por artículo
 
 Sobre `5e63259`, **Ver pautas** muestra las cantidades, frecuencias, horas y fechas de inicio de intervalo. En fichas activas, usa la proyección de la PWA para mostrar la última toma o uso completo estimado. Las fichas archivadas conservan sus pautas para consulta. El detalle abierto permanece visible al actualizar dentro de la familia.

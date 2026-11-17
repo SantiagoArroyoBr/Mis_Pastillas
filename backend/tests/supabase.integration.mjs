@@ -48,6 +48,21 @@ test('inventory lets family members buy stock without applying a concurrent purc
   assert.deepEqual(await outsider.select('inventory_items', { id: 'eq.' + item }), []);
   assert.deepEqual(await outsider.select('inventory_purchases', { item_id: 'eq.' + item }), []);
   await assert.rejects(request(outsider), { status: 403 });
+  const schedules = [{ dose: 2, times: ['09:00'], schedule: { type: 'daily' } }];
+  const update = { family, item, expected_revision: 2, item_name: 'Producto editado',
+    quantity: '8.5', counted_at: initial + 6 * 3600000, schedules };
+  assert.equal(await caregiver.rpc('edit_inventory_item', update), 3);
+  await assert.rejects(owner.rpc('edit_inventory_item', update), { status: 409 });
+  await assert.rejects(outsider.rpc('edit_inventory_item', update), { status: 403 });
+  const quote = { family, item, request_id: randomUUID(), quantity: '10', price: '120.5', day: '2026-11-16', shop_name: 'Otra tienda' };
+  assert.equal(await caregiver.rpc('record_inventory_quote', quote), quote.request_id);
+  assert.equal(await caregiver.rpc('record_inventory_quote', quote), quote.request_id);
+  assert.deepEqual(await owner.select('inventory_items', {
+    id: 'eq.' + item, select: 'base_quantity,revision,inventory_profiles(name,consumptions)'
+  }), [{ base_quantity: 8.5, revision: 3, inventory_profiles: { name: 'Producto editado', consumptions: schedules } }]);
+  assert.deepEqual(await owner.select('inventory_quotes', { item_id: 'eq.' + item, select: 'quantity,total_price' }),
+    [{ quantity: 10, total_price: 120.5 }]);
+  assert.deepEqual(await outsider.select('inventory_quotes', { item_id: 'eq.' + item }), []);
   const homonym = await owner.rpc('add_patient', { family, patient_name: 'Ficha ficticia' });
   assert.deepEqual(await loadInventoryPurchases(owner, family, homonym), []);
   assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 1, archived: true }), 2);
