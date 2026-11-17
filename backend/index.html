@@ -64,7 +64,10 @@
             <label>Código de un solo uso <input id="invite-code" readonly></label>
             <button id="revoke-invite" type="button">Revocar invitación pendiente</button>
           </div>
-          <ul id="members"></ul>
+          <h4>Cuentas cuidadoras</h4>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Cuentas cuidadoras">
+            <table aria-label="Cuentas cuidadoras"><thead><tr><th scope="col">Cuenta</th><th scope="col">Acción</th></tr></thead><tbody id="members"></tbody></table>
+          </div>
         </div>
         <h3>Cuenta de prueba</h3>
         <button id="logout" type="button">Cerrar sesión</button>
@@ -118,12 +121,18 @@
           </form>
           <label>Filtrar citas por ficha <select id="appointment-filter"></select></label>
           <h3>Próximas citas</h3>
-          <ul id="appointments-upcoming"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Próximas citas">
+            <table aria-label="Próximas citas"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-upcoming"></tbody></table>
+          </div>
           <h3>Citas anteriores</h3>
-          <ul id="appointments-past"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Citas anteriores">
+            <table aria-label="Citas anteriores"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-past"></tbody></table>
+          </div>
           <div id="appointments-legacy-section" hidden>
             <h3>Citas con fecha histórica inválida</h3>
-            <ul id="appointments-legacy"></ul>
+            <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Citas con fecha histórica inválida">
+              <table aria-label="Citas con fecha histórica inválida"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Lugar y notas</th></tr></thead><tbody id="appointments-legacy"></tbody></table>
+            </div>
           </div>
         </section>
         <section id="inventory" data-pilot-view="#inventory" hidden>
@@ -253,7 +262,9 @@
           <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
           <label>Respaldo JSON ficticio <input id="backup-review-file" type="file" accept=".json,application/json"></label>
           <p id="backup-review-status" class="pilot-notice pilot-notice-inline" role="status" aria-atomic="true" data-kind="info"></p>
-          <dl id="backup-review-counts"></dl>
+          <div id="backup-review-results" class="pilot-table-scroll" tabindex="0" role="region" aria-label="Conteos del respaldo" hidden>
+            <table aria-label="Conteos del respaldo"><thead><tr><th scope="col">Datos</th><th scope="col">Cantidad</th></tr></thead><tbody id="backup-review-counts"></tbody></table>
+          </div>
         </section>
       </section>
     </section>

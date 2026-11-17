@@ -52,6 +52,7 @@ function clearBackup() {
   backupFile.value = '';
   $('backup-review-status').textContent = '';
   $('backup-review-counts').replaceChildren();
+  $('backup-review-results').hidden = true;
 }
 
 function hideEditing() {
@@ -165,12 +166,6 @@ function actionButton(text, label, action) {
   return button;
 }
 
-function itemWithButton(text, label, action) {
-  const item = document.createElement('li');
-  item.append(text + ' ', actionButton(text, label, action));
-  return item;
-}
-
 function renderTable(body, rows, emptyMessage) {
   if (!rows.length) {
     const row = body.insertRow();
@@ -277,37 +272,40 @@ async function refreshFamily() {
   appointmentFilter.replaceChildren(new Option('Todas las fichas', ''), ...patients.map(option));
   appointmentFilter.value = appointmentFilterValue;
   renderAppointments(appointments, family, today);
-  $('members').replaceChildren(...members.map(member => itemWithButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
-    await client.rpc('revoke_caregiver', { family, member: member.user_id });
-    await refreshFamily();
-    status('Acceso revocado.');
-  })));
+  renderTable($('members'), members.map(member => [
+    member.user_id, actionButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
+      await client.rpc('revoke_caregiver', { family, member: member.user_id });
+      await refreshFamily();
+      status('Acceso revocado.');
+    })
+  ]), 'Aún no hay cuentas cuidadoras.');
   await Promise.all([owner ? finance.load(client, family, active) : undefined, inventory.load(client, family, patients)]);
 }
 
 function renderAppointments(appointments, family, today) {
   for (const list of appointmentLists) {
-    const rows = appointments[list];
-    const items = rows.map(row => {
+    const rows = appointments[list].map(row => {
       const day = row.appointment_day === today ? 'Hoy, ' + today : row.appointment_day ?? row.legacy_day;
-      const text = [day, row.appointment_time?.slice(0, 5),
-        row.patient_name, row.location, row.notes].filter(Boolean).join(' · ');
-      if (list !== 'legacy' && activeAppointmentPatients.has(row.patient_id)) {
-        return itemWithButton(text, 'Editar cita', () => {
+      const when = [day, row.appointment_time?.slice(0, 5)].filter(Boolean).join(' · ');
+      const details = document.createElement('div');
+      if (row.location) details.append(row.location);
+      if (row.notes) {
+        const notes = document.createElement('p');
+        notes.className = 'pilot-table-notes';
+        notes.textContent = row.notes;
+        details.append(notes);
+      }
+      const cells = [when, row.patient_name, row.location || row.notes ? details : '—'];
+      if (list === 'legacy') return cells;
+      if (activeAppointmentPatients.has(row.patient_id)) {
+        cells.push(actionButton(row.patient_name + ' · ' + when, 'Editar cita', () => {
           if (appointmentDraft && !confirm('¿Descartar el borrador de la cita abierta?')) return;
           openAppointment(row, family);
-        });
-      }
-      const item = document.createElement('li');
-      item.textContent = text;
-      return item;
+        }));
+      } else cells.push('—');
+      return cells;
     });
-    if (!items.length && list !== 'legacy') {
-      const empty = document.createElement('li');
-      empty.textContent = list === 'upcoming' ? 'No hay próximas citas.' : 'No hay citas anteriores.';
-      items.push(empty);
-    }
-    $('appointments-' + list).replaceChildren(...items);
+    renderTable($('appointments-' + list), rows, list === 'upcoming' ? 'No hay próximas citas.' : 'No hay citas anteriores.');
   }
   $('appointments-legacy-section').hidden = !appointments.legacy.length;
 }
@@ -451,6 +449,7 @@ backupFile.addEventListener('change', async () => {
   const feedback = $('backup-review-status');
   const counts = $('backup-review-counts');
   counts.replaceChildren();
+  $('backup-review-results').hidden = true;
   feedback.dataset.kind = 'info';
   feedback.textContent = '';
   if (!file) return;
@@ -488,13 +487,10 @@ backupFile.addEventListener('change', async () => {
     turnosLegados: 'Turnos históricos', fechasFinancierasInvalidas: 'Fechas financieras inválidas',
     movimientosConConcepto: 'Movimientos con concepto'
   };
-  for (const [key, total] of Object.entries({ ...result.registros, ...result.hallazgosConocidos })) {
-    const label = document.createElement('dt');
-    const value = document.createElement('dd');
-    label.textContent = labels[key];
-    value.textContent = String(total);
-    counts.append(label, value);
-  }
+  const rows = Object.entries({ ...result.registros, ...result.hallazgosConocidos })
+    .map(([key, total]) => [labels[key] ?? key, String(total)]);
+  renderTable(counts, rows, 'Sin registros.');
+  $('backup-review-results').hidden = false;
 });
 appointmentFilter.addEventListener('change', run(async () => {
   const family = families.value;

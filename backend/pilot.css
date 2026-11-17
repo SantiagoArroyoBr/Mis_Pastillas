@@ -130,6 +130,9 @@
 .connected-pilot .pilot-table-scroll summary { display: list-item; white-space: nowrap; }
 .connected-pilot .pilot-table-scroll button { padding: .2rem .4rem; margin: 0; }
 .connected-pilot .pilot-table-scroll details { margin: 0; }
+.connected-pilot #members td:first-child, .connected-pilot .pilot-table-notes { overflow-wrap: anywhere; }
+.connected-pilot .pilot-table-notes { margin: 0; white-space: pre-wrap; }
+.connected-pilot #backup-review-results tr > :last-child { text-align: end; font-variant-numeric: tabular-nums; }
 .connected-pilot .pilot-patient-table td:first-child { width: 40%; overflow-wrap: anywhere; }
 .connected-pilot .pilot-row-actions { display: flex; flex-wrap: wrap; gap: .2rem; }
 .connected-pilot button[data-icon]::before { content: attr(data-icon) / ""; margin-inline-end: .3em; }

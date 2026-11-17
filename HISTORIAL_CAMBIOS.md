@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — Tablas de agenda, accesos y respaldo
+
+Sobre `b209125` se revisaron los siete apartados. Se añadieron tablas a próximas citas, citas anteriores, fechas históricas inválidas, cuentas cuidadoras y conteos del respaldo. Inicio conserva los recuentos en tarjetas y los campos editables siguen en formularios. Fichas, Inventario y Pagos ya cuentan con tablas de sus registros.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se recorrieron los siete apartados y se comprobó la apertura de edición desde la agenda, el texto de notas, la revocación de una cuenta ficticia y los conteos del respaldo sin mostrar sus nombres.
+
 ## 2026-11-16 — Tablas compactas e iconos del piloto
 
 Sobre `294c8c8`, las fichas activas y archivadas se muestran en tablas. Las tablas tienen menos relleno y divisiones visibles entre filas y columnas. Los botones conservan al menos 44 px de altura. El menú, las acciones de tabla y los controles de montos usan iconos junto a sus etiquetas.
