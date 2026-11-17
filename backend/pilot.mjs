@@ -21,6 +21,9 @@ credentials.elements.environment.addEventListener('change', () => {
     ? 'Usa un correo que puedas confirmar. Las fichas de este entorno se guardarán en el proyecto de pruebas.'
     : 'Para el entorno local usa un correo ficticio que termine en .test.';
 });
+if (credentials.elements.environment.value === 'cloud') {
+  credentials.elements.environment.dispatchEvent(new Event('change'));
+}
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();

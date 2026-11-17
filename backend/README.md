@@ -98,3 +98,7 @@ El proyecto nuevo se inicializó mediante SQL Editor con las nueve migraciones d
 Estado: esquema remoto instalado y selector comprobado; acceso con una cuenta confirmada, pruebas de dos cuentas en la nube, recuperación y publicación separada en Vercel pendientes. La PWA actual y `pastillas-v1` permanecen independientes.
 
 Diagnóstico Auth (2026-11-17): se observaron respuestas 429 `over_email_send_rate_limit` al registrar y 400 `invalid_credentials` al entrar. El cliente interpreta `error_code` y `code`, conserva mensajes seguros y no muestra cuerpos remotos. Ante límite de correo, evitar solicitudes repetidas; revisar un correo de confirmación previo o esperar al restablecimiento del límite. La configuración de correo transaccional queda pendiente antes del uso continuado. La confirmación permanece habilitada.
+
+## Despliegue estático del piloto
+
+Proyecto Vercel separado de `pastillas-1`, repositorio compartido, rama `development`. Raíz `backend`; habilitar inclusión de archivos fuera de la raíz durante compilación. `vercel.json` en backend fija compilación `node build-preview.mjs`, sin instalación de dependencias, y salida `supabase/.temp/preview`. No cambiar la raíz del proyecto de producción existente. El artefacto usa solo Supabase nube y necesita conexión; no incluye service worker ni sincronización offline. La clave incluida es publicable, los tokens permanecen en memoria y RLS controla los datos.

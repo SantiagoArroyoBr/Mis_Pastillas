@@ -18,7 +18,7 @@ export async function loadAppointments(client, family, today, patient = '') {
   return { upcoming, past, legacy };
 }
 
-export function createClient(key, api = connections.local.url) {
+export function createClient(key, api = (connections.local ?? connections.cloud).url) {
   if (!Object.values(connections).some(connection => connection.url === api)) {
     throw new Error('El destino de Supabase no está configurado.');
   }
@@ -42,7 +42,7 @@ export function createClient(key, api = connections.local.url) {
         signal: AbortSignal.timeout(10000)
       });
     } catch {
-      throw new Error(api === connections.local.url
+      throw new Error(api === connections.local?.url
         ? 'No se pudo conectar con Supabase local. Revisa que esté iniciado.'
         : 'No se pudo conectar con Supabase. Revisa tu conexión.');
     }
