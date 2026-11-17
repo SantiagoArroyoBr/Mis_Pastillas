@@ -3,6 +3,7 @@ backend/*
 !backend/connection-config.mjs
 !backend/index.html
 !backend/pilot.mjs
+!backend/admin-access.mjs
 !backend/pilot.css
 !backend/supabase-client.mjs
 !backend/finance.mjs

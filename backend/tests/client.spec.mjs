@@ -3,6 +3,27 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { connections } from '../connection-config.mjs';
 
+test('temporary login maps its identifier and sends gateway tokens only to the configured destination', async t => {
+  const id='11111111-1111-4111-8111-111111111111';
+  const gateway=connections.local.url+'/functions/v1/family-access';
+  t.mock.method(globalThis,'fetch',async(url,options)=>{
+    if(url.endsWith('/token?grant_type=password')) {
+      assert.equal(JSON.parse(options.body).email,'temp-'+id+'@acompana.invalid');
+      return Response.json({access_token:'fixture-token',user:{id,app_metadata:{family_temporary:true}}});
+    }
+    assert.equal(url,gateway);
+    assert.equal(options.headers.Authorization,'Bearer fixture-token');
+    assert.equal(JSON.parse(options.body).action,'renew');
+    return Response.json({ok:true});
+  });
+  assert.throws(()=>createClient(connections.local.key||'sb_publishable_fixture',connections.local.url,'https://untrusted.example'));
+  const client=createClient('sb_publishable_fixture',connections.local.url,gateway);
+  assert.equal(client.temporaryAccessEnabled,true);
+  await client.signIn('temp-'+id,'fixture-password');
+  assert.equal(client.isTemporary,true);
+  await client.access('renew',{});
+});
+
 test('auth errors explain email restrictions and rate limits without exposing response data', async t => {
   let code = 'email_address_not_authorized';
   t.mock.method(globalThis, 'fetch', async () => Response.json({code:400, error_code:code, msg:'private@example.test'}, {status:400}));

@@ -1,10 +1,11 @@
-import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, copyFile, readdir } from 'node:fs/promises';
 import { connections } from './connection-config.mjs';
 
 // Lista cerrada: nunca publicar SQL, respaldos, .env, pruebas ni herramientas.
 const output = new URL('./supabase/.temp/preview/', import.meta.url);
 const files = {
   'index.html': 'index.html', 'pilot.mjs': 'pilot.mjs', 'finance.mjs': 'finance.mjs',
+  'admin-access.mjs': 'admin-access.mjs',
   'inventory.mjs': 'inventory.mjs', 'calendar.mjs': 'calendar.mjs',
   'backup-diagnostics.mjs': 'backup-diagnostics.mjs',
   'supabase-client.mjs': 'supabase-client.mjs', 'connection-config.mjs': 'connection-config.mjs',
@@ -25,4 +26,15 @@ await writeFile(new URL('connection-config.mjs', output),
   'export const connections = Object.freeze(' + JSON.stringify({ cloud: connections.cloud }) + ');\n');
 await writeFile(new URL('index.html', output), (await readFile(new URL('index.html', output), 'utf8'))
   .replace('<option value="local">Supabase local</option>', ''));
+async function checkOutput(prefix = '') {
+  for (const entry of await readdir(new URL(prefix, output), { withFileTypes: true })) {
+    const path = prefix + entry.name;
+    if (entry.isDirectory() && Object.keys(files).some(file => file.startsWith(path + '/'))) {
+      await checkOutput(path + '/');
+    } else if (!entry.isFile() || !Object.hasOwn(files, path)) {
+      throw new Error('Archivo inesperado en la salida de Preview. Revisar antes de publicar.');
+    }
+  }
+}
+await checkOutput();
 console.log('Preview estática preparada: ' + Object.keys(files).length + ' archivos públicos.');

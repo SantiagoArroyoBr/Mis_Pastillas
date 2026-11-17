@@ -25,12 +25,23 @@
       <form id="credentials">
         <label>Entorno de prueba <select name="environment"><option value="local">Supabase local</option><option value="cloud">Supabase de pruebas en la nube</option></select></label>
         <label>Clave publicable <input name="key" autocomplete="off" required></label>
-        <label>Correo <input name="email" type="email" autocomplete="username" required></label>
+        <label>Correo o identificador de acceso <input name="email" autocomplete="username" required maxlength="320"></label>
         <label>Contraseña <input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
         <button>Iniciar sesión</button>
         <button name="register" value="yes">Crear cuenta de prueba</button>
       </form>
       <p id="connection-help">Para el entorno local usa un correo ficticio que termine en .test.</p>
+      <section id="temporary-activation" hidden aria-labelledby="temporary-activation-heading">
+        <h3 id="temporary-activation-heading">Activar acceso temporal</h3>
+        <p>Usa el código que te entregó quien administra tu familia. Elige una contraseña personal; no necesitas correo.</p>
+        <form id="activate-temporary-access">
+          <label>Código de activación <input name="code" required autocomplete="off" maxlength="256"></label>
+          <label>Nueva contraseña <input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+          <label>Repetir contraseña <input name="confirmation" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+          <button data-icon="✓">Activar acceso</button>
+        </form>
+        <p id="temporary-activation-result" role="status"></p>
+      </section>
     </section>
     <section id="session" hidden>
       <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
@@ -58,6 +69,29 @@
           <button>Aceptar invitación</button>
         </form>
         <div id="owner-actions" hidden>
+          <section id="admin-access-panel" aria-labelledby="admin-access-heading">
+            <h3 id="admin-access-heading">Panel de administración</h3>
+            <p>Administra los accesos de la familia seleccionada. Los cambios de acceso conservan los registros anteriores.</p>
+            <p id="admin-access-unavailable">Los accesos temporales todavía no están habilitados en este entorno.</p>
+            <div id="admin-access-controls" hidden>
+              <form id="create-temporary-access">
+                <label>Nombre de la persona <input name="name" required maxlength="80" autocomplete="off"></label>
+                <label>Último día de acceso <input name="expires" type="date" required></label>
+                <p>Permiso de cuidador: fichas, citas e inventario. Sin administración ni montos de pagos.</p>
+                <button data-icon="+">Crear acceso temporal</button>
+              </form>
+              <div id="temporary-access-result" hidden>
+                <p>Entrega estos datos solo a la persona indicada. El código caduca en 15 minutos y permite establecer una nueva contraseña.</p>
+                <label>Identificador para entrar <input id="temporary-access-login" readonly autocomplete="off"></label>
+                <label>Código de activación de un solo uso <input id="temporary-access-code" readonly autocomplete="off"></label>
+                <button id="dismiss-temporary-code" type="button" data-icon="×">Ocultar código</button>
+              </div>
+              <h4>Personas con acceso temporal</h4>
+              <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Accesos temporales de la familia">
+                <table aria-label="Accesos temporales de la familia"><thead><tr><th scope="col">Persona</th><th scope="col">Vencimiento y estado</th><th scope="col">Acciones</th></tr></thead><tbody id="temporary-access-list"></tbody></table>
+              </div>
+            </div>
+          </section>
           <h3>Acceso a la familia activa</h3>
           <form id="invite">
             <label>Correo de la cuenta invitada <input name="email" type="email" required maxlength="320"></label>

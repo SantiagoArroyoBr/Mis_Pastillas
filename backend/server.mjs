@@ -5,6 +5,7 @@ import { connections } from './connection-config.mjs';
 const files = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/pilot.mjs': ['pilot.mjs', 'text/javascript; charset=utf-8'],
+  '/admin-access.mjs': ['admin-access.mjs', 'text/javascript; charset=utf-8'],
   '/finance.mjs': ['finance.mjs', 'text/javascript; charset=utf-8'],
   '/inventory.mjs': ['inventory.mjs', 'text/javascript; charset=utf-8'],
   '/calendar.mjs': ['calendar.mjs', 'text/javascript; charset=utf-8'],

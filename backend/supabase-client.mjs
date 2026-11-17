@@ -18,19 +18,23 @@ export async function loadAppointments(client, family, today, patient = '') {
   return { upcoming, past, legacy };
 }
 
-export function createClient(key, api = (connections.local ?? connections.cloud).url) {
+export function createClient(key, api = (connections.local ?? connections.cloud).url, accessUrl) {
   if (!Object.values(connections).some(connection => connection.url === api)) {
     throw new Error('El destino de Supabase no está configurado.');
   }
   if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) {
     throw new Error('Usa la clave publicable del proyecto seleccionado.');
   }
-  let token;
+  if (accessUrl && accessUrl !== api + '/functions/v1/family-access'
+    && accessUrl !== 'http://127.0.0.1:4180/api/access') {
+    throw new Error('El servicio de accesos no está configurado.');
+  }
+  let token, temporary = false;
 
-  async function request(path, body) {
+  async function request(path, body, destination = api) {
     let response;
     try {
-      response = await fetch(api + path, {
+      response = await fetch(destination + path, {
         method: body === undefined ? 'GET' : 'POST',
         headers: {
           apikey: key,
@@ -84,11 +88,21 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
   }
 
   return {
-    signUp: (email, password) => request('/auth/v1/signup', { email, password }),
+    get temporaryAccessEnabled() { return Boolean(accessUrl); },
+    get isTemporary() { return temporary; },
+    access(action, payload) {
+      if (!accessUrl) return Promise.reject(new Error('Los accesos temporales no están habilitados en este entorno.'));
+      return request('', { ...payload, action }, accessUrl);
+    },
+    signUp: (email, password) => accessUrl
+      ? request('', { action: 'auth-email', kind: 'signup', email, password }, accessUrl)
+      : request('/auth/v1/signup', { email, password }),
     async signIn(email, password) {
+      if (/^temp-[0-9a-f-]{36}$/i.test(email)) email = email.toLowerCase() + '@acompana.invalid';
       const session = await request('/auth/v1/token?grant_type=password', { email, password });
       if (!session?.access_token || !session?.user?.id) throw new Error('La sesión recibida no es válida.');
       token = session.access_token;
+      temporary = session.user.app_metadata?.family_temporary === true;
       return session.user.id;
     },
     async signOut() {
@@ -96,6 +110,7 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
         if (token) await request('/auth/v1/logout?scope=local', {});
       } finally {
         token = undefined;
+        temporary = false;
       }
     },
     select: (table, params = {}) => request('/rest/v1/' + table + '?' + new URLSearchParams(params)),

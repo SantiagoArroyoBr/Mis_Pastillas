@@ -21,3 +21,8 @@ enable_signup = true
 [auth.email]
 enabled = true
 enable_confirmations = false
+
+# Activación por código es pública; las acciones administrativas verifican Auth
+# dentro del handler y los permisos de familia en SQL. No desplegado aún.
+[functions.family-access]
+verify_jwt = false

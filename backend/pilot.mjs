@@ -4,6 +4,7 @@ import { createFinance } from './finance.mjs';
 import { createInventory } from './inventory.mjs';
 import { createCalendar } from './calendar.mjs';
 import { auditBackupRaw, maxBytes } from './backup-diagnostics.mjs';
+import { createAdminAccess } from './admin-access.mjs';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
@@ -20,10 +21,14 @@ credentials.elements.environment.addEventListener('change', () => {
   $('connection-help').textContent = selected === 'cloud'
     ? 'Usa un correo que puedas confirmar. Las fichas de este entorno se guardarán en el proyecto de pruebas.'
     : 'Para el entorno local usa un correo ficticio que termine en .test.';
+  $('temporary-activation').hidden = !connections[selected].accessUrl;
+  $('activate-temporary-access').reset();
+  $('temporary-activation-result').textContent = '';
 });
 if (credentials.elements.environment.value === 'cloud') {
   credentials.elements.environment.dispatchEvent(new Event('change'));
 }
+$('temporary-activation').hidden = !connections[credentials.elements.environment.value]?.accessUrl;
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
@@ -58,6 +63,7 @@ $('dismiss-notice').addEventListener('click', dismissNotice);
 const calendar = createCalendar(run, openCalendarRecord);
 const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
+const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
 const backupFile = $('backup-review-file');
 let backupRequest = 0;
 
@@ -110,6 +116,7 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  adminAccess.clear();
   clearBackup();
   finance.scope(undefined);
   calendar.scope(undefined);
@@ -265,6 +272,9 @@ async function refreshFamily() {
   $('reload').hidden = !family;
   showPilotView();
   $('owner-actions').hidden = !owner;
+  $('create-family').hidden = Boolean(client?.isTemporary);
+  $('accept-invite').hidden = Boolean(client?.isTemporary);
+  await adminAccess.load(client, family, owner);
   if (renderedFamily !== family) {
     $('members').replaceChildren();
     clearBackup();
@@ -397,10 +407,12 @@ $('credentials').addEventListener('submit', run(async event => {
   const environment = values.get('environment');
   const connection = connections[environment];
   if (!connection) throw new Error('Selecciona un entorno de prueba válido.');
-  if (environment === 'local' && !email.endsWith('.test')) throw new Error('Usa un correo ficticio que termine en .test.');
+  const temporary = /^temp-[0-9a-f-]{36}$/i.test(email);
+  if (environment === 'local' && !email.endsWith('.test') && !temporary) throw new Error('Usa un correo ficticio que termine en .test o tu identificador temporal.');
   const password = values.get('password');
-  const next = createClient(values.get('key').trim(), connection.url);
+  const next = createClient(values.get('key').trim(), connection.url, connection.accessUrl);
   if (event.submitter?.value === 'yes') {
+    if (temporary || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Para crear una cuenta principal usa un correo válido.');
     const registration = await next.signUp(email, password);
     if (environment === 'cloud' && !registration?.access_token) {
       form.elements.password.value = '';
@@ -422,6 +434,28 @@ $('credentials').addEventListener('submit', run(async event => {
   $('session').hidden = false;
   $('connection-current').textContent = 'Conectado a ' + connection.label;
   status('Sesión iniciada.');
+}));
+
+$('activate-temporary-access').addEventListener('submit', run(async event => {
+  const form = event.currentTarget;
+  const values = new FormData(form);
+  if (values.get('password') !== values.get('confirmation')) throw new Error('Las contraseñas no coinciden.');
+  const connection = connections[credentials.elements.environment.value];
+  if (!connection?.accessUrl) throw new Error('La activación todavía no está habilitada en este entorno.');
+  const activation = createClient(credentials.elements.key.value.trim(), connection.url, connection.accessUrl);
+  try {
+    const result = await activation.access('activate', { code: values.get('code').trim(), password: values.get('password') });
+    if (!result?.login) throw new Error('No se recibió el identificador. Consulta a quien administra tu familia.');
+    credentials.elements.email.value = result.login;
+    credentials.elements.password.value = '';
+    form.reset();
+    $('temporary-activation-result').textContent = 'Acceso activado. Tu identificador es ' + result.login + '. Inicia sesión con la contraseña que elegiste.';
+    credentials.elements.password.focus();
+    status('Acceso activado. Ya puedes iniciar sesión.', 'info');
+  } finally {
+    form.elements.password.value = '';
+    form.elements.confirmation.value = '';
+  }
 }));
 
 $('logout').addEventListener('click', run(async () => {
