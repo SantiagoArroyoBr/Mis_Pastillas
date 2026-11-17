@@ -493,3 +493,9 @@ El propietario autorizó la instalación en el proyecto `hpjqzncfxomxkhyavbkx`. 
 Pruebas: 21/21 del piloto y 102/102 de regresión conjunta PWA. La primera ejecución PWA fue bloqueada por EACCES en la conexión local del aislamiento; repetición fuera de aislamiento aprobada completa. Servidor 4173 reiniciado; recorrido de selector nube comprobó precarga y ayuda de confirmación. Evidencia visual local no versionada: `backend/supabase/.temp/cloud-schema-verified.jpg`.
 
 Pendientes separados: cuenta con correo confirmado y recorrido autenticado en nube, recuperación de cuenta, redirección de confirmación, despliegue separado Vercel y pruebas de dos teléfonos. No se publicaron GitHub ni Vercel. Se conservaron las cuatro rutas documentales ajenas a este lote.
+
+## 2026-11-17 — Diagnóstico de rechazo Auth en nube
+
+Sobre `3ab7c30`, se inspeccionaron los registros Auth del proyecto sin reenviar credenciales. Los intentos de registro devolvieron `over_email_send_rate_limit` (429) y los de inicio `invalid_credentials` (400). No se confirmó un registro completo. El cliente ahora acepta tanto `error_code` de Auth como `code` de PostgREST y traduce límites de correo, intentos, proveedor deshabilitado, correo inválido y contraseña insuficiente. Los errores Auth desconocidos muestran solo estado y código validado; nunca el cuerpo remoto ni datos de cuenta.
+
+Pruebas del piloto: 22/22, incluyendo ambas variantes de código y la ausencia de filtración del mensaje remoto. No se alteraron confirmación de correo, límites de Supabase, cuentas ni contraseñas. El bloqueo externo de envío sigue pendiente: revisar un correo de confirmación ya recibido o esperar a que el servicio permita otra solicitud; para uso continuado queda configurar correo transaccional. No se guardaron registros remotos con datos personales en el repositorio. Sin push ni despliegue.

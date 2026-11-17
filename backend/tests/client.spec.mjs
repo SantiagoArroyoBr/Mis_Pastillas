@@ -3,6 +3,21 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { connections } from '../connection-config.mjs';
 
+test('auth errors explain email restrictions and rate limits without exposing response data', async t => {
+  let code = 'email_address_not_authorized';
+  t.mock.method(globalThis, 'fetch', async () => Response.json({code:400, error_code:code, msg:'private@example.test'}, {status:400}));
+  const client = createClient(connections.cloud.key, connections.cloud.url);
+  await assert.rejects(client.signUp('fixture@example.test','fixture-password'), /servicio de correo/);
+  code = 'over_email_send_rate_limit';
+  await assert.rejects(client.signUp('fixture@example.test','fixture-password'), /límite de correos/);
+  code = 'unexpected_failure';
+  await assert.rejects(client.signIn('fixture@example.test','fixture-password'), error => {
+    assert.match(error.message, /HTTP 400, unexpected_failure/);
+    assert.ok(!error.message.includes('private@'));
+    return true;
+  });
+});
+
 test('cloud client uses only the configured project and identifies a missing schema', async t => {
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url, connections.cloud.url + '/rest/v1/families?select=id&limit=0');
