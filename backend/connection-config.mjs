@@ -7,6 +7,7 @@ export const connections = Object.freeze({
   cloud: Object.freeze({
     url: 'https://hpjqzncfxomxkhyavbkx.supabase.co',
     key: 'sb_publishable_-yKWJm2XQWAMb2E08qf4_w_b2bdRWsY',
-    label: 'Supabase de pruebas en la nube'
+    label: 'Cuenta Acompaña',
+    accessUrl: 'https://hpjqzncfxomxkhyavbkx.supabase.co/functions/v1/family-access'
   })
 });

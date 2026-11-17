@@ -65,7 +65,7 @@ export function createAccessHandler(config, fetcher = fetch) {
           || input.email.toLowerCase().endsWith('@acompana.invalid')) fault(400);
         const email = input.email.trim().toLowerCase();
         if (input.kind === 'signup' && (typeof input.password !== 'string' || input.password.length < 12 || input.password.length > 128)) fault(400);
-        await reserve(email, 'auth_mail');
+        if (!config.centralEmailHook) await reserve(email, 'auth_mail');
         await call('/auth/v1/' + input.kind + '?redirect_to=' + encodeURIComponent(allowedOrigin + '/'), {
           email, ...(input.kind === 'signup' && { password: input.password }),
           ...(input.kind === 'resend' && { type: 'signup' }),

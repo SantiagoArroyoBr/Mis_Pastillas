@@ -3,6 +3,23 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { connections } from '../connection-config.mjs';
 
+test('recovery updates use only the recovery token and do not open an application session',async t=>{
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/user'))assert.equal(options.method,'PUT');
+    return Response.json({id:'fixture'});
+  });
+  const client=createClient('sb_publishable_fixture');
+  await assert.rejects(client.completeRecovery('invalid','new-fixture-password'),/enlace/);
+  assert.equal(calls.length,0);
+  await client.completeRecovery('fixture.recovery.signature','new-fixture-password');
+  assert.equal(calls[0].options.headers.Authorization,'Bearer fixture.recovery.signature');
+  assert.ok(calls[1].url.endsWith('/logout?scope=global'));
+  await client.select('families');
+  assert.equal(calls[2].options.headers.Authorization,undefined);
+});
+
 test('temporary login maps its identifier and sends gateway tokens only to the configured destination', async t => {
   const id='11111111-1111-4111-8111-111111111111';
   const gateway=connections.local.url+'/functions/v1/family-access';

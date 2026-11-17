@@ -4,7 +4,7 @@ import { createAccessSandbox } from './access-sandbox.mjs';
 const origin = 'http://127.0.0.1:4180';
 const sandbox = await createAccessSandbox(origin);
 const files = {
-  '/':'index.html','/pilot.mjs':'pilot.mjs','/admin-access.mjs':'admin-access.mjs',
+  '/':'index.html','/pilot.mjs':'pilot.mjs','/admin-access.mjs':'admin-access.mjs','/account-recovery.mjs':'account-recovery.mjs',
   '/supabase-client.mjs':'supabase-client.mjs','/finance.mjs':'finance.mjs',
   '/inventory.mjs':'inventory.mjs','/calendar.mjs':'calendar.mjs','/backup-diagnostics.mjs':'backup-diagnostics.mjs',
   '/pilot.css':'pilot.css','/styles.css':'../styles.css','/domain.js':'../domain.js','/compatibility.js':'../compatibility.js',

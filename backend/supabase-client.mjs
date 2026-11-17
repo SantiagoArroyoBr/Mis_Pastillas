@@ -31,14 +31,14 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
   }
   let token, temporary = false;
 
-  async function request(path, body, destination = api) {
+  async function request(path, body, destination = api, overrides = {}) {
     let response;
     try {
       response = await fetch(destination + path, {
-        method: body === undefined ? 'GET' : 'POST',
+        method: overrides.method ?? (body === undefined ? 'GET' : 'POST'),
         headers: {
           apikey: key,
-          ...(token && { Authorization: 'Bearer ' + token }),
+          ...((overrides.token ?? token) && { Authorization: 'Bearer ' + (overrides.token ?? token) }),
           ...(body !== undefined && { 'Content-Type': 'application/json' })
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -94,9 +94,28 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
       if (!accessUrl) return Promise.reject(new Error('Los accesos temporales no están habilitados en este entorno.'));
       return request('', { ...payload, action }, accessUrl);
     },
-    signUp: (email, password) => accessUrl
-      ? request('', { action: 'auth-email', kind: 'signup', email, password }, accessUrl)
-      : request('/auth/v1/signup', { email, password }),
+    signUp(email, password) {
+      if (accessUrl && (typeof password !== 'string' || password.length < 12 || password.length > 128)) {
+        return Promise.reject(new Error('Usa una contraseña de entre 12 y 128 caracteres para crear la cuenta.'));
+      }
+      return accessUrl ? request('', { action: 'auth-email', kind: 'signup', email, password }, accessUrl)
+        : request('/auth/v1/signup', { email, password });
+    },
+    requestRecovery(email) {
+      return accessUrl ? request('', { action: 'auth-email', kind: 'recover', email }, accessUrl)
+        : request('/auth/v1/recover', { email });
+    },
+    async completeRecovery(accessToken, password) {
+      if (typeof accessToken !== 'string' || accessToken.length > 8192
+        || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(accessToken)) {
+        throw new Error('El enlace de recuperación no es válido. Solicita uno nuevo.');
+      }
+      if (typeof password !== 'string' || password.length < 12 || password.length > 128) {
+        throw new Error('Usa una contraseña de entre 12 y 128 caracteres.');
+      }
+      await request('/auth/v1/user', { password }, api, { method: 'PUT', token: accessToken });
+      await request('/auth/v1/logout?scope=global', {}, api, { token: accessToken }).catch(() => {});
+    },
     async signIn(email, password) {
       if (/^temp-[0-9a-f-]{36}$/i.test(email)) email = email.toLowerCase() + '@acompana.invalid';
       const session = await request('/auth/v1/token?grant_type=password', { email, password });

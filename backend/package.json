@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test tests/database.spec.mjs tests/client.spec.mjs tests/temporary-access.spec.mjs tests/admin-access.spec.mjs tests/access-service.spec.mjs",
+    "test": "node --test tests/database.spec.mjs tests/client.spec.mjs tests/temporary-access.spec.mjs tests/admin-access.spec.mjs tests/access-service.spec.mjs tests/account-recovery.spec.mjs tests/email-hook.spec.mjs",
     "test:auth": "node --test tests/supabase.integration.mjs",
     "schema:cloud": "node prepare-cloud-schema.mjs",
     "sandbox": "node sandbox-server.mjs"

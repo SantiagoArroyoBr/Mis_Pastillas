@@ -31,6 +31,26 @@
         <button name="register" value="yes">Crear cuenta de prueba</button>
       </form>
       <p id="connection-help">Para el entorno local usa un correo ficticio que termine en .test.</p>
+      <section aria-labelledby="account-recovery-heading">
+        <h3 id="account-recovery-heading">Recuperar mi cuenta principal</h3>
+        <div id="account-recovery-request">
+          <p>Recibe un enlace para cambiar tu contraseña. Si usas un acceso temporal sin correo, solicita su recuperación a quien administra tu familia.</p>
+          <form id="request-account-recovery">
+            <label>Correo de la cuenta principal <input name="email" type="email" autocomplete="email" required maxlength="254"></label>
+            <button id="request-account-recovery-button" data-icon="↗">Enviar enlace de recuperación</button>
+          </form>
+        </div>
+        <div id="account-recovery-completion" hidden>
+          <p>Elige una contraseña exclusiva de Acompaña, de entre 12 y 128 caracteres. No la compartas con quien administra otras cuentas.</p>
+          <form id="complete-account-recovery">
+            <label>Nueva contraseña de la cuenta principal <input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+            <label>Repetir nueva contraseña de la cuenta principal <input name="confirmation" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+            <button id="complete-account-recovery-button" data-icon="✓">Guardar nueva contraseña</button>
+            <button id="cancel-account-recovery" type="button" data-icon="×">Cancelar recuperación</button>
+          </form>
+        </div>
+        <p id="account-recovery-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </section>
       <section id="temporary-activation" hidden aria-labelledby="temporary-activation-heading">
         <h3 id="temporary-activation-heading">Activar acceso temporal</h3>
         <p>Usa el código que te entregó quien administra tu familia. Elige una contraseña personal; no necesitas correo.</p>

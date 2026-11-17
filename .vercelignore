@@ -4,6 +4,7 @@ backend/*
 !backend/index.html
 !backend/pilot.mjs
 !backend/admin-access.mjs
+!backend/account-recovery.mjs
 !backend/pilot.css
 !backend/supabase-client.mjs
 !backend/finance.mjs

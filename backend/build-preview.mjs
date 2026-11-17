@@ -6,6 +6,7 @@ const output = new URL('./supabase/.temp/preview/', import.meta.url);
 const files = {
   'index.html': 'index.html', 'pilot.mjs': 'pilot.mjs', 'finance.mjs': 'finance.mjs',
   'admin-access.mjs': 'admin-access.mjs',
+  'account-recovery.mjs': 'account-recovery.mjs',
   'inventory.mjs': 'inventory.mjs', 'calendar.mjs': 'calendar.mjs',
   'backup-diagnostics.mjs': 'backup-diagnostics.mjs',
   'supabase-client.mjs': 'supabase-client.mjs', 'connection-config.mjs': 'connection-config.mjs',
@@ -20,7 +21,12 @@ for (const [destination, source] of Object.entries(files)) {
   await copyFile(new URL(source, import.meta.url), new URL(destination, output));
 }
 const html = await readFile(new URL('index.html', output), 'utf8');
-await writeFile(new URL('index.html', output), html.replace('<option value="cloud">', '<option value="cloud" selected>'));
+await writeFile(new URL('index.html', output), html.replace('<option value="cloud">', '<option value="cloud" selected>')
+  .replace('<title>Acompaña · Piloto local</title>','<title>Acompaña</title>')
+  .replace('Prueba de cuentas y fichas compartidas. Usa datos de prueba.','Organiza y comparte el cuidado de tu familia.')
+  .replaceAll('Cuenta de prueba','Tu cuenta').replace('Crear cuenta de prueba','Crear cuenta')
+  .replace('<label>Entorno de prueba ', '<label hidden>Entorno de prueba ')
+  .replace('<label>Clave publicable ', '<label hidden>Clave publicable '));
 // El artefacto alojado solo puede usar la nube, nunca la red local del teléfono.
 await writeFile(new URL('connection-config.mjs', output),
   'export const connections = Object.freeze(' + JSON.stringify({ cloud: connections.cloud }) + ');\n');

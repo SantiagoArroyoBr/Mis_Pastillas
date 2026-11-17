@@ -4,5 +4,6 @@ Deno.serve(createAccessHandler({
   supabaseUrl: Deno.env.get('SUPABASE_URL'),
   publishableKey: Deno.env.get('SUPABASE_ANON_KEY'),
   serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-  allowedOrigin: Deno.env.get('ACOMPANA_ALLOWED_ORIGIN')
+  allowedOrigin: Deno.env.get('ACOMPANA_ALLOWED_ORIGIN'),
+  centralEmailHook: Deno.env.get('AUTH_EMAIL_HOOK_ENFORCED') === 'true'
 }));

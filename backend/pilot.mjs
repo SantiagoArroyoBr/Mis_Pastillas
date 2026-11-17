@@ -5,6 +5,10 @@ import { createInventory } from './inventory.mjs';
 import { createCalendar } from './calendar.mjs';
 import { auditBackupRaw, maxBytes } from './backup-diagnostics.mjs';
 import { createAdminAccess } from './admin-access.mjs';
+import { consumeRecoveryLocation, createAccountRecovery } from './account-recovery.mjs';
+
+// Remove authentication capabilities from the visible URL before rendering any view.
+let recoveryLink = consumeRecoveryLocation(location, history);
 
 const $ = id => document.getElementById(id);
 const families = $('families');
@@ -15,11 +19,20 @@ const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 const credentials = $('credentials');
+let recoveringAccount = false;
+if (recoveryLink.kind === 'recovery') {
+  const environment = Object.entries(connections).find(([, connection]) => connection.url + '/auth/v1' === recoveryLink.issuer)?.[0];
+  if (environment) {
+    credentials.elements.environment.value = environment;
+    if (connections[environment].key) credentials.elements.key.value = connections[environment].key;
+  }
+  else recoveryLink = { kind: 'invalid' };
+}
 credentials.elements.environment.addEventListener('change', () => {
   const selected = credentials.elements.environment.value;
   credentials.elements.key.value = connections[selected].key;
   $('connection-help').textContent = selected === 'cloud'
-    ? 'Usa un correo que puedas confirmar. Las fichas de este entorno se guardarán en el proyecto de pruebas.'
+    ? 'Usa un correo al que tengas acceso. Podrás compartir tus fichas entre dispositivos.'
     : 'Para el entorno local usa un correo ficticio que termine en .test.';
   $('temporary-activation').hidden = !connections[selected].accessUrl;
   $('activate-temporary-access').reset();
@@ -64,6 +77,21 @@ const calendar = createCalendar(run, openCalendarRecord);
 const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
+createAccountRecovery({
+  link: recoveryLink,
+  getClient() {
+    const connection = connections[credentials.elements.environment.value];
+    return createClient(credentials.elements.key.value.trim(), connection.url, connection.accessUrl);
+  },
+  onModeChange(active) {
+    recoveringAccount = active;
+    credentials.hidden = active;
+    $('connection-help').hidden = active;
+    $('temporary-activation').hidden = active || !connections[credentials.elements.environment.value]?.accessUrl;
+  }
+});
+// The controller alone retains a recovery capability until success, expiry or cancellation.
+recoveryLink = undefined;
 const backupFile = $('backup-review-file');
 let backupRequest = 0;
 
@@ -401,6 +429,7 @@ async function refreshFamilies(preferred = families.value) {
 }
 
 $('credentials').addEventListener('submit', run(async event => {
+  if (recoveringAccount) throw new Error('Termina o cancela la recuperación antes de iniciar sesión.');
   const form = event.currentTarget;
   const values = new FormData(form);
   const email = values.get('email').trim();

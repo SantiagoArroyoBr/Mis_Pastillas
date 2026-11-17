@@ -26,3 +26,7 @@ enable_confirmations = false
 # dentro del handler y los permisos de familia en SQL. No desplegado aún.
 [functions.family-access]
 verify_jwt = false
+
+# Solo acepta solicitudes con firma HMAC de Supabase Auth.
+[functions.auth-email]
+verify_jwt = false
