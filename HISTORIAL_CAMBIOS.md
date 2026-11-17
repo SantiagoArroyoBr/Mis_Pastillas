@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — Tablas compactas e iconos del piloto
+
+Sobre `294c8c8`, las fichas activas y archivadas se muestran en tablas. Las tablas tienen menos relleno y divisiones visibles entre filas y columnas. Los botones conservan al menos 44 px de altura. El menú, las acciones de tabla y los controles de montos usan iconos junto a sus etiquetas.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se verificaron los bordes, la altura de los botones, los iconos, la apertura de edición, el archivo y la reactivación.
+
 ## 2026-11-16 — RECONST-024 · Desvanecimiento y tablas del piloto
 
 Sobre `49843b1`, los avisos se desvanecen en 220 ms al cerrar o al vencer su plazo, y se cierran de inmediato con la preferencia de movimiento reducido. Se organizaron siete tablas de saldo, tarifas, jornadas, abonos individuales y generales, existencias y compras/cotizaciones. Las tarifas de enfermería usan un control independiente y los importes permanecen ocultos al inicio.

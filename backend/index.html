@@ -33,14 +33,14 @@
     <section id="session" hidden>
       <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
         <a href="#inicio"><img src="/icons/house.svg" alt="">Inicio</a>
-        <a href="#family">Fichas</a>
-        <a href="#appointments-heading">Citas</a>
+        <a href="#family"><span class="pilot-nav-icon" aria-hidden="true">▤</span>Fichas</a>
+        <a href="#appointments-heading"><span class="pilot-nav-icon" aria-hidden="true">▦</span>Citas</a>
         <a href="#inventory"><img src="/icons/pill.svg" alt="">Inventario</a>
         <a href="#finance" id="finance-link" hidden><img src="/icons/wallet.svg" alt="">Enfermería y pagos</a>
-        <a href="#backup-review">Respaldo</a>
-        <a href="#configuracion">Configuración</a>
+        <a href="#backup-review"><span class="pilot-nav-icon" aria-hidden="true">⇩</span>Respaldo</a>
+        <a href="#configuracion"><span class="pilot-nav-icon" aria-hidden="true">⚙</span>Configuración</a>
       </nav>
-      <button id="reload" type="button" hidden>Actualizar fichas</button>
+      <button id="reload" type="button" data-icon="↻" hidden>Actualizar fichas</button>
       <section id="configuracion" data-pilot-view="#configuracion" aria-labelledby="settings-heading" hidden>
         <h2 id="settings-heading">Configuración</h2>
         <h3>Familias</h3>
@@ -81,11 +81,15 @@
         <h2 id="pilot-patients-heading">Fichas</h2>
         <form id="add-patient">
           <label>Nombre de ficha <input name="name" required maxlength="80"></label>
-          <button>Agregar ficha</button>
+          <button data-icon="+">Agregar ficha</button>
         </form>
-        <ul id="patients"></ul>
+        <div class="pilot-table-scroll pilot-patient-table" tabindex="0" role="region" aria-label="Fichas activas">
+          <table aria-label="Fichas activas"><thead><tr><th scope="col">Ficha</th><th scope="col">Acciones</th></tr></thead><tbody id="patients"></tbody></table>
+        </div>
         <h3>Fichas archivadas</h3>
-        <ul id="archived-patients"></ul>
+        <div class="pilot-table-scroll pilot-patient-table" tabindex="0" role="region" aria-label="Fichas archivadas">
+          <table aria-label="Fichas archivadas"><thead><tr><th scope="col">Ficha</th><th scope="col">Acciones</th></tr></thead><tbody id="archived-patients"></tbody></table>
+        </div>
         <form id="rename-patient" hidden>
           <label>Nuevo nombre <input name="name" required maxlength="80"></label>
           <button>Guardar nombre</button>

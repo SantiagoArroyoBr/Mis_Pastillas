@@ -157,6 +157,9 @@ function actionButton(text, label, action) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = label;
+  const icons = { 'Editar ficha': '✎', 'Archivar ficha': '↓', 'Reactivar ficha': '↺',
+    'Revocar acceso': '×', 'Editar cita': '✎', 'Cancelar abono': '×' };
+  if (icons[label]) button.dataset.icon = icons[label];
   button.setAttribute('aria-label', label + ': ' + text);
   button.addEventListener('click', run(action));
   return button;
@@ -245,22 +248,21 @@ async function refreshFamily() {
     await refreshFamily();
     status(archived ? 'Ficha archivada.' : 'Ficha reactivada.');
   };
-  $('patients').replaceChildren(...active.map(patient => {
-    const item = itemWithButton(patient.name, 'Editar ficha', () => {
+  renderTable($('patients'), active.map(patient => {
+    const actions = document.createElement('div');
+    actions.className = 'pilot-row-actions';
+    actions.append(actionButton(patient.name, 'Editar ficha', () => {
       draft = { ...patient, family };
       rename.elements.name.value = patient.name;
       rename.hidden = false;
       rename.elements.name.focus();
-    });
-    if (owner) item.append(actionButton(patient.name, 'Archivar ficha', archive(patient, true)));
-    return item;
-  }));
-  $('archived-patients').replaceChildren(...patients.filter(patient => patient.archived_at).map(patient => {
-    if (owner) return itemWithButton(patient.name, 'Reactivar ficha', archive(patient, false));
-    const item = document.createElement('li');
-    item.textContent = patient.name;
-    return item;
-  }));
+    }));
+    if (owner) actions.append(actionButton(patient.name, 'Archivar ficha', archive(patient, true)));
+    return [patient.name, actions];
+  }), 'Aún no hay fichas activas.');
+  renderTable($('archived-patients'), patients.filter(patient => patient.archived_at).map(patient => [
+    patient.name, owner ? actionButton(patient.name, 'Reactivar ficha', archive(patient, false)) : '—'
+  ]), 'Aún no hay fichas archivadas.');
   const names = new Map();
   for (const patient of patients) names.set(patient.name, (names.get(patient.name) ?? 0) + 1);
   const option = patient => {

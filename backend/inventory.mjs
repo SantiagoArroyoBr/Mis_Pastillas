@@ -249,6 +249,7 @@ export function createInventory({ run, status, renderTable }) {
       if (!row.patients.archived_at) {
         const edit = document.createElement('button');
         edit.type = 'button';
+        edit.dataset.icon = '✎';
         edit.textContent = 'Editar artículo';
         edit.addEventListener('click', run(() => startEdit(row, projectStock(domain, row, Date.now()))));
         actions.append(edit);

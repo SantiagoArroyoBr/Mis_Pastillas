@@ -40,6 +40,7 @@
 .connected-pilot #pilot-navigation a[href="#inventory"][aria-current=page] { background: var(--inventory-accent); }
 .connected-pilot #pilot-navigation a[href="#finance"][aria-current=page] { background: var(--payment-accent); }
 .connected-pilot #pilot-navigation img { width: 18px; height: 18px; flex: none; }
+.connected-pilot #pilot-navigation .pilot-nav-icon { width: 18px; flex: none; text-align: center; font-size: 1.05rem; line-height: 1; }
 .connected-pilot #pilot-navigation a[aria-current=page] img { filter: brightness(0) invert(1); }
 .pilot-summary { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
 .pilot-summary article { flex: 1 1 12rem; min-width: 0; }
@@ -107,23 +108,33 @@
 }
 .connected-pilot #pilot-notice:has(#status:empty) #dismiss-notice { display: none; }
 .connected-pilot .pilot-table-scroll {
+  --table-grid: #948780;
   max-width: 100%;
   overflow-x: auto;
   margin-block: .5rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--table-grid);
+  border-radius: 9px;
   background: var(--card);
 }
-.connected-pilot .pilot-table-scroll table { width: 100%; border-collapse: collapse; }
+.connected-pilot .pilot-table-scroll table { width: 100%; border-collapse: collapse; font-size: .87rem; line-height: 1.3; }
 .connected-pilot .pilot-table-scroll th, .connected-pilot .pilot-table-scroll td {
-  padding: .55rem .65rem;
-  border-bottom: 1px solid var(--line);
+  padding: .3rem .4rem;
+  border-bottom: 1px solid var(--table-grid);
+  border-inline-end: 1px solid var(--table-grid);
   vertical-align: top;
   text-align: start;
 }
+.connected-pilot .pilot-table-scroll tr > :last-child { border-inline-end: 0; }
 .connected-pilot .pilot-table-scroll thead th { background: var(--line); }
 .connected-pilot .pilot-table-scroll tbody tr:last-child > * { border-bottom: 0; }
 .connected-pilot .pilot-table-scroll summary { display: list-item; white-space: nowrap; }
+.connected-pilot .pilot-table-scroll button { padding: .2rem .4rem; margin: 0; }
+.connected-pilot .pilot-table-scroll details { margin: 0; }
+.connected-pilot .pilot-patient-table td:first-child { width: 40%; overflow-wrap: anywhere; }
+.connected-pilot .pilot-row-actions { display: flex; flex-wrap: wrap; gap: .2rem; }
+.connected-pilot button[data-icon]::before { content: attr(data-icon) / ""; margin-inline-end: .3em; }
+.connected-pilot button[aria-pressed][aria-controls^="finance-"]::before,
+.connected-pilot #inventory-price-toggle::before { content: "👁︎" / ""; margin-inline-end: .3em; }
 .connected-pilot .pilot-table-scroll td:has([data-cents], [data-price]), .connected-pilot .pilot-table-scroll .pilot-amount {
   text-align: end;
   white-space: nowrap;
