@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## 2026-11-17 — RECONST-030 · Integración real y acceso móvil
+
+Sobre `8328963` se verificaron Auth real, activación y revocación de un acceso ficticio con aislamiento de familias, entrega por Brevo y recuperación principal. El propietario confirmó el restablecimiento desde iPhone tras retirar, con su autorización específica, la barrera de Vercel de acompana-piloto. Se corrigió el acuse de entrega para no devolver error ni duplicar un correo ya aceptado.
+
+El inicio de sesión incorpora tarjeta de bienvenida, selector Entrar/Crear cuenta, botón principal único, Mostrar/Ocultar contraseña y ayudas desplegables. Pasaron **54/54** pruebas conectadas y **102/102** de pagos/persistencia PWA; compilación de 18 archivos, sintaxis y diff correctos. Revisión móvil a 390 px y ausencia de desbordamiento a 320 px. [Evidencia, autorizaciones y límites](docs/RECONST-030-integracion-real.md). Main permanece sin cambios.
+
+
 ## 2026-11-17 — RECONST-026 · Acceso directo y conteo manual
 
 Sobre `f4e52f1`, el calendario abre la cita concreta o preselecciona el artículo correspondiente en la compra. Al cambiar de artículo se confirma el descarte de un borrador previo. Los insumos admiten conteo manual sin pautas y quedan fuera de las proyecciones del calendario. Se conserva el registro de compras y la revisión de edición.

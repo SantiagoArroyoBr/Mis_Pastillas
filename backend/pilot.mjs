@@ -19,6 +19,30 @@ const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 const credentials = $('credentials');
+function selectAuthMode(register) {
+  $('auth-mode-login').setAttribute('aria-pressed', String(!register));
+  $('auth-mode-register').setAttribute('aria-pressed', String(register));
+  $('auth-submit-login').textContent = register ? 'Crear mi cuenta →' : 'Entrar a Acompaña →';
+  $('auth-submit-login').name = register ? 'register' : '';
+  $('auth-submit-login').value = register ? 'yes' : '';
+  $('auth-register-help').hidden = !register;
+  $('auth-identifier-label').textContent = register ? 'Tu correo' : 'Correo o identificador de acceso';
+  credentials.elements.email.type = register ? 'email' : 'text';
+  credentials.elements.password.minLength = register ? 12 : 8;
+  credentials.elements.password.autocomplete = register ? 'new-password' : 'current-password';
+  credentials.elements.password.value = '';
+  credentials.elements.password.type = 'password';
+  $('auth-show-password').textContent = 'Mostrar';
+  $('auth-show-password').setAttribute('aria-pressed', 'false');
+}
+$('auth-mode-login').addEventListener('click', () => selectAuthMode(false));
+$('auth-mode-register').addEventListener('click', () => selectAuthMode(true));
+$('auth-show-password').addEventListener('click', () => {
+  const visible = credentials.elements.password.type === 'password';
+  credentials.elements.password.type = visible ? 'text' : 'password';
+  $('auth-show-password').textContent = visible ? 'Ocultar' : 'Mostrar';
+  $('auth-show-password').setAttribute('aria-pressed', String(visible));
+});
 let recoveringAccount = false;
 if (recoveryLink.kind === 'recovery') {
   const environment = Object.entries(connections).find(([, connection]) => connection.url + '/auth/v1' === recoveryLink.issuer)?.[0];
@@ -86,6 +110,8 @@ createAccountRecovery({
   onModeChange(active) {
     recoveringAccount = active;
     credentials.hidden = active;
+    $('auth-modes').hidden = active;
+    if (active || recoveryLink?.kind && recoveryLink.kind !== 'none') $('auth-recovery-details').open = true;
     $('connection-help').hidden = active;
     $('temporary-activation').hidden = active || !connections[credentials.elements.environment.value]?.accessUrl;
   }

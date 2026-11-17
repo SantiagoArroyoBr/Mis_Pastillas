@@ -254,3 +254,31 @@
 .connected-pilot #pilot-calendar-upcoming-days span { font-size: .86rem; font-weight: 800; }
 .connected-pilot #pilot-calendar-upcoming-days small { font-size: .74rem; }
 .connected-pilot #pilot-calendar-status:empty { margin: 0; }
+
+/* Acceso: una acción principal y ayudas progresivas, pensado para teléfono. */
+.connected-pilot #auth { max-width: 29rem; border-color: #d5dfdf; padding: clamp(1.1rem, 5vw, 2rem); box-shadow: 0 14px 45px #24556512; background: linear-gradient(165deg, #fff 70%, #f5f1eb); }
+.auth-welcome { text-align: center; margin-bottom: 1.5rem; }
+.auth-emblem { display: inline-grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 18px; background: #f4e2d9; color: #8b4936; font-size: 2.3rem; line-height: 1; }
+.connected-pilot .auth-eyebrow { color: #586e73; font-size: .65rem; letter-spacing: .15em; font-weight: 800; margin: .9rem 0 .4rem; }
+.connected-pilot #auth-title { color: var(--navy); font-size: clamp(1.5rem, 6vw, 2rem); line-height: 1.15; letter-spacing: -.035em; }
+.connected-pilot #auth-description { color: #56686d; font-size: .95rem; line-height: 1.5; max-width: 24rem; margin: .7rem auto 0; }
+.connected-pilot .auth-modes { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem; padding: .25rem; background: #eaf0ef; border-radius: 13px; }
+.connected-pilot .auth-modes button { margin: 0; padding: .7rem .35rem; min-height: 44px; font-size: .87rem; border: 0; background: transparent; border-radius: 10px; color: #52676c; }
+.connected-pilot .auth-modes button[aria-pressed=true] { color: var(--navy); background: #fff; box-shadow: 0 2px 8px #24556512; }
+.connected-pilot #auth form { display: grid; gap: 1rem; margin: 1.3rem 0 .75rem; }
+.connected-pilot #auth label { display: grid; gap: .4rem; margin: 0; color: #304b54; font-size: .88rem; font-weight: 800; }
+.connected-pilot #auth input { width: 100%; min-width: 0; min-height: 50px; border: 1px solid #bccbce; border-radius: 11px; background: #fff; padding: .7rem .8rem; font-size: 1rem; color: #203e48; box-sizing: border-box; }
+.connected-pilot #auth input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px #24556515; }
+.auth-password-field { position: relative; display: block; }
+.auth-password-group { display: grid; gap: .4rem; }
+.connected-pilot #auth-password { padding-right: 5.2rem; }
+.connected-pilot #auth-show-password { position: absolute; inset: 3px 3px 3px auto; margin: 0; min-height: 44px; border: 0; font-size: .78rem; background: #f0f5f4; padding: .3rem .7rem; }
+.connected-pilot #auth .auth-primary { display: flex; align-items: center; justify-content: center; gap: .6rem; width: 100%; min-height: 52px; margin: .25rem 0 0; border: 0; border-radius: 12px; background: var(--navy); color: white; font-size: .98rem; box-shadow: 0 5px 13px #24556520; }
+.connected-pilot #auth .auth-hint, .connected-pilot #connection-help { color: #586e73; font-size: .78rem; font-weight: 400; line-height: 1.5; margin: 0; }
+.connected-pilot #auth > section { margin: 0; }
+.connected-pilot .auth-assistance { border-top: 1px solid #dce4e3; margin-top: 1rem; padding-top: .35rem; }
+.connected-pilot .auth-assistance summary { padding: .8rem .1rem; min-height: 44px; box-sizing: border-box; cursor: pointer; font-size: .87rem; font-weight: 800; color: var(--navy); }
+.connected-pilot .auth-assistance[open] { padding-bottom: .5rem; }
+.connected-pilot .auth-assistance p { font-size: .86rem; line-height: 1.5; color: #52676c; }
+.connected-pilot #account-recovery-status:not(:empty), .connected-pilot #temporary-activation-result:not(:empty) { border-radius: 10px; padding: .8rem; background: #edf3f2; color: #294e5b; }
+@media (max-width: 420px) { .connected-pilot main { padding: .8rem; } .connected-pilot #auth { border-radius: 19px; } }

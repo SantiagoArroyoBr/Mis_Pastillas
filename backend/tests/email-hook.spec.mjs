@@ -14,7 +14,7 @@ async function fixture(t) {
   const directory=new URL('../supabase/migrations/',import.meta.url);
   for(const name of (await readdir(directory)).filter(n=>n.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(name,directory),'utf8'));
   const secret=randomBytes(32),sends=[],calls=[];
-  let provider=async()=>Response.json({messageId:'fixture-message'},{status:201});
+  let provider=async()=>Response.json({messageId:'fixture-message'},{status:201}),loseAcknowledgement=false;
   const config={supabaseUrl:'https://fixture.supabase.co',serviceKey:'server-fixture-key',
     hookSecret:'v1,whsec_'+secret.toString('base64'),brevoApiKey:'brevo-private-fixture',
     senderEmail:'access@fixture.test',redirectUrl:'https://app.fixture.test/'};
@@ -33,6 +33,7 @@ async function fixture(t) {
         const args=Object.keys(body).map((key,i)=>'"'+key+'" => $'+(i+1)).join(',');
         return (await tx.query('select public."'+name+'"('+args+') as result',Object.values(body))).rows[0].result;
       });
+      if(name==='finish_auth_email'&&loseAcknowledgement) throw new Error('fixture acknowledgement timeout');
       return Response.json(result);
     } catch(error){return Response.json({code:error.code},{status:400});}
   };
@@ -45,8 +46,18 @@ async function fixture(t) {
   }
   const payload=(email='admin@fixture.test',action='signup')=>({user:{id:randomUUID(),email},
     email_data:{email_action_type:action,token:'123456',token_hash:'a'.repeat(64),redirect_to:'https://malicious.fixture.test/',site_url:'https://malicious.fixture.test/'}});
-  return {db,handle,request,payload,sends,calls,provider:fn=>provider=fn,config};
+  return {db,handle,request,payload,sends,calls,provider:fn=>provider=fn,config,
+    loseAcknowledgement:()=>{loseAcknowledgement=true;}};
 }
+
+test('a lost SQL delivery acknowledgement does not turn an accepted email into an Auth failure',async t=>{
+  const f=await fixture(t),payload=f.payload(),id='msg_'+randomUUID();
+  f.loseAcknowledgement();
+  assert.equal((await f.handle(f.request(payload,id))).status,200);
+  assert.equal((await f.handle(f.request(payload,id))).status,200);
+  assert.equal(f.sends.length,1);
+  assert.equal((await f.db.query('select state from acompana_private.auth_email_deliveries')).rows[0].state,'sent');
+});
 
 test('signed hook deduplicates delivery, keeps links action-specific and never trusts payload redirects',async t=>{
   const f=await fixture(t),payload=f.payload(),id='msg_'+randomUUID();

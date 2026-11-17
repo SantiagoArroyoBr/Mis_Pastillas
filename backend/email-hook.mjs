@@ -29,12 +29,15 @@ export function createEmailHook(config,fetcher=fetch) {
   async function rpc(name,body) {
     const response=await fetcher(supabaseUrl+'/rest/v1/rpc/'+name,{method:'POST',
       headers:{apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json'},
-      body:JSON.stringify(body),signal:AbortSignal.timeout(800)});
-    if(!response.ok) failure(503);
+      body:JSON.stringify(body),signal:AbortSignal.timeout(name==='finish_auth_email'?600:1200)});
+    if(!response.ok) {
+      console.warn('auth_email_sql_failed',{operation:name,status:response.status});
+      failure(503);
+    }
     return response.json();
   }
   return async request=>{
-    let eventHash,payloadHash,providerStarted=false;
+    let eventHash,payloadHash,providerStarted=false,stage='signature';
     try {
       if(request.method!=='POST') failure(405);
       const timestamp=request.headers.get('webhook-timestamp')??'',id=request.headers.get('webhook-id')??'';
@@ -54,6 +57,7 @@ export function createEmailHook(config,fetcher=fetch) {
           if(await crypto.subtle.verify('HMAC',key,signatureBytes,signed)){verified=true;break;}}catch{}
       }
       if(!verified) failure(401);
+      stage='payload';
       const payload=JSON.parse(raw),data=payload?.email_data,recipient=payload?.user?.email;
       if(typeof recipient==='string'&&/^temp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@acompana\.invalid$/i.test(recipient)) return reply(200);
       const action=data?.email_action_type;
@@ -74,12 +78,13 @@ export function createEmailHook(config,fetcher=fetch) {
           +escapeHtml(actions[action])+'</a></p><p>Si no lo solicitaste, ignora este mensaje.</p>';
       }
       eventHash=await digest(id+':'+recipient.trim().toLowerCase());payloadHash=await digest(raw);
+      stage='reserve';
       const reservation=await rpc('claim_auth_email',{event_hash:eventHash,payload_hash:payloadHash,
         recipient_hash:await digest('auth_mail:'+recipient.trim().toLowerCase())});
       if(reservation.status==='sent')return reply(200);
       if(reservation.status==='denied')failure(429);
       if(reservation.status!=='send'||!reservation.idempotency_key)failure(503);
-      providerStarted=true;
+      providerStarted=true;stage='provider';
       const response=await fetcher('https://api.brevo.com/v3/smtp/email',{method:'POST',
         headers:{'api-key':brevoApiKey,'Content-Type':'application/json',Accept:'application/json'},
         body:JSON.stringify({sender:{email:senderEmail,name:senderName},subject:actions[action],
@@ -87,8 +92,19 @@ export function createEmailHook(config,fetcher=fetch) {
           messageVersions:[{to:[{email:recipient}]}],headers:{idempotencyKey:reservation.idempotency_key}}),
         signal:AbortSignal.timeout(1500)});
       const result=await response.json().catch(()=>null);
+      if(!response.ok) console.warn('auth_email_provider_failed',{status:response.status,
+        code:/^[a-z_]{1,64}$/.test(result?.code??'')?result.code:'unknown'});
       const duplicate=result?.code==='duplicate_parameter'&&/idempotency/i.test(result?.message??'');
       const delivered=response.ok||duplicate;
+      stage='finish';
+      if(delivered) {
+        // El proveedor ya aceptó el mensaje. Una confirmación SQL lenta no debe
+        // convertirlo en un fallo de Auth ni provocar un segundo envío.
+        await rpc('finish_auth_email',{event_hash:eventHash,payload_hash:payloadHash,delivered:true,uncertain:false})
+          .catch(()=>console.warn('auth_email_delivery_ack_pending',{stage:'finish'}));
+        providerStarted=false;
+        return reply(200);
+      }
       await rpc('finish_auth_email',{event_hash:eventHash,payload_hash:payloadHash,delivered,uncertain:!delivered&&response.status>=500});
       providerStarted=false;
       if(!delivered)failure(503);
@@ -97,6 +113,7 @@ export function createEmailHook(config,fetcher=fetch) {
       if(eventHash&&payloadHash&&providerStarted) await rpc('finish_auth_email',{
         event_hash:eventHash,payload_hash:payloadHash,delivered:false,uncertain:true}).catch(()=>{});
       const status=[400,401,405,413,429].includes(error.status)?error.status:503;
+      console.warn('auth_email_failed',{stage,status});
       return reply(status,{error:{http_code:status,message:'No se pudo procesar el correo de acceso.'}});
     }
   };

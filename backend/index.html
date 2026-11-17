@@ -21,17 +21,26 @@
       <button id="dismiss-notice" type="button" aria-label="Cerrar mensaje">×</button>
     </div>
     <section id="auth">
-      <h2>Cuenta de prueba</h2>
+      <div class="auth-welcome"><span class="auth-emblem" aria-hidden="true">♡</span>
+        <p class="auth-eyebrow">EL CUIDADO, EN COMPAÑÍA</p>
+        <h2 id="auth-title">Qué bueno tenerte aquí</h2>
+        <p id="auth-description">Entra para acompañar a tu familia y tener su cuidado a mano.</p>
+      </div>
+      <div id="auth-modes" class="auth-modes" role="group" aria-label="Opciones de cuenta">
+        <button id="auth-mode-login" type="button" aria-pressed="true">Iniciar sesión</button>
+        <button id="auth-mode-register" type="button" aria-pressed="false">Crear cuenta</button>
+      </div>
       <form id="credentials">
         <label>Entorno de prueba <select name="environment"><option value="local">Supabase local</option><option value="cloud">Supabase de pruebas en la nube</option></select></label>
         <label>Clave publicable <input name="key" autocomplete="off" required></label>
-        <label>Correo o identificador de acceso <input name="email" autocomplete="username" required maxlength="320"></label>
-        <label>Contraseña <input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
-        <button>Iniciar sesión</button>
-        <button name="register" value="yes">Crear cuenta de prueba</button>
+        <label><span id="auth-identifier-label">Correo o identificador de acceso</span> <input name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="320"></label>
+        <div class="auth-password-group"><label for="auth-password">Contraseña</label><span class="auth-password-field"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button id="auth-show-password" type="button" aria-controls="auth-password" aria-pressed="false">Mostrar</button></span></div>
+        <p id="auth-register-help" class="auth-hint" hidden>Tu cuenta principal puede administrar varias familias. Usa un correo propio y una contraseña de al menos 12 caracteres.</p>
+        <button id="auth-submit-login" class="auth-primary">Entrar a Acompaña <span aria-hidden="true">→</span></button>
       </form>
       <p id="connection-help">Para el entorno local usa un correo ficticio que termine en .test.</p>
       <section aria-labelledby="account-recovery-heading">
+        <details id="auth-recovery-details" class="auth-assistance"><summary>¿Olvidaste tu contraseña?</summary>
         <h3 id="account-recovery-heading">Recuperar mi cuenta principal</h3>
         <div id="account-recovery-request">
           <p>Recibe un enlace para cambiar tu contraseña. Si usas un acceso temporal sin correo, solicita su recuperación a quien administra tu familia.</p>
@@ -50,8 +59,10 @@
           </form>
         </div>
         <p id="account-recovery-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        </details>
       </section>
       <section id="temporary-activation" hidden aria-labelledby="temporary-activation-heading">
+        <details class="auth-assistance"><summary>Tengo un código de acceso temporal</summary>
         <h3 id="temporary-activation-heading">Activar acceso temporal</h3>
         <p>Usa el código que te entregó quien administra tu familia. Elige una contraseña personal; no necesitas correo.</p>
         <form id="activate-temporary-access">
@@ -61,6 +72,7 @@
           <button data-icon="✓">Activar acceso</button>
         </form>
         <p id="temporary-activation-result" role="status"></p>
+        </details>
       </section>
     </section>
     <section id="session" hidden>
