@@ -1,6 +1,7 @@
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const projectionFormat = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+const itemFields = 'id,patient_id,name,kind,base_quantity,base_at,consumptions,revision,patients(name,archived_at),inventory_profiles(name,consumptions)';
 
 export function inventoryNumber(input, label, positive = false) {
   const value = input.trim();
@@ -12,6 +13,9 @@ export function inventoryNumber(input, label, positive = false) {
 }
 
 export function projectStock(domain, item, now) {
+  if (item.kind === 'sup' && !item.consumptions.length) {
+    return { rem: Number(item.base_quantity), manual: true };
+  }
   return domain.calc({ base: item.base_quantity, t0: item.base_at, cons: item.consumptions }, now);
 }
 
@@ -21,6 +25,7 @@ export function remainingStock(domain, item, now) {
 
 export function stockMessage(domain, stock) {
   if (stock.rem === 0) return 'Agotado';
+  if (stock.manual) return 'Conteo manual';
   if (!stock.left) return 'Existencias insuficientes';
   if (stock.st === 'red') return 'Comprar hoy';
   if (stock.st === 'amber') return stock.now ? 'Comprar pronto' : 'Comprar antes del ' + domain.fmt(stock.buy);
@@ -61,6 +66,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
   const toggle = $('inventory-price-toggle');
   const medicineButton = $('open-inventory-medicine');
   const supplyButton = $('open-inventory-supply');
+  const manual = $('inventory-manual-stock');
+  const calendarSelection = $('calendar-opened-item');
   let client, family, patients = [], items = [], pendingAdd, pendingBuy, timer;
   let visiblePatient = '', patientNames = new Map();
   let editDraft;
@@ -120,6 +127,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
   }
 
   function readSchedules() {
+    if (add.elements.kind.value === 'sup' && manual.checked) return [];
     const domain = window.AcompanaDomain;
     return Array.from(schedules.children, row => {
       const value = name => row.querySelector('[data-field=' + name + ']').value;
@@ -142,6 +150,12 @@ export function createInventory({ run, status, renderTable, onChange }) {
     });
   }
 
+  function updateStockMode() {
+    const manualMode = add.elements.kind.value === 'sup' && manual.checked;
+    $('inventory-schedule-entry').hidden = manualMode;
+    for (const field of schedules.querySelectorAll('input, select')) field.disabled = manualMode;
+  }
+
   function resetAdd() {
     editDraft = undefined;
     add.reset();
@@ -150,6 +164,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
     medicineButton.setAttribute('aria-expanded', 'false');
     supplyButton.setAttribute('aria-expanded', 'false');
     schedules.replaceChildren();
+    updateStockMode();
   }
 
   function openEntry(kind, editing = false) {
@@ -162,6 +177,9 @@ export function createInventory({ run, status, renderTable, onChange }) {
     $('inventory-entry-name').textContent = supply ? 'Nombre del insumo' : 'Nombre de la medicina';
     $('inventory-entry-quantity').textContent = supply ? 'Piezas disponibles' : 'Cantidad actual';
     $('save-inventory').textContent = editing ? 'Guardar cambios' : supply ? 'Guardar insumo' : 'Guardar medicina';
+    $('inventory-manual-label').hidden = !supply;
+    manual.checked = supply && !editing;
+    updateStockMode();
   }
 
   function startEdit(item, stock) {
@@ -174,6 +192,9 @@ export function createInventory({ run, status, renderTable, onChange }) {
     add.elements.quantity.value = stock.rem;
     schedules.replaceChildren();
     for (const consumption of item.consumptions) addSchedule(false, consumption);
+    if (!item.consumptions.length) addSchedule();
+    manual.checked = item.kind === 'sup' && !item.consumptions.length;
+    updateStockMode();
     add.elements.name.focus();
   }
 
@@ -201,6 +222,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
     patientFilter.replaceChildren();
     $('inventory-items').replaceChildren();
     history.replaceChildren();
+    clearCalendarSelection();
     showPrices(false);
   }
 
@@ -211,7 +233,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
     const filter = { family_id: 'eq.' + family };
     const [available, purchases] = await Promise.all([
       client.select('inventory_items', { ...filter,
-        select: 'id,patient_id,name,kind,base_quantity,base_at,consumptions,revision,patients(name,archived_at),inventory_profiles(name,consumptions)',
+        select: itemFields,
         order: 'name.asc,id.asc' }),
       movements(visiblePatient)
     ]);
@@ -238,6 +260,41 @@ export function createInventory({ run, status, renderTable, onChange }) {
     renderLists(purchases);
   }
 
+  async function openItem(id, navigate) {
+    const [row] = await client.select('inventory_items', { family_id: 'eq.' + family, id: 'eq.' + id, select: itemFields });
+    if (!row) throw new Error('El artículo ya no está disponible.');
+    const item = { ...row, ...row.inventory_profiles };
+    if (!item.patients.archived_at && purchaseItem.value !== item.id) {
+      const hasDraft = buy.elements.quantity.value || buy.elements.price.value || buy.elements.shop.value;
+      if (hasDraft && !confirm('¿Descartar el borrador de la compra abierta?')) return;
+      buy.reset();
+      $('save-inventory-movement').textContent = 'Registrar compra';
+    }
+    items = [...items.filter(entry => entry.id !== item.id), item];
+    const label = item.name + ' · ' + patientLabel(item.patient_id, item.patients.name);
+    const selection = calendarSelection;
+    selection.textContent = label + ' · ' + window.AcompanaDomain.num(remainingStock(window.AcompanaDomain, item, Date.now()))
+      + ' unidades' + (item.patients.archived_at ? ' · Ficha archivada' : '');
+    selection.hidden = false;
+    navigate();
+    if (!item.patients.archived_at) {
+      if (!Array.from(purchaseItem.options).some(option => option.value === item.id)) {
+        purchaseItem.add(new Option(label, item.id));
+      }
+      purchaseItem.value = item.id;
+      buy.querySelector('button').disabled = false;
+      purchaseItem.focus();
+    } else {
+      selection.tabIndex = -1;
+      selection.focus();
+    }
+  }
+
+  function clearCalendarSelection() {
+    calendarSelection.hidden = true;
+    calendarSelection.textContent = '';
+  }
+
   function renderLists(purchases) {
     const domain = window.AcompanaDomain;
     const now = Date.now();
@@ -248,14 +305,19 @@ export function createInventory({ run, status, renderTable, onChange }) {
       const details = document.createElement('details');
       details.open = openDetails.has(row.id);
       const summary = document.createElement('summary');
-      summary.textContent = 'Ver pautas';
-      summary.setAttribute('aria-label', 'Ver pautas de ' + row.name + ' · ' + patientLabel(row.patient_id, row.patients.name));
+      summary.textContent = stock.manual ? 'Ver conteo' : 'Ver pautas';
+      summary.setAttribute('aria-label', summary.textContent + ' de ' + row.name + ' · ' + patientLabel(row.patient_id, row.patients.name));
       const list = document.createElement('ul');
       list.replaceChildren(...row.consumptions.map(consumption => {
         const entry = document.createElement('li');
         entry.textContent = formatConsumption(domain, consumption);
         return entry;
       }));
+      if (stock.manual) {
+        const entry = document.createElement('li');
+        entry.textContent = 'Existencias contadas: ' + domain.num(stock.rem) + ' piezas.';
+        list.append(entry);
+      }
       details.append(summary, list);
       if (!row.patients.archived_at && stock.end) {
         const projection = document.createElement('p');
@@ -309,6 +371,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
   }
 
   $('add-schedule').addEventListener('click', () => addSchedule(true));
+  manual.addEventListener('change', updateStockMode);
+  purchaseItem.addEventListener('change', clearCalendarSelection);
   $('cancel-inventory-edit').addEventListener('click', resetAdd);
   for (const [button, kind] of [[medicineButton, 'medicine'], [supplyButton, 'sup']]) {
     button.addEventListener('click', () => {
@@ -318,6 +382,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
       resetAdd();
       openEntry(kind);
       addSchedule();
+      updateStockMode();
       add.elements.name.focus();
     });
   }
@@ -385,8 +450,9 @@ export function createInventory({ run, status, renderTable, onChange }) {
     }
     pendingBuy = undefined;
     buy.reset();
+    clearCalendarSelection();
     $('save-inventory-movement').textContent = 'Registrar compra';
     await refreshAfterWrite(isQuote ? 'Cotización guardada.' : 'Compra registrada.');
   }));
-  return { load, scope };
+  return { load, scope, openItem };
 }

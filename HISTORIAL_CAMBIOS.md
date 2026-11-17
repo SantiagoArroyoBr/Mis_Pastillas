@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-17 — RECONST-026 · Acceso directo y conteo manual
+
+Sobre `f4e52f1`, el calendario abre la cita concreta o preselecciona el artículo correspondiente en la compra. Al cambiar de artículo se confirma el descarte de un borrador previo. Los insumos admiten conteo manual sin pautas y quedan fuera de las proyecciones del calendario. Se conserva el registro de compras y la revisión de edición.
+
+Se verificó la exportación y restauración JSON de inventario y perfiles antes de aplicar `20261116000900` al Supabase local. Pasaron **20/20** pruebas del piloto, **2/2** integradas y **102/102** de regresión PWA. Tras retomar la sesión se repitieron las dos pruebas integradas y el recorrido de Edge a 320 px con selección exacta y control de borradores. Se reinició el servidor local para terminar la comprobación.
+
 ## 2026-11-16 — RECONST-025 · Médicos, conceptos e insumos
 
 Sobre `41cb195`, las tablas integran los colores de cada apartado y alternan los fondos de filas. Citas médicas tiene un apartado de alta con médico independiente del lugar. Los abonos individuales y generales guardan un concepto opcional y mantienen su identificador interno para reintentos y cancelación, fuera de la vista. Inventario abre un formulario diferenciado para insumos con piezas y frecuencia estimada. El conteo manual sin pauta queda pendiente.

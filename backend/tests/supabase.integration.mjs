@@ -25,6 +25,22 @@ test('inventory lets family members buy stock without applying a concurrent purc
   const patient = await owner.rpc('add_patient', { family, patient_name: 'Ficha ficticia' });
   await caregiver.rpc('accept_invite', { invitation: await owner.rpc('create_invite', { family, invite_email: email }) });
   const initial = Date.UTC(2026, 10, 16, 8);
+  const manualSupply = { family, patient, request_id: randomUUID(), item_name: 'Insumo ficticio',
+    item_kind: 'sup', quantity: '4.5', counted_at: initial, schedules: [] };
+  const manual = await owner.rpc('add_inventory_item', manualSupply);
+  await assert.rejects(owner.rpc('add_inventory_item', {
+    ...manualSupply, request_id: randomUUID(), item_kind: 'medicine'
+  }), { status: 400 });
+  assert.equal(await caregiver.rpc('edit_inventory_item', {
+    family, item: manual, expected_revision: 1, item_name: 'Insumo ficticio', quantity: '3',
+    counted_at: initial + 1, schedules: []
+  }), 2);
+  await caregiver.rpc('record_inventory_purchase', {
+    family, item: manual, request_id: randomUUID(), expected_revision: 2, quantity: '2',
+    price: null, day: '2026-11-16', shop_name: '', remaining: '3', counted_at: initial + 2
+  });
+  assert.deepEqual(await owner.select('inventory_items', { id: 'eq.' + manual, select: 'base_quantity,revision,consumptions' }),
+    [{ base_quantity: 5, revision: 3, consumptions: [] }]);
   const item = await owner.rpc('add_inventory_item', {
     family, request_id: randomUUID(), patient, item_name: 'Producto ficticio', item_kind: 'medicine',
     quantity: '10', counted_at: initial, schedules: [
@@ -68,7 +84,7 @@ test('inventory lets family members buy stock without applying a concurrent purc
   assert.deepEqual(await loadInventoryPurchases(owner, family, homonym), []);
   assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 1, archived: true }), 2);
   const history = await loadInventoryPurchases(caregiver, family, patient);
-  assert.deepEqual(history.map(row => [row.inventory_items.patient_id, row.quantity]), [[patient, 2.5]]);
+  assert.deepEqual(history.map(row => [row.inventory_items.patient_id, row.quantity]), [[patient, 2.5], [patient, 2]]);
   assert.deepEqual(await loadInventoryPurchases(outsider, family, patient), []);
   assert.deepEqual((await loadCalendarRecords(owner, family, patient, new Date(2026, 10, 16), true)).inventory, []);
 });
@@ -215,6 +231,7 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   await assert.rejects(outsider.rpc('edit_appointment', { ...editBooking, details: '' }), { status: 403 });
   const agenda = await loadCalendarRecords(owner, family, patient, new Date(2026, 10, 16), true);
   assert.ok(agenda.appointments.some(row => row.appointment_day === previousDay));
+  assert.ok(agenda.appointments.some(row => row.id === appointmentId));
   assert.deepEqual(agenda.shifts.map(row => row.service_day), [day]);
   const caregiverCalendar = await loadCalendarRecords(caregiver, family, patient, new Date(2026, 10, 16), false);
   assert.deepEqual(caregiverCalendar.appointments, agenda.appointments);

@@ -3,7 +3,17 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
-import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption } from '../inventory.mjs';
+import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption, projectStock } from '../inventory.mjs';
+
+test('manual supplies keep counted stock and generate no projected events', () => {
+  const now = new Date(2026, 10, 16, 9).getTime();
+  const item = { id: 'manual', kind: 'sup', base_quantity: 4.5, consumptions: [], patients: { name: 'Ficha' } };
+  const domain = { calc: () => { throw new Error('El conteo manual no se proyecta'); } };
+  assert.deepEqual(projectStock(domain, item, now), { rem: 4.5, manual: true });
+  assert.equal(stockMessage(domain, { rem: 4.5, manual: true }), 'Conteo manual');
+  assert.equal(buildCalendarEvents({ from: '2026-11-01', until: '2026-12-01',
+    appointments: [], shifts: [], inventory: [item] }, domain, now).size, 0);
+});
 import { buildCalendarEvents, monthRange, upcomingCalendarDays } from '../calendar.mjs';
 
 test('calendar shortcuts show the first three upcoming days including today', () => {

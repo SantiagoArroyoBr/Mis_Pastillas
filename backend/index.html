@@ -153,6 +153,10 @@
             <button id="save-appointment">Guardar cita</button>
             <button id="cancel-edit-appointment" type="button">Cancelar edición de cita</button>
           </form>
+          <section id="calendar-opened-appointment" class="pilot-entry-panel" aria-labelledby="calendar-opened-appointment-heading" hidden>
+            <h3 id="calendar-opened-appointment-heading" tabindex="-1">Cita del calendario</h3>
+            <div id="calendar-opened-appointment-content"></div>
+          </section>
           <label>Filtrar citas por ficha <select id="appointment-filter"></select></label>
           <h3>Próximas citas</h3>
           <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Próximas citas">
@@ -181,8 +185,11 @@
             <label><span id="inventory-entry-name">Nombre de la medicina</span> <input name="name" maxlength="160" required></label>
             <input type="hidden" name="kind" value="medicine">
             <label><span id="inventory-entry-quantity">Cantidad actual</span> <input name="quantity" inputmode="decimal" required></label>
-            <div id="inventory-schedules"></div>
-            <button id="add-schedule" type="button">Agregar otra pauta</button>
+            <label id="inventory-manual-label" hidden><input id="inventory-manual-stock" type="checkbox"> Controlar por conteo manual</label>
+            <div id="inventory-schedule-entry">
+              <div id="inventory-schedules"></div>
+              <button id="add-schedule" type="button">Agregar otra pauta</button>
+            </div>
             <button id="save-inventory">Guardar artículo</button>
             <button id="cancel-inventory-edit" type="button">Cancelar</button>
           </form>
@@ -218,6 +225,7 @@
             <table aria-label="Existencias por ficha"><thead><tr><th scope="col">Artículo</th><th scope="col">Ficha</th><th scope="col">Existencias</th><th scope="col">Estado</th><th scope="col">Pautas y acciones</th></tr></thead><tbody id="inventory-items"></tbody></table>
           </div>
           <form id="inventory-purchase">
+            <p id="calendar-opened-item" hidden></p>
             <label>Tipo de registro <select name="mode"><option value="buy">Compra</option><option value="quote">Cotización</option></select></label>
             <label>Artículo de la compra <select name="item" required></select></label>
             <label>Cantidad de unidades <input name="quantity" inputmode="decimal" required></label>

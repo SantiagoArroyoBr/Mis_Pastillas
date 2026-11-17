@@ -43,7 +43,7 @@ function dismissNotice() {
 }
 
 $('dismiss-notice').addEventListener('click', dismissNotice);
-const calendar = createCalendar(run);
+const calendar = createCalendar(run, openCalendarRecord);
 const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const backupFile = $('backup-review-file');
@@ -64,6 +64,8 @@ function hideEditing() {
 }
 
 function resetAppointments() {
+  $('calendar-opened-appointment').hidden = true;
+  $('calendar-opened-appointment-content').replaceChildren();
   for (const list of appointmentLists) $('appointments-' + list).replaceChildren();
   $('appointments-legacy-section').hidden = true;
   appointment.elements.patient.replaceChildren();
@@ -199,6 +201,37 @@ function showPilotView() {
   for (const panel of $('session').querySelectorAll('[data-pilot-view]')) {
     panel.hidden = panel.dataset.pilotView !== current;
   }
+}
+
+async function openCalendarRecord(event) {
+  const family = families.value;
+  function navigate(hash) {
+    location.hash = hash;
+    showPilotView();
+  }
+  if (event.kind !== 'appointment') {
+    await inventory.openItem(event.id, () => navigate('#inventory'));
+    return;
+  }
+  const [row] = await client.select('appointment_details', { family_id: 'eq.' + family, id: 'eq.' + event.id });
+  if (!row) throw new Error('La cita ya no está disponible.');
+  const panel = $('calendar-opened-appointment');
+  const content = $('calendar-opened-appointment-content');
+  const title = document.createElement('strong');
+  title.textContent = row.patient_name + ' · ' + row.appointment_day
+    + (row.appointment_time ? ' · ' + row.appointment_time.slice(0, 5) : '');
+  const details = document.createElement('p');
+  details.textContent = [row.doctor, row.location, row.notes].filter(Boolean).join(' · ');
+  content.replaceChildren(title, details);
+  if (activeAppointmentPatients.has(row.patient_id)) {
+    content.append(actionButton(row.patient_name, 'Editar cita', () => {
+      if (appointmentDraft && !confirm('¿Descartar el borrador de la cita abierta?')) return;
+      openAppointment(row, family);
+    }));
+  }
+  panel.hidden = false;
+  navigate('#appointments-heading');
+  $('calendar-opened-appointment-heading').focus();
 }
 
 window.addEventListener('hashchange', showPilotView);

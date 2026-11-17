@@ -30,7 +30,7 @@ En **Citas**, la cuenta propietaria o cuidadora puede registrar una cita vincula
 
 En **Inventario**, da de alta una medicina o insumo para una ficha activa y agrega las pautas necesarias. Las frecuencias disponibles son diaria, días de la semana e intervalo. Las existencias se calculan con el mismo módulo de la PWA y se actualizan al guardar y al pulsar **Actualizar fichas**. Registra una compra con su cantidad y, si aplica, el precio total y la tienda. **Últimas compras** muestra hasta 20 movimientos. Su botón **Ver montos** revela los precios por 30 segundos y es independiente de Pagos.
 
-**Agregar insumo** abre campos de piezas y uso estimado, con intervalo como opción inicial y sin captura de horarios de toma. El piloto todavía requiere una frecuencia estimada para proyectar ese consumo. Los importes de compra solo se registran al capturar la compra o cotización.
+**Agregar insumo** activa **Controlar por conteo manual** al abrir. Indica las piezas disponibles, corrige el conteo al editar o registra una compra para sumar unidades. El calendario omite proyecciones para estos insumos. Si puedes estimar su uso, desmarca el conteo manual y captura una frecuencia. Las medicinas siguen usando pautas. Los importes se registran al capturar la compra o cotización.
 
 Los abonos generales e individuales admiten un **Concepto** opcional. El historial usa el concepto, la fecha y el importe según el control de privacidad. La referencia interna se conserva para conciliar y cancelar el movimiento correcto.
 
@@ -65,6 +65,14 @@ El **Calendario del cuidado** de Inicio resume cuántas citas, turnos, reposicio
 | Respaldo | Selecciona un JSON ficticio válido y uno inválido. El diagnóstico usa el validador de la PWA, muestra conteos y procesa el archivo en el navegador. |
 
 Este recorrido cubre el esqueleto local con conexión. La importación completa, el trabajo sin conexión, la sincronización entre teléfonos, los recordatorios y la reconstrucción visual de los HUDs tienen validaciones y alcance pendientes.
+
+Desde el detalle del calendario, **Abrir cita** muestra la cita concreta y **Abrir artículo** preselecciona ese registro en el formulario de compra. Si hay un borrador de compra de un artículo distinto, el piloto pide confirmación antes de descartarlo.
+
+## Prueba móvil propuesta
+
+El piloto local usa una URL de Supabase fijada a loopback y cuentas ficticias. Para probar el flujo compartido desde iPhone, la propuesta es publicar un frontend de prueba separado en Vercel, conectarlo por HTTPS a un proyecto de Supabase de pruebas con las migraciones y configurar Auth para cuentas de acceso controlado. El navegador usa la clave publicable y los permisos por familia. [Claves de API de Supabase](https://supabase.com/docs/guides/getting-started/api-keys) · [Configuración de Auth](https://supabase.com/docs/guides/auth/general-configuration).
+
+La prueba de móviles usaría dos cuentas y una familia ficticia. Verificar lectura y edición compartidas, permisos de una segunda familia, recuperación de cuenta y restauración de un respaldo de prueba. La Preview propuesta conserva su base separada de producción.
 
 ## Pruebas
 

@@ -11,13 +11,6 @@ const categories = {
   stock: ['R', 'Reposición estimada'],
   depletion: ['A', 'Agotamiento estimado']
 };
-const sectionLinks = {
-  appointment: ['#appointments-heading', 'Ir a Citas'],
-  shift: ['#finance', 'Ir a Enfermería y pagos'],
-  stock: ['#inventory', 'Ir a Inventario'],
-  depletion: ['#inventory', 'Ir a Inventario']
-};
-
 export function upcomingCalendarDays(byDay, today) {
   return Array.from(byDay).filter(([day]) => day >= today)
     .sort(([left], [right]) => left.localeCompare(right)).slice(0, 3);
@@ -46,12 +39,12 @@ export async function loadCalendarRecords(client, family, patient, month, owner)
   const filter = { family_id: 'eq.' + family, ...(patient && { patient_id: 'eq.' + patient }) };
   const [appointments, shifts, inventory] = await Promise.all([
     readRows(client, 'appointment_details', { ...filter, and: range('appointment_day'),
-      select: 'appointment_day,appointment_time,patient_name,location,notes,doctor',
+      select: 'id,appointment_day,appointment_time,patient_name,location,notes,doctor',
       order: 'appointment_day.asc,appointment_time.asc.nullslast,id.asc' }),
     owner ? readRows(client, 'shifts', { ...filter, and: range('service_day'),
       select: 'service_day,modality,patients(name),nurses(name)', order: 'service_day.asc,id.asc' }) : [],
     readRows(client, 'inventory_items', { ...filter, 'patients.archived_at': 'is.null',
-      select: 'name,base_quantity,base_at,consumptions,patients!inner(name),inventory_profiles(name,consumptions)',
+      select: 'id,kind,name,base_quantity,base_at,consumptions,patients!inner(name),inventory_profiles(name,consumptions)',
       order: 'id.asc' })
   ]);
   return { appointments, shifts, inventory, from, until };
@@ -66,7 +59,7 @@ export function buildCalendarEvents(records, domain, now) {
   }
   const today = dateKey.format(now);
   for (const row of records.appointments) {
-    add(row.appointment_day, { kind: 'appointment', name: row.patient_name,
+    add(row.appointment_day, { kind: 'appointment', id: row.id, name: row.patient_name,
       details: [row.appointment_time?.slice(0, 5), row.doctor, row.location, row.notes].filter(Boolean).join(' · ') });
   }
   for (const row of records.shifts) {
@@ -78,20 +71,21 @@ export function buildCalendarEvents(records, domain, now) {
   for (const row of records.inventory) {
     const item = { ...row, ...row.inventory_profiles };
     const stock = projectStock(domain, item, now);
+    if (stock.manual) continue;
     const details = row.patients.name + ' · ' + domain.num(stock.rem) + ' unidades al consultar';
     if (stock.now || stock.end) {
-      add(stock.now ? today : dateKey.format(stock.buy), { kind: 'stock', name: item.name, details });
+      add(stock.now ? today : dateKey.format(stock.buy), { kind: 'stock', id: item.id, name: item.name, details });
     }
     if (!stock.left || stock.end) {
       const exhaustion = stock.end ? dateKey.format(stock.end) : today;
-      add(exhaustion, { kind: 'depletion', name: item.name,
+      add(exhaustion, { kind: 'depletion', id: item.id, name: item.name,
         details: details + (stock.end ? ' · Día de la última toma o uso completo proyectado' : ' · No alcanza para el próximo uso') });
     }
   }
   return byDay;
 }
 
-export function createCalendar(run) {
+export function createCalendar(run, openRecord) {
   const filter = $('pilot-calendar-patient');
   const grid = $('pilot-calendar-grid');
   const detail = $('pilot-calendar-detail');
@@ -138,11 +132,23 @@ export function createCalendar(run) {
           description.textContent = event.details;
           entry.append(description);
         }
+        if (event.id) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = kind === 'appointment' ? 'Abrir cita' : 'Abrir artículo';
+          button.setAttribute('aria-label', button.textContent + ' · ' + event.name);
+          button.addEventListener('click', run(() => openRecord(event)));
+          entry.append(button);
+        }
         entries.append(entry);
       }
-      const link = document.createElement('a');
-      [link.href, link.textContent] = sectionLinks[kind];
-      item.append(heading, entries, link);
+      item.append(heading, entries);
+      if (kind === 'shift') {
+        const link = document.createElement('a');
+        link.href = '#finance';
+        link.textContent = 'Ir a Enfermería y pagos';
+        item.append(link);
+      }
       return [item];
     });
     if (!rows.length) {
