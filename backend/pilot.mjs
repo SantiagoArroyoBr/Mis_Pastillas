@@ -327,6 +327,9 @@ async function refreshFamily() {
   showPilotView();
   $('owner-actions').hidden = !owner;
   $('create-family').hidden = Boolean(client?.isTemporary);
+  $('settings-create-family').hidden = Boolean(client?.isTemporary);
+  $('settings-accept-invite').hidden = Boolean(client?.isTemporary);
+  $('settings-create-family').open = !family && !client?.isTemporary;
   $('accept-invite').hidden = Boolean(client?.isTemporary);
   await adminAccess.load(client, family, owner);
   if (renderedFamily !== family) {

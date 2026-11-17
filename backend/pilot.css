@@ -282,3 +282,35 @@
 .connected-pilot .auth-assistance p { font-size: .86rem; line-height: 1.5; color: #52676c; }
 .connected-pilot #account-recovery-status:not(:empty), .connected-pilot #temporary-activation-result:not(:empty) { border-radius: 10px; padding: .8rem; background: #edf3f2; color: #294e5b; }
 @media (max-width: 420px) { .connected-pilot main { padding: .8rem; } .connected-pilot #auth { border-radius: 19px; } }
+/* Marco común para acceso, Inicio y Configuración. */
+.connected-pilot header .pilot-heading { text-align: center; padding-inline: .5rem; }
+.connected-pilot .ui-icon { width: 1.25rem; height: 1.25rem; flex: 0 0 1.25rem; vertical-align: middle; }
+.connected-pilot .auth-emblem .ui-icon { width: 1.8rem; height: 1.8rem; }
+.connected-pilot #auth { background: var(--card); border-color: var(--line); box-shadow: 0 5px 18px #2455650b; }
+.connected-pilot .auth-emblem, .section-emblem { background: var(--calendar-surface); color: var(--navy); border: 1px solid #c4d8dd; }
+.connected-pilot #auth input { background: var(--card); }
+.connected-pilot .auth-modes { background: var(--calendar-surface); }
+.connected-pilot .auth-eyebrow, .connected-pilot .section-eyebrow { color: #52676c; letter-spacing: .12em; font-size: .65rem; font-weight: 800; margin: 0 0 .35rem; }
+.connected-pilot .auth-eyebrow { margin-top: .9rem; }
+.pilot-section-heading { display: flex; justify-content: center; align-items: center; gap: .8rem; margin-bottom: 1.2rem; text-align: left; }
+.section-emblem { display: inline-grid; place-items: center; flex: 0 0 3rem; width: 3rem; height: 3rem; border-radius: 15px; }
+.connected-pilot .pilot-section-heading h2 { margin: 0; color: var(--navy); line-height: 1.2; }
+.connected-pilot .pilot-summary article { text-align: center; align-items: center; }
+.connected-pilot .settings-intro { text-align: center; color: #52676c; font-size: .9rem; max-width: 33rem; margin: 0 auto 1.25rem; }
+.connected-pilot .settings-card { min-width: 0; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(.8rem,3vw,1.2rem); margin: 1rem 0; }
+.connected-pilot .settings-card > h3 { display: flex; align-items: center; gap: .55rem; color: var(--navy); font-size: 1.05rem; }
+.connected-pilot .settings-card p { font-size: .85rem; color: #52676c; overflow-wrap: anywhere; }
+.connected-pilot .settings-card form { margin-bottom: 0; }
+.connected-pilot .settings-card form > button { width: 100%; margin-inline: 0; }
+.connected-pilot .settings-disclosure { margin-top: .8rem; border-top: 1px solid var(--line); }
+.connected-pilot .settings-disclosure summary { cursor: pointer; min-height: 44px; padding: .8rem 0 .4rem; color: var(--navy); font-size: .9rem; }
+.connected-pilot .settings-account { background: var(--calendar-surface); }
+.connected-pilot #logout { display: block; margin-inline: auto; width: 100%; }
+.connected-pilot #reload { display: block; margin: .5rem auto 1rem; }
+.connected-pilot button[data-icon]::before { display: inline-block; width: 1.2em; text-align: center; font-family: system-ui,sans-serif; font-weight: 500; }
+@media (min-width: 640px) {
+  .connected-pilot #configuracion { padding: 1.5rem; }
+  .connected-pilot #configuracion > .settings-card, .connected-pilot #owner-actions { max-width: 38rem; margin-inline: auto; }
+}
+.connected-pilot #pilot-navigation a:last-child { grid-column: 1 / -1; }
+.connected-pilot [data-pilot-view] > h2, .connected-pilot #finance > h2 { text-align: center; }

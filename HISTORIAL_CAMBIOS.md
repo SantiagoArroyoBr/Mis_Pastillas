@@ -551,3 +551,8 @@ La candidata añade recuperación de cuenta principal, limpieza inmediata de tok
 
 El commit 1454a4e se publicó en origin/development. La URL estable de acompana-piloto responde 200 sin cookies y sirve el nuevo selector de cuenta y Mostrar contraseña; el navegador confirmó la nueva tarjeta. Publicación verificada el 17/11/2026. Main y pastillas-1 sin cambios.
 
+
+## 2026-11-17 — RECONST-031 · Interfaz coherente y Configuración
+
+Sobre 79451a4, acceso e Inicio comparten superficies y colores; el menú usa siete iconos SVG de contorno. Se centraron cabeceras y resúmenes, y Configuración separa familias, accesos temporales, invitaciones y cuenta con formularios desplegables. Se preservan reglas y permisos. Pasaron 54/54 pruebas conectadas y 102/102 de regresión PWA, compilación de 18 recursos, sintaxis y diff. En ensayo se probaron entrada, alta ficticia de familia y ficha, actualización de Inicio, los siete apartados a 320 px y cierre de sesión. [Evidencia y límites](docs/RECONST-031-coherencia-interfaz.md).
+
