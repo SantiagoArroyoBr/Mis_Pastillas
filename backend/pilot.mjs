@@ -77,6 +77,7 @@ function endSession() {
   renderedFamily = undefined;
   $('members').replaceChildren();
   $('invite-code').value = '';
+  $('invite-result').hidden = true;
   $('accept-invite').reset();
   hideEditing();
   $('session').hidden = true;
@@ -118,7 +119,7 @@ function run(action) {
       }
     } finally {
       busy = false;
-      families.disabled = false;
+      families.disabled = !families.value;
       appointmentFilter.disabled = false;
       $('inventory-filter').disabled = false;
     }
@@ -143,12 +144,12 @@ function itemWithButton(text, label, action) {
 function showPilotView() {
   const links = Array.from($('pilot-navigation').querySelectorAll('a'));
   const requested = links.find(link => !link.hidden && link.hash === location.hash);
-  const current = requested?.hash ?? '#inicio';
+  const current = requested?.hash ?? (families.value ? '#inicio' : '#configuracion');
   for (const link of links) {
     if (link.hash === current) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
-  for (const panel of $('family').querySelectorAll('[data-pilot-view]')) {
+  for (const panel of $('session').querySelectorAll('[data-pilot-view]')) {
     panel.hidden = panel.dataset.pilotView !== current;
   }
 }
@@ -161,12 +162,17 @@ async function refreshFamily() {
   finance.scope(owner ? family : undefined);
   inventory.scope(family || undefined);
   $('family').hidden = !family;
-  $('pilot-navigation').hidden = !family;
-  $('finance-link').hidden = !owner;
+  $('pilot-navigation').hidden = false;
+  for (const link of $('pilot-navigation').querySelectorAll('a')) {
+    link.hidden = link.hash !== '#configuracion' && (!family || (link.hash === '#finance' && !owner));
+  }
+  $('no-family-help').hidden = Boolean(family);
+  families.disabled = !family || busy;
   $('reload').hidden = !family;
   showPilotView();
   $('owner-actions').hidden = !owner;
   if (renderedFamily !== family) {
+    $('members').replaceChildren();
     clearBackup();
     $('patients').replaceChildren();
     $('archived-patients').replaceChildren();

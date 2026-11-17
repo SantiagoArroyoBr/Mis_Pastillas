@@ -41,8 +41,8 @@
 .connected-pilot #pilot-navigation a[href="#finance"][aria-current=page] { background: var(--payment-accent); }
 .connected-pilot #pilot-navigation img { width: 18px; height: 18px; flex: none; }
 .connected-pilot #pilot-navigation a[aria-current=page] img { filter: brightness(0) invert(1); }
-.pilot-family-tools, .pilot-summary { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
-.pilot-family-tools label, .pilot-summary article { flex: 1 1 12rem; min-width: 0; }
+.pilot-summary { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
+.pilot-summary article { flex: 1 1 12rem; min-width: 0; }
 .pilot-summary article { display: grid; gap: .2rem; border-radius: 15px; padding: .8rem; background: var(--calendar-surface); }
 .pilot-summary strong { font-size: 1.65rem; color: var(--navy); }
 .pilot-summary a { color: var(--navy); }

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-021 · Familias en Configuración
+
+Sobre `f84312a`, la selección y el alta de familias, las invitaciones, los accesos y el cierre de sesión se agrupan en Configuración. Una cuenta sin familia entra allí para crear una o aceptar una invitación. Se conservan los permisos vigentes y se limpia la información de la gestión anterior al cambiar de familia.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se comprobó el alta sin familia, la aceptación de la invitación desde una cuenta cuidadora y la ocultación de los formularios de familia al navegar. El calendario con compras estimadas, citas y turnos quedó registrado para un lote posterior. [Calendario de Inicio](docs/RECONST-001-evaluacion-de-inicio.md#calendario-de-inicio).
+
 ## 2026-11-16 — RECONST-020 · Primera integración visual con Supabase
 
 Sobre `6b2abc9`, el piloto en el puerto 4173 usa los estilos, la fuente Nunito y los iconos de la PWA. La navegación presenta una pantalla por vez y muestra Enfermería y pagos solo a la cuenta propietaria. Inicio muestra conteos de fichas activas y archivadas de la familia. El puerto 4174 conserva la vista de referencia de la PWA.

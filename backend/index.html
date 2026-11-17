@@ -35,31 +35,24 @@
         <a href="#inventory"><img src="/icons/pill.svg" alt="">Inventario</a>
         <a href="#finance" id="finance-link" hidden><img src="/icons/wallet.svg" alt="">Enfermería y pagos</a>
         <a href="#backup-review">Respaldo</a>
+        <a href="#configuracion">Configuración</a>
       </nav>
-      <button id="logout" type="button">Cerrar sesión</button>
-      <h2>Familias</h2>
-      <form id="create-family">
-        <label>Nombre de familia <input name="name" required maxlength="80"></label>
-        <button>Crear familia</button>
-      </form>
-      <form id="accept-invite">
-        <label>Código de invitación <input name="code" required autocomplete="off"></label>
-        <button>Aceptar invitación</button>
-      </form>
-      <div class="pilot-family-tools">
+      <button id="reload" type="button" hidden>Actualizar fichas</button>
+      <section id="configuracion" data-pilot-view="#configuracion" aria-labelledby="settings-heading" hidden>
+        <h2 id="settings-heading">Configuración</h2>
+        <h3>Familias</h3>
         <label>Familia activa <select id="families"></select></label>
-        <button id="reload" type="button" hidden>Actualizar fichas</button>
-      </div>
-      <section id="family" hidden>
-        <section id="inicio" data-pilot-view="#inicio" aria-labelledby="inicio-heading">
-          <h2 id="inicio-heading">Inicio</h2>
-          <div class="pilot-summary">
-            <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
-            <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
-          </div>
-        </section>
-        <section data-pilot-view="#family" aria-labelledby="pilot-patients-heading" hidden>
+        <p id="no-family-help" hidden>Crea una familia de prueba o acepta una invitación para acceder a los apartados.</p>
+        <form id="create-family">
+          <label>Nombre de familia <input name="name" required maxlength="80"></label>
+          <button>Crear familia</button>
+        </form>
+        <form id="accept-invite">
+          <label>Código de invitación <input name="code" required autocomplete="off"></label>
+          <button>Aceptar invitación</button>
+        </form>
         <div id="owner-actions" hidden>
+          <h3>Acceso a la familia activa</h3>
           <form id="invite">
             <label>Correo de la cuenta invitada <input name="email" type="email" required maxlength="320"></label>
             <button>Generar invitación</button>
@@ -70,6 +63,18 @@
           </div>
           <ul id="members"></ul>
         </div>
+        <h3>Cuenta de prueba</h3>
+        <button id="logout" type="button">Cerrar sesión</button>
+      </section>
+      <section id="family" hidden>
+        <section id="inicio" data-pilot-view="#inicio" aria-labelledby="inicio-heading">
+          <h2 id="inicio-heading">Inicio</h2>
+          <div class="pilot-summary">
+            <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
+            <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
+          </div>
+        </section>
+        <section data-pilot-view="#family" aria-labelledby="pilot-patients-heading" hidden>
         <h2 id="pilot-patients-heading">Fichas</h2>
         <form id="add-patient">
           <label>Nombre de ficha <input name="name" required maxlength="80"></label>

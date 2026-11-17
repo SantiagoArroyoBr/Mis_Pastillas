@@ -34,6 +34,12 @@ RECONST-007 alimenta el módulo `payments.js` de la PWA y las funciones SQL del 
 
 Para completar el primer corte falta reconciliar un respaldo de extremo a extremo entre ambos formatos. Los casos de fecha histórica inválida, relaciones sin correspondencia y campos que el esquema destino todavía no representa deben quedar identificados en esa reconciliación. [Plan de respaldo y restauración](arquitectura/DAT-003-respaldo-restauracion-migracion.md).
 
+### Calendario de Inicio
+
+Mantener la vista mensual por ficha de la PWA como referencia. Debe reunir citas, jornadas de enfermería y fechas estimadas de compra o agotamiento, con una leyenda y un detalle al seleccionar un día. La primera versión debe reutilizar el cálculo de inventario, distinguir fechas reales de estimaciones y respetar los permisos vigentes de enfermería. Inicio conserva avisos resumidos y el calendario concentra la consulta por fecha.
+
+Para verificar la paridad, usar una ficha ficticia con una cita próxima, dos jornadas de distinta modalidad, una compra sugerida y un artículo agotado. Probar dos eventos el mismo día, días con fecha histórica inválida, cambio de mes, ficha archivada, teclado y pantalla de 320 px. El calendario podrá incorporarse después del lote de Configuración.
+
 ## Decisiones pendientes
 
 - **Alcance de la reconstrucción.** El primer lote puede definirse sobre la PWA local. Backend, autenticación, sincronización, servicios y cambios del formato requieren una decisión explícita. [Evaluación de alternativas](arquitectura/DAT-002-evaluacion-backend-auth-aislamiento.md).
