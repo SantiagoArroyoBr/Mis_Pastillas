@@ -77,7 +77,7 @@ export async function loadAppliedPayments(client, family, shifts) {
   return totals;
 }
 
-export function createFinance({ run, status, itemWithButton }) {
+export function createFinance({ run, status, actionButton, renderTable }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
   const shift = $('record-shift');
@@ -87,9 +87,11 @@ export function createFinance({ run, status, itemWithButton }) {
   const history = $('finance-receipts');
   const shiftHistory = $('finance-shifts');
   const individualHistory = $('finance-individual-payments');
+  const rates = $('finance-rates');
   const hideReceiptAmounts = historyAmounts(history, $('receipt-toggle'));
   const hideShiftAmounts = historyAmounts(shiftHistory, $('shift-toggle'));
   const hideIndividualAmounts = historyAmounts(individualHistory, $('individual-toggle'));
+  const hideRates = historyAmounts(rates, $('rates-toggle'));
   const pending = new Map();
   let family, client, patients, balance, selected, timer;
 
@@ -119,10 +121,12 @@ export function createFinance({ run, status, itemWithButton }) {
     hideReceiptAmounts();
     hideShiftAmounts();
     hideIndividualAmounts();
+    hideRates();
     dismissCancellation();
     history.replaceChildren();
     shiftHistory.replaceChildren();
     individualHistory.replaceChildren();
+    rates.replaceChildren();
     $('add-nurse').reset();
     shift.reset();
     receipt.reset();
@@ -145,7 +149,7 @@ export function createFinance({ run, status, itemWithButton }) {
     const today = dateFormat.format(new Date());
     const filter = { family_id: 'eq.' + family };
     const [nurses, receipts, totals, shifts, individualPayments] = await Promise.all([
-      client.select('nurses', { ...filter, select: 'id,name', order: 'name.asc,id.asc' }),
+      client.select('nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
       client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents', order: 'paid_on.desc,id.desc', limit: 20 }),
       client.rpc('financial_balance', { family, as_of: today }),
       client.select('shifts', {
@@ -171,54 +175,42 @@ export function createFinance({ run, status, itemWithButton }) {
     shift.querySelector('button').disabled = !patients.length || !nurses.length;
     individual.querySelector('button').disabled = !nurses.length;
     for (const form of [shift, receipt, individual]) form.elements.day.value ||= today;
-    individualHistory.replaceChildren(...individualPayments.map(row => {
-      const item = document.createElement('li');
-      item.append(row.paid_on + ' · ' + row.nurses.name + ' · ', historyAmount(row.amount_cents));
-      return item;
-    }));
-    if (!individualPayments.length) {
-      const empty = document.createElement('li');
-      empty.textContent = 'Aún no hay abonos individuales.';
-      individualHistory.append(empty);
-    }
+    renderTable(rates, nurses.map(row => [
+      row.name, row.full_cents === null ? 'Sin tarifa' : historyAmount(row.full_cents),
+      row.half_cents === null ? 'Sin tarifa' : historyAmount(row.half_cents)
+    ]), 'Aún no hay tarifas registradas.');
+    $('rates-toggle').disabled = !nurses.length;
+    hideRates();
+    renderTable(individualHistory, individualPayments.map(row => [
+      row.paid_on, row.nurses.name, historyAmount(row.amount_cents)
+    ]), 'Aún no hay abonos individuales.');
     $('individual-toggle').disabled = !individualPayments.length;
     hideIndividualAmounts();
-    shiftHistory.replaceChildren(...shifts.map(row => {
-      const item = document.createElement('li');
+    renderTable(shiftHistory, shifts.map(row => {
       const modality = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';
       const date = row.service_day + (row.service_day > today ? ' (programada)' : '');
       const paid = applied.get(row.id) ?? 0n;
       const remaining = BigInt(row.cost_cents) - paid;
-      item.append([date, row.patients.name, row.nurses.name, modality].join(' · '),
-        ' · Costo ', historyAmount(row.cost_cents),
-        ' · Abonado ', historyAmount(paid),
-        ' · Pendiente ', historyAmount(remaining));
-      return item;
-    }));
-    if (!shifts.length) {
-      const empty = document.createElement('li');
-      empty.textContent = 'Aún no hay jornadas registradas.';
-      shiftHistory.append(empty);
-    }
+      return [date, row.patients.name, row.nurses.name, modality,
+        historyAmount(row.cost_cents), historyAmount(paid), historyAmount(remaining)];
+    }), 'Aún no hay jornadas registradas.');
     $('shift-toggle').disabled = !shifts.length;
     hideShiftAmounts();
-    history.replaceChildren(...receipts.map(row => {
+    renderTable(history, receipts.map(row => {
       const amount = historyAmount(row.amount_cents);
+      const reference = row.id.slice(0, 8);
       if (cancelled.has(row.id)) {
-        const item = document.createElement('li');
-        item.append(row.paid_on + ' · Cancelado el ' + cancelled.get(row.id) + ' · ', amount);
-        return item;
+        return [row.paid_on, reference, amount, 'Cancelado el ' + cancelled.get(row.id), '—'];
       }
-      const item = itemWithButton('Abono del ' + row.paid_on + ' · ' + row.id.slice(0, 8), 'Cancelar abono', () => {
+      const button = actionButton('Abono del ' + row.paid_on + ' · ' + reference, 'Cancelar abono', () => {
         selected = row.id;
-        $('cancel-receipt-detail').textContent = 'Abono del ' + row.paid_on + ' · ' + row.id.slice(0, 8);
+        $('cancel-receipt-detail').textContent = 'Abono del ' + row.paid_on + ' · ' + reference;
         cancel.elements.day.value = today;
         cancel.hidden = false;
         cancel.elements.day.focus();
       });
-      item.append(' · ', amount);
-      return item;
-    }));
+      return [row.paid_on, reference, amount, 'Activo', button];
+    }), 'Aún no hay abonos generales.');
     hideReceiptAmounts();
     panel.hidden = false;
   }

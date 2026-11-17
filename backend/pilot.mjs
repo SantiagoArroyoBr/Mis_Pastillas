@@ -19,17 +19,31 @@ let noticeTimer;
 function status(message, kind = 'success') {
   clearTimeout(noticeTimer);
   noticeTimer = undefined;
-  $('pilot-notice').dataset.kind = kind;
+  const notice = $('pilot-notice');
+  notice.classList.remove('is-fading');
+  notice.dataset.kind = kind;
   $('status').textContent = message;
   if (message) {
     const duration = kind === 'error' || kind === 'warning' ? 12000 : 6000;
-    noticeTimer = setTimeout(() => status('', 'info'), duration);
+    noticeTimer = setTimeout(dismissNotice, duration);
   }
 }
 
-$('dismiss-notice').addEventListener('click', () => status('', 'info'));
-const finance = createFinance({ run, status, itemWithButton });
-const inventory = createInventory({ run, status });
+function dismissNotice() {
+  const notice = $('pilot-notice');
+  if (!$('status').textContent || notice.classList.contains('is-fading')) return;
+  clearTimeout(noticeTimer);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    status('', 'info');
+  } else {
+    notice.classList.add('is-fading');
+    noticeTimer = setTimeout(() => status('', 'info'), 220);
+  }
+}
+
+$('dismiss-notice').addEventListener('click', dismissNotice);
+const finance = createFinance({ run, status, actionButton, renderTable });
+const inventory = createInventory({ run, status, renderTable });
 const backupFile = $('backup-review-file');
 let backupRequest = 0;
 
@@ -152,6 +166,22 @@ function itemWithButton(text, label, action) {
   const item = document.createElement('li');
   item.append(text + ' ', actionButton(text, label, action));
   return item;
+}
+
+function renderTable(body, rows, emptyMessage) {
+  if (!rows.length) {
+    const row = body.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = body.closest('table').tHead.rows[0].cells.length;
+    cell.textContent = emptyMessage;
+    body.replaceChildren(row);
+    return;
+  }
+  body.replaceChildren(...rows.map(values => {
+    const row = document.createElement('tr');
+    for (const value of values) row.insertCell().append(value);
+    return row;
+  }));
 }
 
 function showPilotView() {

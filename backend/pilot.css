@@ -71,7 +71,8 @@
 .connected-pilot .pilot-notice[data-kind=success] { --notice-fill: #e6eee8; --notice-ink: #245342; --notice-label: "Confirmado"; }
 .connected-pilot .pilot-notice[data-kind=warning] { --notice-fill: #fff0d8; --notice-ink: #704500; --notice-label: "Atención"; }
 .connected-pilot .pilot-notice[data-kind=error] { --notice-fill: #fbe8e6; --notice-ink: #862c28; --notice-label: "Error"; }
-.connected-pilot #pilot-notice { position: sticky; top: .5rem; z-index: 3; }
+.connected-pilot #pilot-notice { position: sticky; top: .5rem; z-index: 3; transition: opacity 220ms ease-out; }
+.connected-pilot #pilot-notice.is-fading { opacity: 0; pointer-events: none; }
 .connected-pilot #pilot-notice:has(#status:not(:empty)), .connected-pilot .pilot-notice-inline:not(:empty) {
   color: var(--notice-ink);
   background: var(--notice-fill);
@@ -105,3 +106,26 @@
   color: var(--notice-ink);
 }
 .connected-pilot #pilot-notice:has(#status:empty) #dismiss-notice { display: none; }
+.connected-pilot .pilot-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: .5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+.connected-pilot .pilot-table-scroll table { width: 100%; border-collapse: collapse; }
+.connected-pilot .pilot-table-scroll th, .connected-pilot .pilot-table-scroll td {
+  padding: .55rem .65rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  text-align: start;
+}
+.connected-pilot .pilot-table-scroll thead th { background: var(--line); }
+.connected-pilot .pilot-table-scroll tbody tr:last-child > * { border-bottom: 0; }
+.connected-pilot .pilot-table-scroll summary { display: list-item; white-space: nowrap; }
+.connected-pilot .pilot-table-scroll td:has([data-cents], [data-price]), .connected-pilot .pilot-table-scroll .pilot-amount {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

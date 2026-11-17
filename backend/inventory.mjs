@@ -51,7 +51,7 @@ function loadInventoryQuotes(client, family, patient) {
   });
 }
 
-export function createInventory({ run, status }) {
+export function createInventory({ run, status, renderTable }) {
   const add = $('add-inventory');
   const buy = $('inventory-purchase');
   const purchaseItem = buy.elements.namedItem('item');
@@ -220,13 +220,8 @@ export function createInventory({ run, status }) {
     const now = Date.now();
     const visible = visiblePatient ? items.filter(row => row.patient_id === visiblePatient) : items;
     const stockRows = visible.map(row => {
-      const item = document.createElement('li');
-      const count = row.consumptions.length;
       const stock = projectStock(domain, row, now);
-      item.textContent = row.name + ' · ' + patientLabel(row.patient_id, row.patients.name)
-        + (row.patients.archived_at ? ' (archivada)' : '') + ' · ' + stock.rem
-        + ' unidades · ' + count + (count === 1 ? ' pauta' : ' pautas');
-      if (!row.patients.archived_at) item.append(' · ' + stockMessage(domain, stock));
+      const actions = document.createElement('div');
       const details = document.createElement('details');
       details.open = openDetails.has(row.id);
       const summary = document.createElement('summary');
@@ -250,42 +245,30 @@ export function createInventory({ run, status }) {
         if (details.open) openDetails.add(row.id);
         else openDetails.delete(row.id);
       });
-      item.append(details);
+      actions.append(details);
       if (!row.patients.archived_at) {
         const edit = document.createElement('button');
         edit.type = 'button';
         edit.textContent = 'Editar artículo';
         edit.addEventListener('click', run(() => startEdit(row, projectStock(domain, row, Date.now()))));
-        item.append(edit);
+        actions.append(edit);
       }
-      return item;
+      return [row.name, patientLabel(row.patient_id, row.patients.name), stock.rem + ' unidades',
+        row.patients.archived_at ? 'Ficha archivada' : stockMessage(domain, stock), actions];
     });
     const purchaseRows = purchases.map(row => {
-      const item = document.createElement('li');
       const product = row.inventory_items;
       const name = items.find(entry => entry.id === product.id)?.name ?? product.name;
-      item.textContent = [row.purchased_on ?? row.quoted_on, row.quoted_on ? 'Cotización' : 'Compra', name,
-        patientLabel(product.patient_id, product.patients.name),
-        row.quantity + ' unidades', row.shop]
-        .filter(Boolean).join(' · ');
+      let amount = 'Sin precio';
       if (row.total_price !== null) {
-        const price = document.createElement('span');
-        price.dataset.price = row.total_price;
-        item.append(' · ', price);
+        amount = document.createElement('span');
+        amount.dataset.price = row.total_price;
       }
-      return item;
+      return [row.purchased_on ?? row.quoted_on, row.quoted_on ? 'Cotización' : 'Compra', name,
+        patientLabel(product.patient_id, product.patients.name), row.quantity + ' unidades', row.shop || '—', amount];
     });
-    for (const [list, rows, emptyText] of [
-      [$('inventory-items'), stockRows, 'No hay artículos para esta selección.'],
-      [history, purchaseRows, 'No hay compras ni cotizaciones para esta selección.']
-    ]) {
-      if (!rows.length) {
-        const empty = document.createElement('li');
-        empty.textContent = emptyText;
-        rows.push(empty);
-      }
-      list.replaceChildren(...rows);
-    }
+    renderTable($('inventory-items'), stockRows, 'No hay artículos para esta selección.');
+    renderTable(history, purchaseRows, 'No hay compras ni cotizaciones para esta selección.');
     toggle.disabled = !purchases.some(row => row.total_price !== null);
     showPrices(false);
   }

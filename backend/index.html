@@ -162,7 +162,9 @@
           </template>
           <h3>Existencias por ficha</h3>
           <label>Filtrar existencias y compras por ficha <select id="inventory-filter"></select></label>
-          <ul id="inventory-items"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Existencias por ficha">
+            <table aria-label="Existencias por ficha"><thead><tr><th scope="col">Artículo</th><th scope="col">Ficha</th><th scope="col">Existencias</th><th scope="col">Estado</th><th scope="col">Pautas y acciones</th></tr></thead><tbody id="inventory-items"></tbody></table>
+          </div>
           <form id="inventory-purchase">
             <label>Tipo de registro <select name="mode"><option value="buy">Compra</option><option value="quote">Cotización</option></select></label>
             <label>Artículo de la compra <select name="item" required></select></label>
@@ -173,7 +175,9 @@
           </form>
           <h3>Compras y cotizaciones recientes</h3>
           <button id="inventory-price-toggle" type="button" aria-controls="inventory-purchases" aria-pressed="false">Ver montos</button>
-          <ul id="inventory-purchases"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Compras y cotizaciones recientes">
+            <table aria-label="Compras y cotizaciones recientes"><thead><tr><th scope="col">Fecha</th><th scope="col">Tipo</th><th scope="col">Artículo</th><th scope="col">Ficha</th><th scope="col">Cantidad</th><th scope="col">Tienda</th><th scope="col">Importe</th></tr></thead><tbody id="inventory-purchases"></tbody></table>
+          </div>
         </section>
         <section data-pilot-view="#finance" hidden>
         <div id="finance" hidden>
@@ -184,6 +188,11 @@
             <label>Tarifa de media jornada (MXN) <input name="half" inputmode="decimal"></label>
             <button>Agregar enfermero/a</button>
           </form>
+          <h3>Tarifas de enfermería</h3>
+          <button id="rates-toggle" type="button" aria-controls="finance-rates" aria-pressed="false">Ver montos</button>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Tarifas de enfermería">
+            <table aria-label="Tarifas de enfermería"><thead><tr><th scope="col">Enfermero/a</th><th scope="col">Completa</th><th scope="col">Media jornada</th></tr></thead><tbody id="finance-rates"></tbody></table>
+          </div>
           <form id="record-shift">
             <label>Ficha <select name="patient" required></select></label>
             <label>Enfermero/a <select name="nurse" required></select></label>
@@ -193,7 +202,9 @@
           </form>
           <h3>Últimas jornadas registradas</h3>
           <button id="shift-toggle" type="button" aria-controls="finance-shifts" aria-pressed="false">Ver montos</button>
-          <ul id="finance-shifts"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Jornadas registradas">
+            <table aria-label="Jornadas registradas"><thead><tr><th scope="col">Fecha</th><th scope="col">Ficha</th><th scope="col">Enfermero/a</th><th scope="col">Modalidad</th><th scope="col">Costo</th><th scope="col">Abonado</th><th scope="col">Pendiente</th></tr></thead><tbody id="finance-shifts"></tbody></table>
+          </div>
           <h3>Abonos individuales</h3>
           <p>Se aplican a las jornadas pendientes del enfermero hasta la fecha del abono, empezando por la más antigua.</p>
           <form id="record-individual-payment">
@@ -203,14 +214,18 @@
             <button>Registrar abono individual</button>
           </form>
           <button id="individual-toggle" type="button" aria-controls="finance-individual-payments" aria-pressed="false">Ver montos</button>
-          <ul id="finance-individual-payments"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Abonos individuales">
+            <table aria-label="Abonos individuales"><thead><tr><th scope="col">Fecha</th><th scope="col">Enfermero/a</th><th scope="col">Importe</th></tr></thead><tbody id="finance-individual-payments"></tbody></table>
+          </div>
           <h3 id="finance-heading">Saldo general</h3>
           <button id="finance-toggle" type="button" aria-controls="finance-summary" aria-pressed="false">Ver montos</button>
-          <dl id="finance-summary">
-            <dt>Jornadas devengadas</dt><dd id="finance-cost">••••</dd>
-            <dt>Abonos activos</dt><dd id="finance-received">••••</dd>
-            <dt id="finance-balance-label">Saldo</dt><dd id="finance-balance">••••</dd>
-          </dl>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Saldo general">
+            <table id="finance-summary" aria-labelledby="finance-heading"><thead><tr><th scope="col">Concepto</th><th scope="col">Importe</th></tr></thead><tbody>
+              <tr><th scope="row">Jornadas devengadas</th><td id="finance-cost" class="pilot-amount">••••</td></tr>
+              <tr><th scope="row">Abonos activos</th><td id="finance-received" class="pilot-amount">••••</td></tr>
+              <tr><th scope="row" id="finance-balance-label">Saldo</th><td id="finance-balance" class="pilot-amount">••••</td></tr>
+            </tbody></table>
+          </div>
           <form id="record-receipt">
             <label>Fecha de abono <input name="day" type="date" required></label>
             <label>Abono (MXN) <input name="amount" inputmode="decimal" required></label>
@@ -218,7 +233,9 @@
           </form>
           <h3>Últimos abonos</h3>
           <button id="receipt-toggle" type="button" aria-controls="finance-receipts" aria-pressed="false">Ver montos</button>
-          <ul id="finance-receipts"></ul>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Abonos generales">
+            <table aria-label="Abonos generales"><thead><tr><th scope="col">Fecha</th><th scope="col">Referencia</th><th scope="col">Importe</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody id="finance-receipts"></tbody></table>
+          </div>
           <form id="cancel-receipt" hidden>
             <p id="cancel-receipt-detail"></p>
             <label>Fecha de cancelación <input name="day" type="date" required></label>

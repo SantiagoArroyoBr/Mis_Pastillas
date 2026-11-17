@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-024 · Desvanecimiento y tablas del piloto
+
+Sobre `49843b1`, los avisos se desvanecen en 220 ms al cerrar o al vencer su plazo, y se cierran de inmediato con la preferencia de movimiento reducido. Se organizaron siete tablas de saldo, tarifas, jornadas, abonos individuales y generales, existencias y compras/cotizaciones. Las tarifas de enfermería usan un control independiente y los importes permanecen ocultos al inicio.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se comprobó el desvanecimiento, los montos independientes, el acceso a la confirmación de cancelación de un abono y el desplazamiento contenido de las tablas.
+
 ## 2026-11-16 — Cierre automático de mensajes
 
 Sobre `3c3f2ed`, las confirmaciones y avisos informativos del piloto se cierran a los 6 segundos. Los errores y avisos de atención se cierran a los 12 segundos. Un mensaje nuevo reinicia la cuenta y el cierre manual cancela el temporizador. Pasaron **17/17** pruebas del piloto. En Edge, con tiempos controlados, se comprobaron ambos plazos y el cierre automático y manual.
