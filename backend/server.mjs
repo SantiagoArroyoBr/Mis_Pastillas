@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { connections } from './connection-config.mjs';
 
 const files = {
   '/': ['index.html', 'text/html; charset=utf-8'],
@@ -11,6 +12,7 @@ const files = {
   '/compatibility.js': ['../compatibility.js', 'text/javascript; charset=utf-8'],
   '/domain.js': ['../domain.js', 'text/javascript; charset=utf-8'],
   '/supabase-client.mjs': ['supabase-client.mjs', 'text/javascript; charset=utf-8'],
+  '/connection-config.mjs': ['connection-config.mjs', 'text/javascript; charset=utf-8'],
   '/pilot.css': ['pilot.css', 'text/css; charset=utf-8'],
   '/styles.css': ['../styles.css', 'text/css; charset=utf-8'],
   '/fonts/NunitoSans.ttf': ['../fonts/NunitoSans.ttf', 'font/ttf'],
@@ -32,7 +34,9 @@ createServer(async (request, response) => {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src http://127.0.0.1:54321; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src "
+        + Object.values(connections).map(connection => connection.url).join(' ')
+        + "; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
     }).end(content);
   } catch {
     response.writeHead(500).end();

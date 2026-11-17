@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
+import { connections } from '../connection-config.mjs';
+
+test('cloud client uses only the configured project and identifies a missing schema', async t => {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, connections.cloud.url + '/rest/v1/families?select=id&limit=0');
+    assert.equal(options.headers.apikey, connections.cloud.key);
+    return Response.json({ code: 'PGRST205' }, { status: 404 });
+  });
+  assert.throws(() => createClient(connections.cloud.key, 'https://unconfigured.example'));
+  const client = createClient(connections.cloud.key, connections.cloud.url);
+  await assert.rejects(client.select('families', { select: 'id', limit: 0 }),
+    { status: 404, code: 'PGRST205', message: 'Falta inicializar o actualizar el esquema de Acompaña en este proyecto.' });
+});
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
 import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption, projectStock } from '../inventory.mjs';

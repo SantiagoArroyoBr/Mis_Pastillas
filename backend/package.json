@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/database.spec.mjs tests/client.spec.mjs",
-    "test:auth": "node --test tests/supabase.integration.mjs"
+    "test:auth": "node --test tests/supabase.integration.mjs",
+    "schema:cloud": "node prepare-cloud-schema.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",

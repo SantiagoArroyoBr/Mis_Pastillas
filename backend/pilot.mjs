@@ -1,4 +1,5 @@
 import { createClient, loadAppointments } from './supabase-client.mjs';
+import { connections } from './connection-config.mjs';
 import { createFinance } from './finance.mjs';
 import { createInventory } from './inventory.mjs';
 import { createCalendar } from './calendar.mjs';
@@ -12,6 +13,14 @@ const editAppointment = $('edit-appointment');
 const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
+const credentials = $('credentials');
+credentials.elements.environment.addEventListener('change', () => {
+  const selected = credentials.elements.environment.value;
+  credentials.elements.key.value = connections[selected].key;
+  $('connection-help').textContent = selected === 'cloud'
+    ? 'Usa un correo que puedas confirmar. Las fichas de este entorno se guardarán en el proyecto de pruebas.'
+    : 'Para el entorno local usa un correo ficticio que termine en .test.';
+});
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
@@ -115,6 +124,7 @@ function endSession() {
   $('accept-invite').reset();
   hideEditing();
   $('session').hidden = true;
+  $('connection-current').textContent = '';
   $('auth').hidden = false;
 }
 
@@ -381,10 +391,20 @@ $('credentials').addEventListener('submit', run(async event => {
   const form = event.currentTarget;
   const values = new FormData(form);
   const email = values.get('email').trim();
-  if (!email.endsWith('.test')) throw new Error('Usa un correo ficticio que termine en .test.');
+  const environment = values.get('environment');
+  const connection = connections[environment];
+  if (!connection) throw new Error('Selecciona un entorno de prueba válido.');
+  if (environment === 'local' && !email.endsWith('.test')) throw new Error('Usa un correo ficticio que termine en .test.');
   const password = values.get('password');
-  const next = createClient(values.get('key').trim());
-  if (event.submitter?.value === 'yes') await next.signUp(email, password);
+  const next = createClient(values.get('key').trim(), connection.url);
+  if (event.submitter?.value === 'yes') {
+    const registration = await next.signUp(email, password);
+    if (environment === 'cloud' && !registration?.access_token) {
+      form.elements.password.value = '';
+      status('Revisa tu correo para confirmar el registro y después inicia sesión.', 'info');
+      return;
+    }
+  }
   const id = await next.signIn(email, password);
   form.elements.password.value = '';
   client = next;
@@ -397,6 +417,7 @@ $('credentials').addEventListener('submit', run(async event => {
   }
   $('auth').hidden = true;
   $('session').hidden = false;
+  $('connection-current').textContent = 'Conectado a ' + connection.label;
   status('Sesión iniciada.');
 }));
 
