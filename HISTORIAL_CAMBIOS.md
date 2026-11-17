@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-023 · Mensajes visibles del piloto
+
+Sobre `05d8cbe`, las confirmaciones, avisos, errores y conflictos se distinguen por etiqueta y color. El aviso global permanece visible al desplazarse y se puede cerrar. La revisión de respaldos destaca su resultado en el propio panel. Los mensajes conservan sus regiones de estado.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se comprobó un error de entrada, la confirmación de inicio de sesión, el aviso fijo al desplazar Inventario y su cierre.
+
 ## 2026-11-16 — RECONST-021 · Familias en Configuración
 
 Sobre `f84312a`, la selección y el alta de familias, las invitaciones, los accesos y el cierre de sesión se agrupan en Configuración. Una cuenta sin familia entra allí para crear una o aceptar una invitación. Se conservan los permisos vigentes y se limpia la información de la gestión anterior al cambiar de familia.

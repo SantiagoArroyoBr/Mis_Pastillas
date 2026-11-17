@@ -62,3 +62,46 @@
 .connected-pilot li { margin-block: .45rem; overflow-wrap: anywhere; }
 .connected-pilot fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 12px; }
 .connected-pilot :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+.connected-pilot .pilot-notice {
+  --notice-fill: var(--calendar-surface);
+  --notice-ink: var(--navy);
+  --notice-label: "Aviso";
+  margin: 0;
+}
+.connected-pilot .pilot-notice[data-kind=success] { --notice-fill: #e6eee8; --notice-ink: #245342; --notice-label: "Confirmado"; }
+.connected-pilot .pilot-notice[data-kind=warning] { --notice-fill: #fff0d8; --notice-ink: #704500; --notice-label: "Atención"; }
+.connected-pilot .pilot-notice[data-kind=error] { --notice-fill: #fbe8e6; --notice-ink: #862c28; --notice-label: "Error"; }
+.connected-pilot #pilot-notice { position: sticky; top: .5rem; z-index: 3; }
+.connected-pilot #pilot-notice:has(#status:not(:empty)), .connected-pilot .pilot-notice-inline:not(:empty) {
+  color: var(--notice-ink);
+  background: var(--notice-fill);
+  border: 1px solid var(--notice-ink);
+  border-inline-start-width: 5px;
+  border-radius: 12px;
+  padding: .6rem .75rem;
+  margin-block: .65rem;
+  overflow-wrap: anywhere;
+}
+.connected-pilot #pilot-notice:has(#status:not(:empty)) {
+  display: flex;
+  gap: .5rem;
+  align-items: start;
+  justify-content: space-between;
+  box-shadow: 0 5px 14px #25252f2b;
+}
+.connected-pilot #status { margin: 0; font-weight: 750; }
+.connected-pilot #status:not(:empty)::before, .connected-pilot .pilot-notice-inline:not(:empty)::before {
+  content: var(--notice-label);
+  display: block;
+  font-weight: 900;
+}
+.connected-pilot #dismiss-notice {
+  min-width: 44px;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.35rem;
+  color: var(--notice-ink);
+}
+.connected-pilot #pilot-notice:has(#status:empty) #dismiss-notice { display: none; }

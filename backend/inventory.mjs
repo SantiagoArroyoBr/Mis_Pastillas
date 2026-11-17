@@ -296,7 +296,7 @@ export function createInventory({ run, status }) {
       status(message);
     } catch {
       buy.querySelector('button').disabled = true;
-      status(message + ' Usa Actualizar fichas para recargar el inventario.');
+      status(message + ' Usa Actualizar fichas para recargar el inventario.', 'warning');
     }
   }
 
@@ -311,7 +311,7 @@ export function createInventory({ run, status }) {
       const purchases = await movements(chosen);
       visiblePatient = chosen;
       renderLists(purchases);
-      status('Inventario filtrado.');
+      status('Inventario filtrado.', 'info');
     } catch (error) {
       patientFilter.value = visiblePatient;
       throw error;

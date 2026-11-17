@@ -14,7 +14,12 @@ const localDay = new Intl.DateTimeFormat('sv-SE');
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
-const status = message => { $('status').textContent = message; };
+function status(message, kind = 'success') {
+  $('pilot-notice').dataset.kind = kind;
+  $('status').textContent = message;
+}
+
+$('dismiss-notice').addEventListener('click', () => status('', 'info'));
 const finance = createFinance({ run, status, itemWithButton });
 const inventory = createInventory({ run, status });
 const backupFile = $('backup-review-file');
@@ -98,24 +103,24 @@ function run(action) {
     } catch (error) {
       if (error.status === 401 && userId) {
         endSession();
-        status('La sesión terminó. Vuelve a iniciar sesión.');
+        status('La sesión terminó. Vuelve a iniciar sesión.', 'warning');
       } else if (error.status === 409 || error.code === 'PT409') {
         if (trigger === editAppointment) {
           $('save-appointment').disabled = true;
-          status('La cita cambió en otro dispositivo. Tu borrador sigue abierto. Revisa la cita actualizada antes de volver a editar.');
+          status('La cita cambió en otro dispositivo. Tu borrador sigue abierto. Revisa la cita actualizada antes de volver a editar.', 'warning');
         } else if (trigger.id === 'add-inventory') {
-          status('El artículo cambió. Conservamos tu borrador. Revisa las existencias y vuelve a abrir la edición.');
+          status('El artículo cambió. Conservamos tu borrador. Revisa las existencias y vuelve a abrir la edición.', 'warning');
         } else if (trigger.id === 'inventory-purchase') {
-          status('El inventario cambió. Conservamos tu borrador. Revisa las existencias antes de volver a guardar.');
+          status('El inventario cambió. Conservamos tu borrador. Revisa las existencias antes de volver a guardar.', 'warning');
         } else status(trigger === rename
           ? 'La ficha cambió en otro dispositivo. Conservamos tu borrador. Cancela y vuelve a abrir la ficha para revisar el cambio.'
-          : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.');
+          : 'El registro cambió en otro dispositivo. Revisa su estado actualizado.', 'warning');
         await refreshFamily().catch(() => {});
       } else if (error.status === 403 && userId) {
         await refreshFamilies().catch(() => {});
-        status('Tu cuenta ya no tiene permiso para esta acción.');
+        status('Tu cuenta ya no tiene permiso para esta acción.', 'error');
       } else {
-        status(error.message);
+        status(error.message, 'error');
       }
     } finally {
       busy = false;
@@ -341,7 +346,7 @@ rpcForm('invite', async values => {
   });
   $('invite-result').hidden = false;
   $('invite-code').focus();
-  status('Comparte este código solo con la cuenta de prueba invitada.');
+  status('Comparte este código solo con la cuenta de prueba invitada.', 'info');
 });
 $('revoke-invite').addEventListener('click', run(async () => {
   await client.rpc('revoke_invite', { family: families.value, invitation: $('invite-code').value });
@@ -380,7 +385,7 @@ rpcForm('add-appointment', async values => {
     await refreshFamily();
     status('Cita registrada.');
   } catch {
-    status('Cita registrada. Usa Actualizar fichas para consultar la lista.');
+    status('Cita registrada. Usa Actualizar fichas para consultar la lista.', 'warning');
   }
   appointmentRetry = undefined;
 });
@@ -395,7 +400,7 @@ rpcForm('edit-appointment', async values => {
     await refreshFamily();
     status('Cita actualizada.');
   } catch {
-    status('Cita actualizada. Usa Actualizar fichas para consultar la lista.');
+    status('Cita actualizada. Usa Actualizar fichas para consultar la lista.', 'warning');
   }
 });
 $('cancel-edit-appointment').addEventListener('click', closeAppointment);
@@ -406,9 +411,11 @@ backupFile.addEventListener('change', async () => {
   const feedback = $('backup-review-status');
   const counts = $('backup-review-counts');
   counts.replaceChildren();
+  feedback.dataset.kind = 'info';
   feedback.textContent = '';
   if (!file) return;
   if (file.size > maxBytes) {
+    feedback.dataset.kind = 'error';
     feedback.textContent = 'El respaldo supera el límite de 10 MiB.';
     return;
   }
@@ -416,15 +423,20 @@ backupFile.addEventListener('change', async () => {
   try {
     result = auditBackupRaw(await file.text(), window.AcompanaCompatibility);
   } catch {
-    if (request === backupRequest) feedback.textContent = 'No se pudo leer el respaldo.';
+    if (request === backupRequest) {
+      feedback.dataset.kind = 'error';
+      feedback.textContent = 'No se pudo leer el respaldo.';
+    }
     return;
   }
   if (request !== backupRequest) return;
   if (result.estado === 'rechazado') {
+    feedback.dataset.kind = 'error';
     feedback.textContent = result.motivo === 'json-no-valido' ? 'El archivo no contiene JSON válido.'
       : 'El respaldo no pasó la validación de Acompaña.';
     return;
   }
+  feedback.dataset.kind = 'success';
   feedback.textContent = 'Respaldo válido para revisión. Estos conteos no acreditan una restauración.';
   const labels = {
     fichas: 'Fichas', personal: 'Personal de enfermería', jornadasConCosto: 'Jornadas con costo',
@@ -451,7 +463,7 @@ appointmentFilter.addEventListener('change', run(async () => {
     const rows = await loadAppointments(client, family, today, appointmentFilter.value);
     appointmentFilterValue = appointmentFilter.value;
     renderAppointments(rows, family, today);
-    status('Agenda filtrada.');
+    status('Agenda filtrada.', 'info');
   } catch (error) {
     appointmentFilter.value = appointmentFilterValue;
     throw error;

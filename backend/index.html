@@ -16,7 +16,10 @@
     <p>Prueba de cuentas y fichas compartidas. Usa datos ficticios.</p>
   </div></header>
   <main>
-    <p id="status" role="status"></p>
+    <div id="pilot-notice" class="pilot-notice" data-kind="info">
+      <p id="status" role="status" aria-atomic="true"></p>
+      <button id="dismiss-notice" type="button" aria-label="Cerrar mensaje">×</button>
+    </div>
     <section id="auth">
       <h2>Cuenta de prueba</h2>
       <form id="credentials">
@@ -228,7 +231,7 @@
           <h2>Revisar respaldo de prueba</h2>
           <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
           <label>Respaldo JSON ficticio <input id="backup-review-file" type="file" accept=".json,application/json"></label>
-          <p id="backup-review-status" role="status"></p>
+          <p id="backup-review-status" class="pilot-notice pilot-notice-inline" role="status" aria-atomic="true" data-kind="info"></p>
           <dl id="backup-review-counts"></dl>
         </section>
       </section>

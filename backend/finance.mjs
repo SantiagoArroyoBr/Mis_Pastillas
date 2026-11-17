@@ -250,7 +250,7 @@ export function createFinance({ run, status, itemWithButton }) {
         status(message);
       } catch {
         scope(undefined);
-        status(message + ' Usa Actualizar para consultar los datos.');
+        status(message + ' Usa Actualizar para consultar los datos.', 'warning');
       }
     }));
   }
