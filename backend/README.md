@@ -46,7 +46,7 @@ Desde una cuenta propietaria, registra a una persona de enfermería con tarifa d
 
 ## Recorrido del esqueleto local
 
-Usa una cuenta y una familia ficticias. El menú de la familia permite ir directamente a cada sección.
+Usa una cuenta y una familia ficticias. El piloto en el puerto 4173 comparte la paleta, la fuente Nunito y los iconos de la PWA. El menú muestra un apartado a la vez y **Inicio** cuenta las fichas activas y archivadas de la familia seleccionada. **Actualizar fichas** está disponible desde cualquier apartado.
 
 | Sección | Qué revisar |
 | --- | --- |

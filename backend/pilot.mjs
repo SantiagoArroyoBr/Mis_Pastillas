@@ -140,6 +140,21 @@ function itemWithButton(text, label, action) {
   return item;
 }
 
+function showPilotView() {
+  const links = Array.from($('pilot-navigation').querySelectorAll('a'));
+  const requested = links.find(link => !link.hidden && link.hash === location.hash);
+  const current = requested?.hash ?? '#inicio';
+  for (const link of links) {
+    if (link.hash === current) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+  for (const panel of $('family').querySelectorAll('[data-pilot-view]')) {
+    panel.hidden = panel.dataset.pilotView !== current;
+  }
+}
+
+window.addEventListener('hashchange', showPilotView);
+
 async function refreshFamily() {
   const family = families.value;
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
@@ -148,6 +163,8 @@ async function refreshFamily() {
   $('family').hidden = !family;
   $('pilot-navigation').hidden = !family;
   $('finance-link').hidden = !owner;
+  $('reload').hidden = !family;
+  showPilotView();
   $('owner-actions').hidden = !owner;
   if (renderedFamily !== family) {
     clearBackup();
@@ -169,6 +186,8 @@ async function refreshFamily() {
     loadAppointments(client, family, today, appointmentFilterValue)
   ]);
   const active = patients.filter(patient => !patient.archived_at);
+  $('pilot-active-count').textContent = String(active.length);
+  $('pilot-archived-count').textContent = String(patients.length - active.length);
   const archive = (patient, archived) => async () => {
     if (archived && !confirm('¿Archivar la ficha de ' + patient.name + '? Se conservará su historial.')) return;
     await client.rpc('set_patient_archived', { family, patient: patient.id, expected_revision: patient.revision, archived });

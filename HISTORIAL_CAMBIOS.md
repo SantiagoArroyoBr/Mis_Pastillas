@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-020 · Primera integración visual con Supabase
+
+Sobre `6b2abc9`, el piloto en el puerto 4173 usa los estilos, la fuente Nunito y los iconos de la PWA. La navegación presenta una pantalla por vez y muestra Enfermería y pagos solo a la cuenta propietaria. Inicio muestra conteos de fichas activas y archivadas de la familia. El puerto 4174 conserva la vista de referencia de la PWA.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase. En Edge se comprobó la carga de la fuente, las seis pantallas sin desbordamiento a 320 px, una cita guardada desde la interfaz y la navegación con una cuenta cuidadora. El primer intento del recorrido automatizado entró demasiado pronto en el documento. Se repitió al esperar la presencia del formulario y pasó. Este lote no aplica cambios de esquema. [Guía del piloto](backend/README.md#recorrido-del-esqueleto-local).
+
 ## 2026-11-16 — UX-PALETA-001 · Paleta de la PWA
 
 Sobre `274bdf0`, se aplicó en la interfaz existente el fondo marfil, petróleo para navegación y calendario, terracota para inventario y ciruela para pagos. Los estados conservan los colores de confirmación y urgencia. Se actualizó el tema del navegador y del manifest, y la caché pasó de v21 a v22 para entregar los recursos nuevos también offline.

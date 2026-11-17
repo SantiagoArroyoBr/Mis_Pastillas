@@ -1,13 +1,64 @@
-:root { color: #24372f; background: #f6f4ee; font: 16px/1.5 system-ui, sans-serif; }
-main { margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
-section, form { margin-block: 1rem; }
-label { display: block; margin-block: .5rem; }
-input, select, textarea, button { font: inherit; color: inherit; padding: .45rem; max-width: 100%; }
-input, select, textarea { box-sizing: border-box; width: 100%; }
-input[type=checkbox] { width: auto; }
-nav { margin-block: 1rem; }
-nav a { display: inline-block; margin: .2rem .75rem .2rem 0; color: #145b48; }
-nav a[hidden] { display: none; }
-button { margin: .2rem .25rem .2rem 0; }
-li { margin-block: .45rem; overflow-wrap: anywhere; }
-:focus-visible { outline: 3px solid #145b48; outline-offset: 2px; }
+.connected-pilot [hidden] { display: none !important; }
+.connected-pilot main, .pilot-heading { max-width: 52rem; margin-inline: auto; }
+.pilot-heading p { margin: .25rem 0; }
+.connected-pilot main { padding: 1rem; }
+.connected-pilot h2, .connected-pilot h3 { margin-block: .35em; }
+.connected-pilot section, .connected-pilot form { margin-block: 1rem; }
+.connected-pilot #auth { max-width: 34rem; margin-inline: auto; }
+.connected-pilot [data-pilot-view], .connected-pilot #auth {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(.85rem, 3vw, 1.4rem);
+}
+.connected-pilot [data-pilot-view="#appointments-heading"] { background: var(--calendar-surface); }
+.connected-pilot #inventory { background: var(--inventory-surface); --panel-accent: var(--inventory-accent); }
+.connected-pilot [data-pilot-view="#finance"] { background: var(--payment-surface); --panel-accent: var(--payment-accent); }
+.connected-pilot [data-pilot-view] > h2, .connected-pilot #finance > h2 { color: var(--panel-accent, var(--navy)); }
+.connected-pilot #pilot-navigation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: .4rem;
+  margin-block: 1rem;
+}
+.connected-pilot #pilot-navigation a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 44px;
+  padding: .4rem .55rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--navy);
+  text-decoration: none;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.connected-pilot #pilot-navigation a[aria-current=page] { background: var(--navy); color: #fff; }
+.connected-pilot #pilot-navigation a[href="#inventory"][aria-current=page] { background: var(--inventory-accent); }
+.connected-pilot #pilot-navigation a[href="#finance"][aria-current=page] { background: var(--payment-accent); }
+.connected-pilot #pilot-navigation img { width: 18px; height: 18px; flex: none; }
+.connected-pilot #pilot-navigation a[aria-current=page] img { filter: brightness(0) invert(1); }
+.pilot-family-tools, .pilot-summary { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; }
+.pilot-family-tools label, .pilot-summary article { flex: 1 1 12rem; min-width: 0; }
+.pilot-summary article { display: grid; gap: .2rem; border-radius: 15px; padding: .8rem; background: var(--calendar-surface); }
+.pilot-summary strong { font-size: 1.65rem; color: var(--navy); }
+.pilot-summary a { color: var(--navy); }
+.connected-pilot label { display: block; margin-block: .5rem; }
+.connected-pilot input, .connected-pilot select, .connected-pilot textarea {
+  width: 100%; min-width: 0; max-width: 100%; min-height: 44px; padding: .45rem .65rem;
+  background: #fff; color: var(--ink); border: 1px solid #756f73; border-radius: 10px; font: inherit;
+}
+.connected-pilot input[type=checkbox] { width: 1.1rem; min-height: auto; }
+.connected-pilot button {
+  max-width: 100%; min-height: 44px; margin: .2rem .25rem .2rem 0; padding: .4rem .8rem;
+  font: inherit; font-weight: 800; color: var(--panel-accent, var(--navy)); background: #fff;
+  border: 1px solid currentColor; border-radius: 10px;
+}
+.connected-pilot form button:not([type=button]) { background: var(--panel-accent, var(--navy)); color: #fff; }
+.connected-pilot button:disabled { opacity: .65; }
+.connected-pilot li { margin-block: .45rem; overflow-wrap: anywhere; }
+.connected-pilot fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 12px; }
+.connected-pilot :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }

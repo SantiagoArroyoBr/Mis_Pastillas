@@ -10,7 +10,12 @@ const files = {
   '/compatibility.js': ['../compatibility.js', 'text/javascript; charset=utf-8'],
   '/domain.js': ['../domain.js', 'text/javascript; charset=utf-8'],
   '/supabase-client.mjs': ['supabase-client.mjs', 'text/javascript; charset=utf-8'],
-  '/pilot.css': ['pilot.css', 'text/css; charset=utf-8']
+  '/pilot.css': ['pilot.css', 'text/css; charset=utf-8'],
+  '/styles.css': ['../styles.css', 'text/css; charset=utf-8'],
+  '/fonts/NunitoSans.ttf': ['../fonts/NunitoSans.ttf', 'font/ttf'],
+  '/icons/house.svg': ['../icons/house.svg', 'image/svg+xml'],
+  '/icons/pill.svg': ['../icons/pill.svg', 'image/svg+xml'],
+  '/icons/wallet.svg': ['../icons/wallet.svg', 'image/svg+xml']
 };
 
 createServer(async (request, response) => {
@@ -26,7 +31,7 @@ createServer(async (request, response) => {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://127.0.0.1:54321; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src http://127.0.0.1:54321; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
     }).end(content);
   } catch {
     response.writeHead(500).end();

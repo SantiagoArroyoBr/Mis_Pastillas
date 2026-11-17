@@ -3,16 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#245565">
   <title>Acompaña · Piloto local</title>
+  <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/pilot.css">
   <script defer src="/compatibility.js"></script>
   <script defer src="/domain.js"></script>
   <script type="module" src="/pilot.mjs"></script>
 </head>
-<body>
-  <main>
-    <h1>Acompaña · Piloto local</h1>
+<body class="connected-pilot">
+  <header><div class="pilot-heading"><h1>Acompaña</h1>
     <p>Prueba de cuentas y fichas compartidas. Usa datos ficticios.</p>
+  </div></header>
+  <main>
     <p id="status" role="status"></p>
     <section id="auth">
       <h2>Cuenta de prueba</h2>
@@ -26,10 +29,11 @@
     </section>
     <section id="session" hidden>
       <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
+        <a href="#inicio"><img src="/icons/house.svg" alt="">Inicio</a>
         <a href="#family">Fichas</a>
         <a href="#appointments-heading">Citas</a>
-        <a href="#inventory">Inventario</a>
-        <a href="#finance" id="finance-link" hidden>Enfermería y pagos</a>
+        <a href="#inventory"><img src="/icons/pill.svg" alt="">Inventario</a>
+        <a href="#finance" id="finance-link" hidden><img src="/icons/wallet.svg" alt="">Enfermería y pagos</a>
         <a href="#backup-review">Respaldo</a>
       </nav>
       <button id="logout" type="button">Cerrar sesión</button>
@@ -42,8 +46,19 @@
         <label>Código de invitación <input name="code" required autocomplete="off"></label>
         <button>Aceptar invitación</button>
       </form>
-      <label>Familia activa <select id="families"></select></label>
+      <div class="pilot-family-tools">
+        <label>Familia activa <select id="families"></select></label>
+        <button id="reload" type="button" hidden>Actualizar fichas</button>
+      </div>
       <section id="family" hidden>
+        <section id="inicio" data-pilot-view="#inicio" aria-labelledby="inicio-heading">
+          <h2 id="inicio-heading">Inicio</h2>
+          <div class="pilot-summary">
+            <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
+            <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
+          </div>
+        </section>
+        <section data-pilot-view="#family" aria-labelledby="pilot-patients-heading" hidden>
         <div id="owner-actions" hidden>
           <form id="invite">
             <label>Correo de la cuenta invitada <input name="email" type="email" required maxlength="320"></label>
@@ -55,8 +70,7 @@
           </div>
           <ul id="members"></ul>
         </div>
-        <h2>Fichas</h2>
-        <button id="reload" type="button">Actualizar fichas</button>
+        <h2 id="pilot-patients-heading">Fichas</h2>
         <form id="add-patient">
           <label>Nombre de ficha <input name="name" required maxlength="80"></label>
           <button>Agregar ficha</button>
@@ -69,7 +83,8 @@
           <button>Guardar nombre</button>
           <button id="cancel-rename" type="button">Cancelar edición</button>
         </form>
-        <section aria-labelledby="appointments-heading">
+        </section>
+        <section data-pilot-view="#appointments-heading" aria-labelledby="appointments-heading" hidden>
           <h2 id="appointments-heading">Citas</h2>
           <form id="add-appointment">
             <label>Ficha <select name="patient" required></select></label>
@@ -99,7 +114,7 @@
             <ul id="appointments-legacy"></ul>
           </div>
         </section>
-        <section id="inventory">
+        <section id="inventory" data-pilot-view="#inventory" hidden>
           <h2>Inventario</h2>
           <form id="add-inventory">
             <label>Ficha <select name="patient" required></select></label>
@@ -152,7 +167,8 @@
           <button id="inventory-price-toggle" type="button" aria-controls="inventory-purchases" aria-pressed="false">Ver montos</button>
           <ul id="inventory-purchases"></ul>
         </section>
-        <section id="finance" hidden>
+        <section data-pilot-view="#finance" hidden>
+        <div id="finance" hidden>
           <h2>Enfermería y pagos</h2>
           <form id="add-nurse">
             <label>Nombre de enfermero/a <input name="name" required maxlength="80"></label>
@@ -201,8 +217,9 @@
             <button>Confirmar cancelación del abono</button>
             <button id="dismiss-cancel-receipt" type="button">Volver</button>
           </form>
+        </div>
         </section>
-        <section id="backup-review">
+        <section id="backup-review" data-pilot-view="#backup-review" hidden>
           <h2>Revisar respaldo de prueba</h2>
           <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
           <label>Respaldo JSON ficticio <input id="backup-review-file" type="file" accept=".json,application/json"></label>
