@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-16 — Cierre automático de mensajes
+
+Sobre `3c3f2ed`, las confirmaciones y avisos informativos del piloto se cierran a los 6 segundos. Los errores y avisos de atención se cierran a los 12 segundos. Un mensaje nuevo reinicia la cuenta y el cierre manual cancela el temporizador. Pasaron **17/17** pruebas del piloto. En Edge, con tiempos controlados, se comprobaron ambos plazos y el cierre automático y manual.
+
 ## 2026-11-16 — RECONST-023 · Mensajes visibles del piloto
 
 Sobre `05d8cbe`, las confirmaciones, avisos, errores y conflictos se distinguen por etiqueta y color. El aviso global permanece visible al desplazarse y se puede cerrar. La revisión de respaldos destaca su resultado en el propio panel. Los mensajes conservan sus regiones de estado.

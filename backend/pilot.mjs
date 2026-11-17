@@ -14,9 +14,17 @@ const localDay = new Intl.DateTimeFormat('sv-SE');
 let client, userId, memberships = [], draft, busy = false;
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
+let noticeTimer;
+
 function status(message, kind = 'success') {
+  clearTimeout(noticeTimer);
+  noticeTimer = undefined;
   $('pilot-notice').dataset.kind = kind;
   $('status').textContent = message;
+  if (message) {
+    const duration = kind === 'error' || kind === 'warning' ? 12000 : 6000;
+    noticeTimer = setTimeout(() => status('', 'info'), duration);
+  }
 }
 
 $('dismiss-notice').addEventListener('click', () => status('', 'info'));
