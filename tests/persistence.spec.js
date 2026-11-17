@@ -317,7 +317,7 @@ test('Inicio, Medicinas y Pagos se adaptan a siete anchuras y conservan los dato
         })`);
         assert.ok(layout.scroll<=layout.client,`${view} desborda a ${width} px (${layout.scroll} > ${layout.client})`);
         assert.equal(layout.direction,width<=360?'column':'row');
-        assert.equal(layout.bg,'#F4EBDD');
+        assert.equal(layout.bg,'#F8F4EE');
       }
     }
     assert.equal(await evaluate('__persistenceTest.read()'), before);
@@ -328,10 +328,23 @@ test('Inicio, Medicinas y Pagos se adaptan a siete anchuras y conservan los dato
 });
 test('el tema del manifest, el navegador y la interfaz mantienen la identidad visual', async () => {
   const metadata = await evaluate("fetch('/manifest.json').then(response=>response.json())");
-  assert.equal(metadata.theme_color, '#315B50');
-  assert.equal(metadata.background_color, '#315B50');
+  assert.equal(metadata.theme_color, '#245565');
+  assert.equal(metadata.background_color, '#245565');
   assert.equal(await evaluate("document.querySelector('meta[name=theme-color]').content"), metadata.theme_color);
   assert.equal(await evaluate("getComputedStyle(document.documentElement).getPropertyValue('--navy').trim()"), metadata.theme_color);
+  const pairs = await evaluate(`(() => {
+    const sample = document.body.appendChild(document.createElement('span'));
+    try {
+      return [['--navy','--calendar-surface'], ['--inventory-accent','--inventory-surface'],
+        ['--payment-accent','--payment-surface'], ['--ink','--bg']].map(([ink, surface]) => {
+        sample.style.color = 'var(' + ink + ')';
+        sample.style.backgroundColor = 'var(' + surface + ')';
+        const style = getComputedStyle(sample);
+        return [style.color, style.backgroundColor];
+      });
+    } finally { sample.remove(); }
+  })()`);
+  assert.ok(pairs.every(pair => contrastRatio(...pair) >= 4.5));
   assert.equal(metadata.icons.length, 2);
   for (const icon of metadata.icons) assert.equal((await evaluate(`fetch(${JSON.stringify(icon.src)}).then(response=>response.ok)`)), true);
 });
@@ -904,6 +917,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
   const candidateUpdate = initialVersion==='v17'&&updatedVersion==='v18'&&PREVIOUS_ASSETS;
   const amountsUpdate = ['v17','v18','v19'].includes(initialVersion)&&updatedVersion==='v20'&&PREVIOUS_ASSETS;
   const restoreNameUpdate = initialVersion==='v20'&&updatedVersion==='v21'&&PREVIOUS_ASSETS;
+  const paletteUpdate = initialVersion==='v21'&&updatedVersion==='v22'&&PREVIOUS_ASSETS;
   const raw=JSON.stringify(receiptDateUpdate?legacyReceiptBackup('9999-12-31'):mixedNursesBackup());
   await seed(raw); await navigate();
   const financialSnapshot = "(()=>{const {costCents,receivedCents,balanceCents}=generalSummary(allServiceRows(),generalRows());return {costCents,receivedCents,balanceCents,movements:generalRows().length,historic:generalRows().filter(m=>!AcompanaCompatibility.isValidDateOnly(m.date)).length}})()";
@@ -957,7 +971,8 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.ok((await evaluate('caches.keys()')).includes('acompanha-' + initialVersion));
     const waitingVersion=[...versions].find(([,status])=>status==='installed')?.[0];
     assert.ok(waitingVersion);
-    const updatedAssets = restoreNameUpdate ? "typeof restoreFileSummary==='function'"
+    const updatedAssets = paletteUpdate ? "getComputedStyle(document.documentElement).getPropertyValue('--inventory-accent').trim()==='#A64937' && document.querySelector('meta[name=theme-color]').content==='#245565'"
+      : restoreNameUpdate ? "typeof restoreFileSummary==='function'"
       : amountsUpdate ? "patientHTML(S.p[0],0).includes('data-amount-scope=')"
       : candidateUpdate ? "typeof checkVisibleStorage==='function' && AcompanaDomain.calc.toString().includes('break projection')"
       : storageUpdate ? "typeof writeState==='function' && typeof exportStoredValue==='function'"
@@ -975,7 +990,7 @@ test('la PWA abre y recarga offline, espera para actualizar y conserva los datos
     assert.equal(versions.get(waitingVersion),'activated');
     await navigate();
     assert.equal(await evaluate('__persistenceTest.read()'),dataBeforeUpdate);
-    const newAssets = restoreNameUpdate||amountsUpdate||candidateUpdate||storageUpdate ? updatedAssets
+    const newAssets = paletteUpdate||restoreNameUpdate||amountsUpdate||candidateUpdate||storageUpdate ? updatedAssets
       : patientPickerUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.patient-picker'))"
       : inventoryUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.inventory-card .top'))"
       : receiptDateUpdate ? updatedAssets+" && [...document.styleSheets].some(s=>[...s.cssRules].some(r=>r.selectorText==='.ledger-date-warning'))"

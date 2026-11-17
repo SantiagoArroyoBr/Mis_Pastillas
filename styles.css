@@ -1,6 +1,6 @@
 @font-face{font-family:Nunito;src:url('./fonts/NunitoSans.ttf') format('truetype');font-style:normal;font-weight:200 1000;font-display:swap}
 
-:root{--bg:#F4EBDD;--card:#FAF8F3;--navy:#315B50;--ink:#293A34;--green:#315B50;--amber:#8A5200;--red:#B3261E;--line:#E4E0D6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#F8F4EE;--card:#FFFCF8;--navy:#245565;--ink:#25252F;--green:#315B50;--amber:#8A5200;--red:#B3261E;--line:#E4DBD5;--calendar-surface:#E2EDF0;--inventory-accent:#A64937;--inventory-surface:#F5E4DB;--payment-accent:#5C466F;--payment-surface:#EEE5F2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:600 18px/1.4 Nunito,system-ui,sans-serif}
@@ -13,7 +13,7 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .tab,.patient-control,.patient-options>summary{max-width:100%;min-height:44px;border:1px solid #aebfb5;border-radius:12px;background:transparent;color:#fff;font:800 15px/1.25 Nunito,sans-serif;padding:7px 10px;overflow-wrap:anywhere;cursor:pointer}
 .tab[aria-pressed=true]{background:#fff;color:var(--navy)}
 .btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:0;border-radius:16px;background:var(--navy);color:#fff;font:800 19px Nunito,sans-serif;text-decoration:none;padding:10px 14px;text-align:center;cursor:pointer}
-.btn.cal{background:#0B6E75}
+.btn.cal{background:var(--navy)}
 .btn.ghost{background:#fff;color:var(--navy);border:2px solid var(--navy)}
 .btn.small{min-height:48px;font-size:17px}
 .row{display:flex;gap:8px}
@@ -30,6 +30,10 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .inventory-card .top{flex-wrap:wrap}
 .inventory-card .name{min-width:0;overflow-wrap:anywhere}
 .inventory-card .badge{white-space:normal}
+.inventory-card,#soon .soon:not(.ok),#spend .card{background:var(--inventory-surface)}
+#spend .card{--c:var(--inventory-accent)}
+.inventory-card .name,#spend .name{color:var(--inventory-accent)}
+#medsView .btn.add{background:var(--inventory-accent)}
 .big{font-size:64px;font-weight:900;line-height:1;margin:10px 0 0;color:var(--c)}
 .big small{font-size:20px;color:var(--ink);font-weight:800}
 .info{margin:8px 0 14px}
@@ -76,6 +80,8 @@ header :focus-visible{outline-color:#F5B301}
 .modes{display:flex;gap:8px;max-width:528px;margin:12px auto 0}
 .mbtn{flex:1;min-width:0;min-height:56px;border:0;border-radius:16px;background:rgba(255,255,255,.15);color:#fff;font:800 16px Nunito,sans-serif;padding:6px 4px}
 .mbtn[aria-pressed=true]{background:#fff;color:var(--navy)}
+.mbtn[data-m=meds][aria-pressed=true]{background:var(--inventory-surface);color:var(--inventory-accent)}
+.mbtn[data-m=pay][aria-pressed=true]{background:var(--payment-surface);color:var(--payment-accent)}
 .wdaybtn.w{width:auto;min-width:58px;padding:0 8px;border-radius:14px}
 .card.gray{--c:#8a8a8a}
 .link.neutral{color:var(--navy)}
@@ -84,6 +90,8 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .vrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:2px solid var(--line)}
 .btn.vbtn{width:auto;min-width:112px}
 .card.blue{--c:var(--navy)}
+#homeView .card.blue{background:var(--calendar-surface)}
+#homeView .card.blue .name{color:var(--navy)}
 .amtv{font-weight:900;color:var(--navy);white-space:nowrap}
 .pbar{display:flex;align-items:center;gap:8px;margin:12px 0}
 .pbar .btn{width:auto;min-width:104px}
@@ -120,7 +128,7 @@ summary{font-weight:800;min-height:48px;display:flex;align-items:center;cursor:p
 .tab,.psel{flex:1 1 8rem;min-width:0;overflow-wrap:anywhere}
 .tagline{margin:4px 0 12px;font-size:16px}
 .quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border-radius:20px}
-.glass{background:#FAF8F3;border:1px solid #E4E0D6;box-shadow:0 4px 12px #293a3410}
+.glass{background:var(--card);border:1px solid var(--line);box-shadow:0 4px 12px #25252f10}
 .nav-icon{width:22px;height:22px;flex-shrink:0}
 .mbtn{display:flex;gap:6px;align-items:center;justify-content:center}
 .mbtn:not([aria-pressed=true]) .nav-icon{filter:invert(1)}
@@ -130,44 +138,44 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .vrow>div{min-width:0;overflow-wrap:anywhere}
 @media(max-width:430px){.mbtn{flex-direction:column;gap:2px}.vrow{flex-wrap:wrap}.vrow>div:first-child{flex:1 1 100%}}
 @supports(backdrop-filter:blur(4px)){
-  .glass{background:rgba(250,248,243,.92);backdrop-filter:blur(4px)}
+  .glass{background:rgba(255,252,248,.92);backdrop-filter:blur(4px)}
 }
-@media(prefers-reduced-transparency:reduce){.glass{background:#FAF8F3;backdrop-filter:none}}
+@media(prefers-reduced-transparency:reduce){.glass{background:var(--card);backdrop-filter:none}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 @media(forced-colors:active){.glass{backdrop-filter:none;border:1px solid CanvasText}.nav-icon{display:none}}
 .mk{font-size:12px;line-height:1.1}
-.cell.today{background:#EAF0FF}
+.cell.today{background:var(--calendar-surface)}
 .cell.buy{border-color:var(--amber);border-width:3px}
 .cell.end{border-color:var(--red);border-width:3px}
 .cell.paid{background:#E3F4E8}
 .vrow.past{opacity:.65}
 .sidebtns{display:flex;flex-direction:column;gap:6px}
 .sidebtns .btn{width:auto;min-width:96px}
-.admin-summary{--c:var(--green);padding:14px}
+.admin-summary{--c:var(--payment-accent);background:var(--payment-surface);padding:14px}
 .account-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;margin:0}
 .account-balance{padding:12px;border-radius:14px;background:#fff;border:1px solid var(--line)}
 .admin-credit .account-balance{background:#E6EEE8}
 .account-balance .top{flex-wrap:wrap;gap:4px 12px}
 .account-balance h2{margin:0}
-.admin-summary .big{margin:6px 0 0;font-size:clamp(26px,6vw,34px);line-height:1.15;font-weight:900;color:var(--green);overflow-wrap:anywhere}
+.admin-summary .big{margin:6px 0 0;font-size:clamp(26px,6vw,34px);line-height:1.15;font-weight:900;color:var(--payment-accent);overflow-wrap:anywhere}
 .admin-summary .big small{font-size:16px}
 .account-breakdown{margin:8px 0}
 .account-breakdown>div{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 12px;padding:8px 0;border-bottom:1px solid var(--line)}
 .account-breakdown dd{margin:0 0 0 auto;font-weight:800;overflow-wrap:anywhere}
 .account-balance .big,.account-breakdown dd,.admin-summary .amtv,.assignment-cost output,.assignment-modes .assignment-option b{font-variant-numeric:tabular-nums}
 .admin-summary .amtv{min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:end}
-.admin-summary [data-pa=adminPay]{margin-top:10px}
+.admin-summary [data-pa=adminPay]{margin-top:10px;background:var(--payment-accent)}
 .admin-summary .vrow>div{min-width:0;overflow-wrap:anywhere}
 .admin-summary .vrow{font-size:15px}
 .ledger-date-warning{margin:6px 0 0;color:var(--amber);font-size:14px}
 .admin-summary details{margin-top:8px}
 .admin-summary summary{min-height:44px}
-.care-staff{--c:#789486;padding:14px}
-.care-staff h4{margin:4px 0 8px;color:var(--green)}
+.care-staff{--c:var(--payment-accent);padding:14px}
+.care-staff h4{margin:4px 0 8px;color:var(--payment-accent)}
 .care-staff .vrow>div{min-width:0;overflow-wrap:anywhere}
 .care-staff .vrow .hint{font-size:14px}
 .care-staff>.btn{margin-top:8px}
-.nurse-record{background:#FAF8F3;border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0}
+.nurse-record{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0}
 .nurse-record.nurse-inactive{background:#EEEFEA;border-color:#C7CCC6;color:#293A34}
 .nurse-status{display:inline-block;font-size:13px;font-weight:800;border:1px solid #68736B;border-radius:6px;padding:2px 6px}
 .nurse-group{margin-top:18px}
@@ -178,7 +186,7 @@ summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:800}
 .nurse-history>p{border-top:1px solid var(--line);margin:0;padding:8px 0}
 .nurse-inactive>.nurse-history>p{border-color:#C7CCC6}
 .nurse-record .hint{color:#4E5E54}
-.assignment-list{background:#FAF8F3;border:1px solid var(--line);border-radius:14px;padding:10px;margin:12px 0}
+.assignment-list{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;margin:12px 0}
 .assignment-list .hint{color:#4E5E54}
 .assignment-list h3{font-size:17px;margin:0 0 8px}
 .assignment-list .vrow{align-items:flex-start}

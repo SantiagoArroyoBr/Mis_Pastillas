@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — UX-PALETA-001 · Paleta de la PWA
+
+Sobre `274bdf0`, se aplicó en la interfaz existente el fondo marfil, petróleo para navegación y calendario, terracota para inventario y ciruela para pagos. Los estados conservan los colores de confirmación y urgencia. Se actualizó el tema del navegador y del manifest, y la caché pasó de v21 a v22 para entregar los recursos nuevos también offline.
+
+Pasaron **102/102** pruebas en Edge, con reflujo de Inicio, Medicinas y Pagos en siete anchuras y contraste mínimo de 4,5:1 para los pares principales. La prueba específica de actualización **v21 → v22** pasó **1/1** en ejecución aislada y conservó el almacenamiento. La primera ejecución completó el recorrido y devolvió un error al limpiar el perfil temporal de Edge. Se verificaron el HTML, el CSS y el manifest de la vista previa local. El lote quedó local.
+
 ## 2026-11-16 — RECONST-018 y RECONST-019 · Esqueleto local navegable
 
 Sobre `069b90e` se añadió navegación directa de fichas, citas, inventario, enfermería y pagos, y respaldo. El diagnóstico de respaldo comparte el validador del comando local, lee el JSON en el navegador y muestra conteos sin transmitir el archivo. La guía reúne un recorrido por sección con datos ficticios.
