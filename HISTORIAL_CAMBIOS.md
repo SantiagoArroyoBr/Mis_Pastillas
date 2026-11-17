@@ -546,3 +546,8 @@ Se aplicaron las migraciones 10, 11 y 12 al proyecto existente, cada transacció
 La candidata añade recuperación de cuenta principal, limpieza inmediata de tokens de la URL, contraseña guardada mediante Auth sin iniciar sesión normal y contador de reenvío. Los callbacks con código PKCE no soportado se rechazan con instrucción para solicitar un enlace nuevo; el flujo actual usa enlaces implícitos. El cambio de correo no está expuesto por la aplicación y el hook lo rechaza para evitar una entrega parcial a dos destinatarios. Los avisos opcionales de seguridad deben revisarse antes de habilitarlos por el intervalo entre envíos.
 
 53/53 pruebas del piloto, recuperación y hook; compilación de 18 archivos públicos. Pendientes de esta fase: entrega real, recorrido real de activación y recuperación, revisión de estados de sesión y comprobación final de publicación. No se modifica main. La UI alojada oculta claves y entorno de desarrollo; los secretos de servidor siguen fuera del artefacto.
+
+### Publicación comprobada del lote de acceso
+
+El commit 1454a4e se publicó en origin/development. La URL estable de acompana-piloto responde 200 sin cookies y sirve el nuevo selector de cuenta y Mostrar contraseña; el navegador confirmó la nueva tarjeta. Publicación verificada el 17/11/2026. Main y pastillas-1 sin cambios.
+
