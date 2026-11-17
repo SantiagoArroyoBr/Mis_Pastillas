@@ -4,7 +4,7 @@ export async function loadAppointments(client, family, today, patient = '') {
   const fields = {
     family_id: 'eq.' + family,
     ...(patient && { patient_id: 'eq.' + patient }),
-    select: 'id,patient_id,patient_name,revision,appointment_day,legacy_day,appointment_time,location,notes',
+    select: 'id,patient_id,patient_name,revision,appointment_day,legacy_day,appointment_time,location,notes,doctor',
     limit: 20
   };
   const [upcoming, past, legacy] = await Promise.all([

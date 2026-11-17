@@ -34,7 +34,7 @@
       <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
         <a href="#inicio"><img src="/icons/house.svg" alt="">Inicio</a>
         <a href="#family"><span class="pilot-nav-icon" aria-hidden="true">▤</span>Fichas</a>
-        <a href="#appointments-heading"><span class="pilot-nav-icon" aria-hidden="true">▦</span>Citas</a>
+        <a href="#appointments-heading"><span class="pilot-nav-icon" aria-hidden="true">▦</span>Citas médicas</a>
         <a href="#inventory"><img src="/icons/pill.svg" alt="">Inventario</a>
         <a href="#finance" id="finance-link" hidden><img src="/icons/wallet.svg" alt="">Enfermería y pagos</a>
         <a href="#backup-review"><span class="pilot-nav-icon" aria-hidden="true">⇩</span>Respaldo</a>
@@ -129,21 +129,26 @@
         </form>
         </section>
         <section data-pilot-view="#appointments-heading" aria-labelledby="appointments-heading" hidden>
-          <h2 id="appointments-heading">Citas</h2>
-          <form id="add-appointment">
+          <h2 id="appointments-heading">Citas médicas</h2>
+          <details class="pilot-entry-panel" id="new-medical-appointment">
+            <summary>Nueva cita médica</summary>
+            <form id="add-appointment">
             <label>Ficha <select name="patient" required></select></label>
             <label>Fecha <input name="day" type="date" required></label>
             <label>Hora <input name="time" type="time"></label>
             <label>Lugar <input name="place" maxlength="160"></label>
+            <label>Médico o especialista <input name="doctor" maxlength="160"></label>
             <label>Notas <textarea name="details" maxlength="500"></textarea></label>
             <button>Registrar cita</button>
-          </form>
+            </form>
+          </details>
           <form id="edit-appointment" hidden>
             <h3>Editar cita</h3>
             <p id="edit-appointment-patient"></p>
             <label>Fecha de la cita <input name="day" type="date" required></label>
             <label>Hora de la cita <input name="time" type="time"></label>
             <label>Lugar de la cita <input name="place" maxlength="160"></label>
+            <label>Médico o especialista <input name="doctor" maxlength="160"></label>
             <label>Notas de la cita <textarea name="details" maxlength="500"></textarea></label>
             <button id="save-appointment">Guardar cita</button>
             <button id="cancel-edit-appointment" type="button">Cancelar edición de cita</button>
@@ -151,11 +156,11 @@
           <label>Filtrar citas por ficha <select id="appointment-filter"></select></label>
           <h3>Próximas citas</h3>
           <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Próximas citas">
-            <table aria-label="Próximas citas"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-upcoming"></tbody></table>
+            <table aria-label="Próximas citas"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Médico, lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-upcoming"></tbody></table>
           </div>
           <h3>Citas anteriores</h3>
           <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Citas anteriores">
-            <table aria-label="Citas anteriores"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-past"></tbody></table>
+            <table aria-label="Citas anteriores"><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Ficha</th><th scope="col">Médico, lugar y notas</th><th scope="col">Acción</th></tr></thead><tbody id="appointments-past"></tbody></table>
           </div>
           <div id="appointments-legacy-section" hidden>
             <h3>Citas con fecha histórica inválida</h3>
@@ -166,22 +171,27 @@
         </section>
         <section id="inventory" data-pilot-view="#inventory" hidden>
           <h2>Inventario</h2>
-          <form id="add-inventory">
+          <div class="pilot-entry-actions" role="group" aria-label="Agregar una medicina o un insumo">
+            <button id="open-inventory-medicine" type="button" data-icon="+" aria-controls="add-inventory" aria-expanded="false">Agregar medicina</button>
+            <button id="open-inventory-supply" type="button" data-icon="+" aria-controls="add-inventory" aria-expanded="false">Agregar insumo</button>
+          </div>
+          <form id="add-inventory" class="pilot-entry-panel" hidden>
+            <h3 id="inventory-entry-heading">Nueva medicina</h3>
             <label>Ficha <select name="patient" required></select></label>
-            <label>Artículo <input name="name" maxlength="160" required></label>
-            <label>Tipo <select name="kind"><option value="medicine">Medicina</option><option value="sup">Insumo</option></select></label>
-            <label>Cantidad actual <input name="quantity" inputmode="decimal" required></label>
+            <label><span id="inventory-entry-name">Nombre de la medicina</span> <input name="name" maxlength="160" required></label>
+            <input type="hidden" name="kind" value="medicine">
+            <label><span id="inventory-entry-quantity">Cantidad actual</span> <input name="quantity" inputmode="decimal" required></label>
             <div id="inventory-schedules"></div>
             <button id="add-schedule" type="button">Agregar otra pauta</button>
             <button id="save-inventory">Guardar artículo</button>
-            <button id="cancel-inventory-edit" type="button" hidden>Cancelar edición</button>
+            <button id="cancel-inventory-edit" type="button">Cancelar</button>
           </form>
           <template id="inventory-schedule">
             <fieldset>
               <legend>Pauta</legend>
-              <label>Cantidad por toma o uso <input data-field="dose" inputmode="decimal" required></label>
-              <label>Horas, separadas por comas <input data-field="times" value="08:00" required></label>
-              <label>Frecuencia <select data-field="frequency">
+              <label><span data-usage-label>Cantidad por toma</span> <input data-field="dose" inputmode="decimal" required></label>
+              <label data-times-label>Horas, separadas por comas <input data-field="times" value="08:00" required></label>
+              <label><span data-frequency-label>Frecuencia</span> <select data-field="frequency">
                 <option value="daily">Diaria</option><option value="weekdays">Días de la semana</option><option value="interval">Cada cierto número de días</option>
               </select></label>
               <div data-group="weekdays" hidden>
@@ -253,11 +263,12 @@
             <label>Enfermero/a <select name="nurse" required></select></label>
             <label>Fecha de abono individual <input name="day" type="date" required></label>
             <label>Abono individual (MXN) <input name="amount" inputmode="decimal" required></label>
+            <label>Concepto (opcional) <input name="concept" maxlength="160"></label>
             <button>Registrar abono individual</button>
           </form>
           <button id="individual-toggle" type="button" aria-controls="finance-individual-payments" aria-pressed="false">Ver montos</button>
           <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Abonos individuales">
-            <table aria-label="Abonos individuales"><thead><tr><th scope="col">Fecha</th><th scope="col">Enfermero/a</th><th scope="col">Importe</th></tr></thead><tbody id="finance-individual-payments"></tbody></table>
+            <table aria-label="Abonos individuales"><thead><tr><th scope="col">Fecha</th><th scope="col">Enfermero/a</th><th scope="col">Concepto</th><th scope="col">Importe</th></tr></thead><tbody id="finance-individual-payments"></tbody></table>
           </div>
           <h3 id="finance-heading">Saldo general</h3>
           <button id="finance-toggle" type="button" aria-controls="finance-summary" aria-pressed="false">Ver montos</button>
@@ -271,12 +282,13 @@
           <form id="record-receipt">
             <label>Fecha de abono <input name="day" type="date" required></label>
             <label>Abono (MXN) <input name="amount" inputmode="decimal" required></label>
+            <label>Concepto (opcional) <input name="concept" maxlength="160"></label>
             <button>Registrar abono</button>
           </form>
           <h3>Últimos abonos</h3>
           <button id="receipt-toggle" type="button" aria-controls="finance-receipts" aria-pressed="false">Ver montos</button>
           <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Abonos generales">
-            <table aria-label="Abonos generales"><thead><tr><th scope="col">Fecha</th><th scope="col">Referencia</th><th scope="col">Importe</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody id="finance-receipts"></tbody></table>
+            <table aria-label="Abonos generales"><thead><tr><th scope="col">Fecha</th><th scope="col">Concepto</th><th scope="col">Importe</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody id="finance-receipts"></tbody></table>
           </div>
           <form id="cancel-receipt" hidden>
             <p id="cancel-receipt-detail"></p>

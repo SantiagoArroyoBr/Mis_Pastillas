@@ -87,6 +87,7 @@ function openAppointment(row, family) {
   editAppointment.elements.day.value = row.appointment_day;
   editAppointment.elements.time.value = row.appointment_time?.slice(0, 5) ?? '';
   editAppointment.elements.place.value = row.location;
+  editAppointment.elements.doctor.value = row.doctor;
   editAppointment.elements.details.value = row.notes;
   $('edit-appointment-patient').textContent = row.patient_name;
   $('save-appointment').disabled = false;
@@ -295,14 +296,24 @@ function renderAppointments(appointments, family, today) {
       const day = row.appointment_day === today ? 'Hoy, ' + today : row.appointment_day ?? row.legacy_day;
       const when = [day, row.appointment_time?.slice(0, 5)].filter(Boolean).join(' · ');
       const details = document.createElement('div');
-      if (row.location) details.append(row.location);
+      if (row.doctor) {
+        const doctor = document.createElement('strong');
+        doctor.textContent = row.doctor;
+        details.append(doctor);
+      }
+      if (row.location) {
+        const place = document.createElement('p');
+        place.className = 'pilot-table-notes';
+        place.textContent = row.location;
+        details.append(place);
+      }
       if (row.notes) {
         const notes = document.createElement('p');
         notes.className = 'pilot-table-notes';
         notes.textContent = row.notes;
         details.append(notes);
       }
-      const cells = [when, row.patient_name, row.location || row.notes ? details : '—'];
+      const cells = [when, row.patient_name, row.location || row.notes || row.doctor ? details : '—'];
       if (list === 'legacy') return cells;
       if (activeAppointmentPatients.has(row.patient_id)) {
         cells.push(actionButton(row.patient_name + ' · ' + when, 'Editar cita', () => {
@@ -421,11 +432,13 @@ rpcForm('rename-patient', async values => {
 rpcForm('add-appointment', async values => {
   const args = {
     family: families.value, patient: values.get('patient'), day: values.get('day'),
-    at_time: values.get('time') || null, place: values.get('place'), details: values.get('details')
+    at_time: values.get('time') || null, place: values.get('place'), details: values.get('details'),
+    doctor_name: values.get('doctor')
   };
   const key = JSON.stringify(args);
   if (appointmentRetry?.key !== key) appointmentRetry = { key, id: crypto.randomUUID() };
   await client.rpc('add_appointment', { ...args, request_id: appointmentRetry.id });
+  $('new-medical-appointment').open = false;
   try {
     await refreshFamily();
     status('Cita registrada.');
@@ -438,7 +451,8 @@ rpcForm('edit-appointment', async values => {
   if (!appointmentDraft || $('save-appointment').disabled) return;
   await client.rpc('edit_appointment', {
     family: appointmentDraft.family, appointment: appointmentDraft.id, expected_revision: appointmentDraft.revision,
-    day: values.get('day'), at_time: values.get('time') || null, place: values.get('place'), details: values.get('details')
+    day: values.get('day'), at_time: values.get('time') || null, place: values.get('place'), details: values.get('details'),
+    doctor_name: values.get('doctor')
   });
   closeAppointment();
   try {

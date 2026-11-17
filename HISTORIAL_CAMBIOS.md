@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-025 · Médicos, conceptos e insumos
+
+Sobre `41cb195`, las tablas integran los colores de cada apartado y alternan los fondos de filas. Citas médicas tiene un apartado de alta con médico independiente del lugar. Los abonos individuales y generales guardan un concepto opcional y mantienen su identificador interno para reintentos y cancelación, fuera de la vista. Inventario abre un formulario diferenciado para insumos con piezas y frecuencia estimada. El conteo manual sin pauta queda pendiente.
+
+Se exportaron en JSON las cuatro tablas afectadas y se comprobó su restauración en tablas temporales antes de aplicar `20261116000800` en Supabase local. Pasaron **19/19** pruebas del piloto, **2/2** integradas y **102/102** de regresión PWA. En Edge a 320 px se probaron el alta con médico y clínica, el concepto y cancelación sin mostrar referencia, y el alta de un insumo con intervalo. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — Detalle y próximos días del calendario
 
 Sobre `011ab0f`, el calendario resalta Hoy y los días con eventos, muestra los tres próximos días con actividad del mes y organiza el detalle por tipo, con accesos a Citas, Inventario y Enfermería y pagos. Al abrir un día desde el resumen, el foco va al detalle. Al cerrarlo vuelve al día seleccionado.

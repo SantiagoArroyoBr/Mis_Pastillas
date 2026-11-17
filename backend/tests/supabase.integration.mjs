@@ -112,7 +112,7 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   }]);
   assert.deepEqual(await caregiver.select('shifts', shiftHistory), []);
   assert.deepEqual(await outsider.select('shifts', shiftHistory), []);
-  const individualArgs = { family, nurse, day, cents: '4000' };
+  const individualArgs = { family, nurse, day, cents: '4000', concept_text: 'Pago de jornada' };
   const individual = (client, request_id) => client.rpc('record_individual_payment', { ...individualArgs, request_id });
   const ids = [randomUUID(), randomUUID()];
   const results = await Promise.allSettled(ids.map(id => individual(owner, id)));
@@ -127,6 +127,8 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.deepEqual(await owner.select('individual_payments', byFamily), [
     { paid_on: day, amount_cents: 4000, nurses: { name: 'Enfermería ficticia' } }
   ]);
+  assert.deepEqual(await owner.select('individual_payments', { id: 'eq.' + succeeded[0].value, select: 'concept' }),
+    [{ concept: 'Pago de jornada' }]);
   assert.deepEqual(await caregiver.select('individual_payments', byFamily), []);
   assert.deepEqual(await outsider.select('individual_payments', byFamily), []);
   assert.deepEqual(await loadAppliedPayments(owner, family, shifts), new Map([[shiftId, 4000n]]));
@@ -135,9 +137,11 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   await owner.rpc('record_individual_payment', { ...individualArgs, request_id: randomUUID(), cents: '2500' });
   assert.deepEqual(await loadAppliedPayments(owner, family, shifts), new Map([[shiftId, 6500n]]));
   const receipt = randomUUID();
-  const args = { family, request_id: receipt, day, cents: '5000' };
+  const args = { family, request_id: receipt, day, cents: '5000', concept_text: 'Anticipo ficticio' };
   assert.deepEqual(await Promise.all([owner.rpc('record_receipt', args), owner.rpc('record_receipt', args)]), [receipt, receipt]);
   assert.deepEqual(await owner.select('receipts', { id: 'eq.' + receipt, select: 'amount_cents' }), [{ amount_cents: 5000 }]);
+  assert.deepEqual(await owner.select('receipts', { id: 'eq.' + receipt, select: 'concept' }), [{ concept: 'Anticipo ficticio' }]);
+  await assert.rejects(owner.rpc('record_receipt', { ...args, concept_text: 'Otro concepto' }), { status: 409 });
   assert.deepEqual(await caregiver.select('receipts', { id: 'eq.' + receipt }), []);
   assert.deepEqual(await outsider.select('receipts', { id: 'eq.' + receipt }), []);
   const cutoff = { family, as_of: day };
@@ -148,12 +152,13 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.deepEqual(await owner.rpc('financial_balance', cutoff), [{ cost_cents: '6500', received_cents: '0', balance_cents: '6500' }]);
 
   const appointmentId = randomUUID();
-  const booking = { family, request_id: appointmentId, patient, day, at_time: '08:00', place: '', details: '' };
+  const booking = { family, request_id: appointmentId, patient, day, at_time: '08:00',
+    place: 'Clínica ficticia', details: '', doctor_name: 'Dra. ficticia A' };
   assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
   const appointments = { family_id: 'eq.' + family, select: 'appointment_day,legacy_day,appointment_time,location,notes,patients(name)',
     order: 'appointment_day.desc.nullslast,id.desc', limit: 20 };
   assert.deepEqual(await owner.select('appointments', appointments), [{
-    appointment_day: day, legacy_day: null, appointment_time: '08:00:00', location: '', notes: '', patients: { name: 'Ficha compartida' }
+    appointment_day: day, legacy_day: null, appointment_time: '08:00:00', location: 'Clínica ficticia', notes: '', patients: { name: 'Ficha compartida' }
   }]);
   assert.deepEqual(await outsider.select('appointments', appointments), []);
   assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 2, archived: true }), 3);
@@ -190,7 +195,8 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.deepEqual(filtered.past, []);
   assert.deepEqual(await loadAppointments(outsider, family, day, homonym), { upcoming: [], past: [], legacy: [] });
 
-  const editBooking = { family, appointment: appointmentId, expected_revision: 1, day: previousDay, at_time: null, place: 'Lugar ficticio' };
+  const editBooking = { family, appointment: appointmentId, expected_revision: 1, day: previousDay, at_time: null,
+    place: 'Clínica ficticia', doctor_name: 'Dr. ficticio B' };
   const edits = await Promise.allSettled([
     owner.rpc('edit_appointment', { ...editBooking, details: 'Cambio A' }),
     caregiver.rpc('edit_appointment', { ...editBooking, details: 'Cambio B' })
@@ -202,6 +208,8 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.equal(edited?.appointment_day, previousDay);
   assert.equal(edited?.appointment_time, null);
   assert.equal(edited?.revision, 2);
+  assert.equal(edited?.doctor, 'Dr. ficticio B');
+  assert.equal(edited?.location, 'Clínica ficticia');
   assert.equal(updated.upcoming.some(row => row.id === appointmentId), false);
   assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
   await assert.rejects(outsider.rpc('edit_appointment', { ...editBooking, details: '' }), { status: 403 });

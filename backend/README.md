@@ -24,9 +24,15 @@ En **Citas**, la cuenta propietaria o cuidadora puede registrar una cita vincula
 
 **Editar cita** permite cambiar fecha, hora, lugar y notas de una cita con fecha válida y ficha activa. Si dos cuentas abren la misma cita, el primer guardado actualiza su revisión. La segunda recibe un aviso y conserva su borrador. Puede copiar lo que escribió y volver a abrir la cita actualizada. Los recordatorios y la exportación a Calendar siguen pendientes.
 
+**Nueva cita médica** y **Editar cita** incluyen **Médico o especialista**, separado de la clínica o consultorio. La agenda y el detalle del calendario muestran ambos datos.
+
 **Filtrar citas por ficha** aplica la selección a las tres listas. Las fichas archivadas se pueden seleccionar para consultar su historial, y las fichas del mismo nombre muestran una referencia breve en el selector. Las citas del día llevan la etiqueta **Hoy**. El filtro se conserva al pulsar **Actualizar fichas** dentro de la misma familia.
 
 En **Inventario**, da de alta una medicina o insumo para una ficha activa y agrega las pautas necesarias. Las frecuencias disponibles son diaria, días de la semana e intervalo. Las existencias se calculan con el mismo módulo de la PWA y se actualizan al guardar y al pulsar **Actualizar fichas**. Registra una compra con su cantidad y, si aplica, el precio total y la tienda. **Últimas compras** muestra hasta 20 movimientos. Su botón **Ver montos** revela los precios por 30 segundos y es independiente de Pagos.
+
+**Agregar insumo** abre campos de piezas y uso estimado, con intervalo como opción inicial y sin captura de horarios de toma. El piloto todavía requiere una frecuencia estimada para proyectar ese consumo. Los importes de compra solo se registran al capturar la compra o cotización.
+
+Los abonos generales e individuales admiten un **Concepto** opcional. El historial usa el concepto, la fecha y el importe según el control de privacidad. La referencia interna se conserva para conciliar y cancelar el movimiento correcto.
 
 **Filtrar existencias y compras por ficha** aplica la selección a ambos listados, incluidas las fichas archivadas. En una ficha activa se distingue el stock agotado del que aún tiene unidades, pero no alcanza para la siguiente toma. Cuando hay existencias, el aviso de reposición usa la proyección de la PWA. Las fichas archivadas mantienen su consulta sin avisos de reposición.
 

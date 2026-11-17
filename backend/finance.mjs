@@ -150,14 +150,14 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     const filter = { family_id: 'eq.' + family };
     const [nurses, receipts, totals, shifts, individualPayments] = await Promise.all([
       client.select('nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
-      client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents', order: 'paid_on.desc,id.desc', limit: 20 }),
+      client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents,concept', order: 'paid_on.desc,id.desc', limit: 20 }),
       client.rpc('financial_balance', { family, as_of: today }),
       client.select('shifts', {
         ...filter, select: 'id,service_day,modality,cost_cents,patients(name),nurses(name)',
         order: 'service_day.desc,id.desc', limit: 20
       }),
       client.select('individual_payments', {
-        ...filter, select: 'paid_on,amount_cents,nurses(name)', order: 'paid_on.desc,id.desc', limit: 20
+        ...filter, select: 'paid_on,amount_cents,concept,nurses(name)', order: 'paid_on.desc,id.desc', limit: 20
       })
     ]);
     const [cancellations, applied] = await Promise.all([
@@ -182,7 +182,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     $('rates-toggle').disabled = !nurses.length;
     hideRates();
     renderTable(individualHistory, individualPayments.map(row => [
-      row.paid_on, row.nurses.name, historyAmount(row.amount_cents)
+      row.paid_on, row.nurses.name, row.concept || '—', historyAmount(row.amount_cents)
     ]), 'Aún no hay abonos individuales.');
     $('individual-toggle').disabled = !individualPayments.length;
     hideIndividualAmounts();
@@ -198,18 +198,18 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     hideShiftAmounts();
     renderTable(history, receipts.map(row => {
       const amount = historyAmount(row.amount_cents);
-      const reference = row.id.slice(0, 8);
+      const title = 'Abono del ' + row.paid_on + (row.concept ? ' · ' + row.concept : '');
       if (cancelled.has(row.id)) {
-        return [row.paid_on, reference, amount, 'Cancelado el ' + cancelled.get(row.id), '—'];
+        return [row.paid_on, row.concept || '—', amount, 'Cancelado el ' + cancelled.get(row.id), '—'];
       }
-      const button = actionButton('Abono del ' + row.paid_on + ' · ' + reference, 'Cancelar abono', () => {
+      const button = actionButton(title, 'Cancelar abono', () => {
         selected = row.id;
-        $('cancel-receipt-detail').textContent = 'Abono del ' + row.paid_on + ' · ' + reference;
+        $('cancel-receipt-detail').textContent = title;
         cancel.elements.day.value = today;
         cancel.hidden = false;
         cancel.elements.day.focus();
       });
-      return [row.paid_on, reference, amount, 'Activo', button];
+      return [row.paid_on, row.concept || '—', amount, 'Activo', button];
     }), 'Aún no hay abonos generales.');
     hideReceiptAmounts();
     panel.hidden = false;
@@ -271,10 +271,10 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     day: values.get('day'), shift_type: values.get('modality')
   }), 'Jornada registrada.');
   register('record-receipt', 'record_receipt', values => ({
-    day: values.get('day'), cents: parseCents(values.get('amount'))
+    day: values.get('day'), cents: parseCents(values.get('amount')), concept_text: values.get('concept')
   }), 'Abono registrado.');
   register('record-individual-payment', 'record_individual_payment', values => ({
-    nurse: values.get('nurse'), day: values.get('day'), cents: parseCents(values.get('amount'))
+    nurse: values.get('nurse'), day: values.get('day'), cents: parseCents(values.get('amount')), concept_text: values.get('concept')
   }), 'Abono individual registrado.');
   register('cancel-receipt', 'cancel_receipt', values => ({
     receipt: selected, day: values.get('day')

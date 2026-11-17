@@ -46,7 +46,7 @@ export async function loadCalendarRecords(client, family, patient, month, owner)
   const filter = { family_id: 'eq.' + family, ...(patient && { patient_id: 'eq.' + patient }) };
   const [appointments, shifts, inventory] = await Promise.all([
     readRows(client, 'appointment_details', { ...filter, and: range('appointment_day'),
-      select: 'appointment_day,appointment_time,patient_name,location,notes',
+      select: 'appointment_day,appointment_time,patient_name,location,notes,doctor',
       order: 'appointment_day.asc,appointment_time.asc.nullslast,id.asc' }),
     owner ? readRows(client, 'shifts', { ...filter, and: range('service_day'),
       select: 'service_day,modality,patients(name),nurses(name)', order: 'service_day.asc,id.asc' }) : [],
@@ -67,7 +67,7 @@ export function buildCalendarEvents(records, domain, now) {
   const today = dateKey.format(now);
   for (const row of records.appointments) {
     add(row.appointment_day, { kind: 'appointment', name: row.patient_name,
-      details: [row.appointment_time?.slice(0, 5), row.location, row.notes].filter(Boolean).join(' · ') });
+      details: [row.appointment_time?.slice(0, 5), row.doctor, row.location, row.notes].filter(Boolean).join(' · ') });
   }
   for (const row of records.shifts) {
     const type = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';

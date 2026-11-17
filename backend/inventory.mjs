@@ -59,6 +59,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
   const history = $('inventory-purchases');
   const patientFilter = $('inventory-filter');
   const toggle = $('inventory-price-toggle');
+  const medicineButton = $('open-inventory-medicine');
+  const supplyButton = $('open-inventory-supply');
   let client, family, patients = [], items = [], pendingAdd, pendingBuy, timer;
   let visiblePatient = '', patientNames = new Map();
   let editDraft;
@@ -82,21 +84,31 @@ export function createInventory({ run, status, renderTable, onChange }) {
   function addSchedule(focus = false, consumption) {
     const row = $('inventory-schedule').content.firstElementChild.cloneNode(true);
     const frequency = row.querySelector('[data-field=frequency]');
-    frequency.addEventListener('change', () => {
+    const updateFrequency = () => {
       for (const group of row.querySelectorAll('[data-group]')) group.hidden = group.dataset.group !== frequency.value;
-    });
+    };
+    frequency.addEventListener('change', updateFrequency);
+    const supply = add.elements.kind.value === 'sup';
+    if (supply) {
+      row.querySelector('legend').textContent = 'Uso estimado';
+      row.querySelector('[data-usage-label]').textContent = 'Piezas por uso';
+      row.querySelector('[data-frequency-label]').textContent = 'Frecuencia estimada de uso';
+      row.querySelector('[data-times-label]').hidden = true;
+      frequency.value = 'interval';
+      row.querySelector('[data-field=start]').value = dateFormat.format(new Date());
+    }
     if (consumption) {
       const { dose, times, schedule } = consumption;
       row.querySelector('[data-field=dose]').value = dose;
       row.querySelector('[data-field=times]').value = times.join(', ');
       frequency.value = schedule.type;
-      frequency.dispatchEvent(new Event('change'));
       for (const field of row.querySelectorAll('[type=checkbox]')) field.checked = schedule.days?.includes(Number(field.value)) ?? false;
       if (schedule.type === 'interval') {
         row.querySelector('[data-field=interval]').value = schedule.n;
         row.querySelector('[data-field=start]').value = dateFormat.format(schedule.start);
       }
     }
+    updateFrequency();
     row.querySelector('[data-remove]').addEventListener('click', () => {
       row.remove();
       updateRemoveButtons();
@@ -133,25 +145,35 @@ export function createInventory({ run, status, renderTable, onChange }) {
   function resetAdd() {
     editDraft = undefined;
     add.reset();
-    add.elements.patient.disabled = add.elements.kind.disabled = false;
-    $('cancel-inventory-edit').hidden = true;
-    $('save-inventory').textContent = 'Guardar artículo';
+    add.elements.patient.disabled = false;
+    add.hidden = true;
+    medicineButton.setAttribute('aria-expanded', 'false');
+    supplyButton.setAttribute('aria-expanded', 'false');
     schedules.replaceChildren();
-    addSchedule();
+  }
+
+  function openEntry(kind, editing = false) {
+    const supply = kind === 'sup';
+    add.elements.kind.value = kind;
+    add.hidden = false;
+    medicineButton.setAttribute('aria-expanded', String(!supply));
+    supplyButton.setAttribute('aria-expanded', String(supply));
+    $('inventory-entry-heading').textContent = (editing ? 'Editar ' : 'Nueva ') + (supply ? (editing ? 'insumo' : 'entrada de insumo') : 'medicina');
+    $('inventory-entry-name').textContent = supply ? 'Nombre del insumo' : 'Nombre de la medicina';
+    $('inventory-entry-quantity').textContent = supply ? 'Piezas disponibles' : 'Cantidad actual';
+    $('save-inventory').textContent = editing ? 'Guardar cambios' : supply ? 'Guardar insumo' : 'Guardar medicina';
   }
 
   function startEdit(item, stock) {
     if (editDraft && !confirm('¿Descartar el borrador de inventario abierto?')) return;
     editDraft = { item: item.id, revision: item.revision };
+    openEntry(item.kind, true);
     add.elements.patient.value = item.patient_id;
-    add.elements.kind.value = item.kind;
-    add.elements.patient.disabled = add.elements.kind.disabled = true;
+    add.elements.patient.disabled = true;
     add.elements.name.value = item.name;
     add.elements.quantity.value = stock.rem;
     schedules.replaceChildren();
     for (const consumption of item.consumptions) addSchedule(false, consumption);
-    $('save-inventory').textContent = 'Guardar cambios';
-    $('cancel-inventory-edit').hidden = false;
     add.elements.name.focus();
   }
 
@@ -205,6 +227,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
     add.elements.patient.replaceChildren(...active.map(row => new Option(patientLabel(row.id, row.name), row.id)));
     if (active.some(row => row.id === oldPatient)) add.elements.patient.value = oldPatient;
     $('save-inventory').disabled = !active.length;
+    medicineButton.disabled = supplyButton.disabled = !active.length;
     const oldItem = purchaseItem.value;
     const purchasable = items.filter(row => !row.patients.archived_at);
     purchaseItem.replaceChildren(...purchasable.map(row => new Option(
@@ -287,6 +310,17 @@ export function createInventory({ run, status, renderTable, onChange }) {
 
   $('add-schedule').addEventListener('click', () => addSchedule(true));
   $('cancel-inventory-edit').addEventListener('click', resetAdd);
+  for (const [button, kind] of [[medicineButton, 'medicine'], [supplyButton, 'sup']]) {
+    button.addEventListener('click', () => {
+      if (!add.hidden && add.elements.kind.value === kind && !editDraft) return;
+      if (!add.hidden && (editDraft || add.elements.name.value || add.elements.quantity.value)
+          && !confirm('¿Descartar el borrador de inventario abierto?')) return;
+      resetAdd();
+      openEntry(kind);
+      addSchedule();
+      add.elements.name.focus();
+    });
+  }
   buy.elements.mode.addEventListener('change', () => {
     $('save-inventory-movement').textContent = buy.elements.mode.value === 'quote' ? 'Guardar cotización' : 'Registrar compra';
   });

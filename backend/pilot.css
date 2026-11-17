@@ -109,13 +109,17 @@
 .connected-pilot #pilot-notice:has(#status:empty) #dismiss-notice { display: none; }
 .connected-pilot .pilot-table-scroll {
   --table-grid: #948780;
+  --table-header: var(--calendar-surface);
+  --table-accent: var(--navy);
   max-width: 100%;
   overflow-x: auto;
   margin-block: .5rem 1rem;
   border: 1px solid var(--table-grid);
-  border-radius: 9px;
+  border-radius: 12px;
   background: var(--card);
 }
+.connected-pilot #inventory .pilot-table-scroll { --table-header: var(--inventory-surface); --table-accent: var(--inventory-accent); }
+.connected-pilot #finance .pilot-table-scroll { --table-header: var(--payment-surface); --table-accent: var(--payment-accent); }
 .connected-pilot .pilot-table-scroll table { width: 100%; border-collapse: collapse; font-size: .87rem; line-height: 1.3; }
 .connected-pilot .pilot-table-scroll th, .connected-pilot .pilot-table-scroll td {
   padding: .3rem .4rem;
@@ -125,13 +129,24 @@
   text-align: start;
 }
 .connected-pilot .pilot-table-scroll tr > :last-child { border-inline-end: 0; }
-.connected-pilot .pilot-table-scroll thead th { background: var(--line); }
+.connected-pilot .pilot-table-scroll thead th { background: var(--table-header); color: var(--table-accent); font-weight: 900; }
+.connected-pilot .pilot-table-scroll tbody tr:nth-child(even) > * { background: var(--bg); }
 .connected-pilot .pilot-table-scroll tbody tr:last-child > * { border-bottom: 0; }
 .connected-pilot .pilot-table-scroll summary { display: list-item; white-space: nowrap; }
 .connected-pilot .pilot-table-scroll button { padding: .2rem .4rem; margin: 0; }
 .connected-pilot .pilot-table-scroll details { margin: 0; }
 .connected-pilot #members td:first-child, .connected-pilot .pilot-table-notes { overflow-wrap: anywhere; }
 .connected-pilot .pilot-table-notes { margin: 0; white-space: pre-wrap; }
+.connected-pilot .pilot-entry-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--panel-accent, var(--navy));
+  border-radius: 12px;
+  padding: .35rem .75rem;
+}
+.connected-pilot .pilot-entry-panel summary { display: list-item; }
+.connected-pilot .pilot-entry-actions { display: flex; gap: .35rem; flex-wrap: wrap; }
+.connected-pilot .pilot-entry-actions button[aria-expanded=true] { background: var(--panel-accent); color: #fff; }
 .connected-pilot #backup-review-results tr > :last-child { text-align: end; font-variant-numeric: tabular-nums; }
 .connected-pilot .pilot-patient-table td:first-child { width: 40%; overflow-wrap: anywhere; }
 .connected-pilot .pilot-row-actions { display: flex; flex-wrap: wrap; gap: .2rem; }
