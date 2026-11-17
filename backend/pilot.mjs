@@ -1,6 +1,7 @@
 import { createClient, loadAppointments } from './supabase-client.mjs';
 import { createFinance } from './finance.mjs';
 import { createInventory } from './inventory.mjs';
+import { createCalendar } from './calendar.mjs';
 import { auditBackupRaw, maxBytes } from './backup-diagnostics.mjs';
 
 const $ = id => document.getElementById(id);
@@ -42,8 +43,9 @@ function dismissNotice() {
 }
 
 $('dismiss-notice').addEventListener('click', dismissNotice);
-const finance = createFinance({ run, status, actionButton, renderTable });
-const inventory = createInventory({ run, status, renderTable });
+const calendar = createCalendar(run);
+const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
+const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const backupFile = $('backup-review-file');
 let backupRequest = 0;
 
@@ -95,6 +97,7 @@ function openAppointment(row, family) {
 function endSession() {
   clearBackup();
   finance.scope(undefined);
+  calendar.scope(undefined);
   inventory.scope(undefined);
   client = userId = undefined;
   memberships = [];
@@ -121,6 +124,7 @@ function run(action) {
     families.disabled = true;
     appointmentFilter.disabled = true;
     $('inventory-filter').disabled = true;
+    $('pilot-calendar-patient').disabled = true;
     try {
       await action(event);
     } catch (error) {
@@ -150,6 +154,7 @@ function run(action) {
       families.disabled = !families.value;
       appointmentFilter.disabled = false;
       $('inventory-filter').disabled = false;
+      $('pilot-calendar-patient').disabled = false;
     }
   };
 }
@@ -202,6 +207,7 @@ async function refreshFamily() {
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
   finance.scope(owner ? family : undefined);
   inventory.scope(family || undefined);
+  calendar.scope(family || undefined);
   $('family').hidden = !family;
   $('pilot-navigation').hidden = false;
   for (const link of $('pilot-navigation').querySelectorAll('a')) {
@@ -279,7 +285,8 @@ async function refreshFamily() {
       status('Acceso revocado.');
     })
   ]), 'Aún no hay cuentas cuidadoras.');
-  await Promise.all([owner ? finance.load(client, family, active) : undefined, inventory.load(client, family, patients)]);
+  await Promise.all([owner ? finance.load(client, family, active) : undefined,
+    inventory.load(client, family, patients), calendar.load(client, family, patients, owner)]);
 }
 
 function renderAppointments(appointments, family, today) {

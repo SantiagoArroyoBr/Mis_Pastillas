@@ -4,6 +4,31 @@ import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
 import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption } from '../inventory.mjs';
+import { buildCalendarEvents, monthRange } from '../calendar.mjs';
+
+test('calendar groups scheduled events and estimated inventory events by local day', () => {
+  const now = new Date(2026, 10, 16, 9).getTime();
+  const tomorrow = new Date(2026, 10, 17, 9).getTime();
+  const domain = { num: String, calc: () => ({ rem: 1, left: 1, now: true, end: tomorrow }) };
+  const result = buildCalendarEvents({
+    from: '2026-11-01', until: '2026-12-01',
+    appointments: [
+      { appointment_day: '2026-11-16', appointment_time: '08:30:00', patient_name: 'Ficha', location: 'Consulta' },
+      { appointment_day: null, legacy_day: '2026-02-30' }
+    ],
+    shifts: [{ service_day: '2026-11-16', modality: 'half', nurses: { name: 'Enfermería' }, patients: { name: 'Ficha' } }],
+    inventory: [{ name: 'Artículo', patients: { name: 'Ficha' } }]
+  }, domain, now);
+  assert.deepEqual(result.get('2026-11-16').map(event => event.kind), ['appointment', 'shift', 'stock']);
+  assert.equal(result.get('2026-11-16')[0].details, '08:30 · Consulta');
+  assert.equal(result.get('2026-11-17')[0].kind, 'depletion');
+  assert.equal(result.has('2026-02-30'), false);
+  const february = monthRange(new Date(2028, 1, 28));
+  assert.equal(february.days, 29);
+  assert.equal(february.first.getDate(), 1);
+  assert.equal(february.next.getMonth(), 2);
+  assert.equal(february.lead, 1);
+});
 
 test('inventory describes each schedule using its own dose, frequency and hours', () => {
   const domain = { num: n => String(n).replace('.', ','), schedText: schedule => schedule.type };

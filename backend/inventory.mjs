@@ -11,7 +11,7 @@ export function inventoryNumber(input, label, positive = false) {
   return number;
 }
 
-function projectStock(domain, item, now) {
+export function projectStock(domain, item, now) {
   return domain.calc({ base: item.base_quantity, t0: item.base_at, cons: item.consumptions }, now);
 }
 
@@ -51,7 +51,7 @@ function loadInventoryQuotes(client, family, patient) {
   });
 }
 
-export function createInventory({ run, status, renderTable }) {
+export function createInventory({ run, status, renderTable, onChange }) {
   const add = $('add-inventory');
   const buy = $('inventory-purchase');
   const purchaseItem = buy.elements.namedItem('item');
@@ -277,6 +277,7 @@ export function createInventory({ run, status, renderTable }) {
   async function refreshAfterWrite(message) {
     try {
       await load(client, family, patients);
+      await onChange();
       status(message);
     } catch {
       buy.querySelector('button').disabled = true;

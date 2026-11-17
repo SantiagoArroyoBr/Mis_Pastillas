@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-022 · Calendario del cuidado en Inicio
+
+Sobre `3b75b11`, el piloto incorpora la vista mensual por ficha con indicadores y cantidades por día. El detalle separa citas con hora y notas, turnos con modalidad y fechas estimadas de reposición y agotamiento con el stock al consultar. El calendario reutiliza el cálculo de la PWA, excluye del mes fechas históricas imposibles y limita la lectura de turnos a la cuenta propietaria. Carga, agrupación y presentación quedan separadas para facilitar mejoras.
+
+Pasaron **18/18** pruebas del piloto, **2/2** integradas con Supabase y **102/102** de regresión de la PWA. En Edge a 320 px se comprobaron los indicadores de un día con citas, turnos y reposición, el detalle, el teclado, el cambio de mes y el regreso a Hoy. Se reinició el servidor web local para servir el módulo. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — Tablas de agenda, accesos y respaldo
 
 Sobre `b209125` se revisaron los siete apartados. Se añadieron tablas a próximas citas, citas anteriores, fechas históricas inválidas, cuentas cuidadoras y conteos del respaldo. Inicio conserva los recuentos en tarjetas y los campos editables siguen en formularios. Fichas, Inventario y Pagos ya cuentan con tablas de sus registros.

@@ -6,6 +6,7 @@ const files = {
   '/pilot.mjs': ['pilot.mjs', 'text/javascript; charset=utf-8'],
   '/finance.mjs': ['finance.mjs', 'text/javascript; charset=utf-8'],
   '/inventory.mjs': ['inventory.mjs', 'text/javascript; charset=utf-8'],
+  '/calendar.mjs': ['calendar.mjs', 'text/javascript; charset=utf-8'],
   '/backup-diagnostics.mjs': ['backup-diagnostics.mjs', 'text/javascript; charset=utf-8'],
   '/compatibility.js': ['../compatibility.js', 'text/javascript; charset=utf-8'],
   '/domain.js': ['../domain.js', 'text/javascript; charset=utf-8'],

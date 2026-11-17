@@ -48,6 +48,8 @@ Desde una cuenta propietaria, registra a una persona de enfermería con tarifa d
 
 Usa una cuenta y una familia ficticias. El piloto en el puerto 4173 comparte la paleta, la fuente Nunito y los iconos de la PWA. El menú muestra un apartado a la vez y **Inicio** cuenta las fichas activas y archivadas de la familia seleccionada. En **Configuración** puedes cambiar o crear una familia, gestionar invitaciones según tu rol y cerrar sesión. Si tu cuenta todavía no pertenece a una familia, se abre Configuración. **Actualizar fichas** está disponible desde cualquier apartado con una familia activa.
 
+El **Calendario del cuidado** de Inicio resume cuántas citas, turnos, reposiciones y agotamientos estimados hay por día. En un día con más de nueve eventos de un tipo aparece un signo «+» y el detalle muestra los registros. Selecciona una ficha o consulta todas. Al abrir un día puedes ver la hora, el lugar y las notas de una cita, la modalidad de los turnos y las existencias de los artículos al momento de la consulta. Los turnos se muestran según los permisos vigentes. Las proyecciones corresponden a fichas activas y usan el cálculo de la PWA en la zona horaria del navegador.
+
 | Sección | Qué revisar |
 | --- | --- |
 | Cuenta y fichas | Inicia sesión, crea dos fichas, invita a una cuenta cuidadora y verifica que archivar y reactivar conserva el historial. |

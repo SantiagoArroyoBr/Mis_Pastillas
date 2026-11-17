@@ -77,7 +77,7 @@ export async function loadAppliedPayments(client, family, shifts) {
   return totals;
 }
 
-export function createFinance({ run, status, actionButton, renderTable }) {
+export function createFinance({ run, status, actionButton, renderTable, onChange }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
   const shift = $('record-shift');
@@ -239,6 +239,7 @@ export function createFinance({ run, status, actionButton, renderTable }) {
       else form.reset();
       try {
         await load(client, family, patients);
+        await onChange();
         status(message);
       } catch {
         scope(undefined);

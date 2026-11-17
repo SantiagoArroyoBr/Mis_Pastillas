@@ -79,6 +79,28 @@
             <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
             <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
           </div>
+          <section aria-labelledby="pilot-calendar-heading">
+            <h3 id="pilot-calendar-heading">Calendario del cuidado</h3>
+            <label>Ficha del calendario <select id="pilot-calendar-patient"></select></label>
+            <div class="pilot-calendar-controls">
+              <button id="pilot-calendar-prev" type="button" aria-label="Mes anterior">‹</button>
+              <p id="pilot-calendar-month" aria-live="polite"></p>
+              <button id="pilot-calendar-next" type="button" aria-label="Mes siguiente">›</button>
+              <button id="pilot-calendar-today" type="button">Hoy</button>
+            </div>
+            <ul class="pilot-calendar-legend" aria-label="Claves del calendario">
+              <li data-calendar-kind="appointment">C · Citas</li>
+              <li id="pilot-calendar-shift-legend" data-calendar-kind="shift">T · Turnos</li>
+              <li data-calendar-kind="stock">R · Reposición estimada</li>
+              <li data-calendar-kind="depletion">A · Agotamiento estimado</li>
+            </ul>
+            <p id="pilot-calendar-status" role="status"></p>
+            <div id="pilot-calendar-grid" class="pilot-calendar-grid" aria-labelledby="pilot-calendar-heading"></div>
+            <section id="pilot-calendar-detail" aria-labelledby="pilot-calendar-day" hidden>
+              <h4 id="pilot-calendar-day" tabindex="-1"></h4>
+              <ul id="pilot-calendar-events"></ul>
+            </section>
+          </section>
         </section>
         <section data-pilot-view="#family" aria-labelledby="pilot-patients-heading" hidden>
         <h2 id="pilot-patients-heading">Fichas</h2>

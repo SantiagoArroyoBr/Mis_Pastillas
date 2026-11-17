@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { loadAppliedPayments } from '../finance.mjs';
 import { loadInventoryPurchases } from '../inventory.mjs';
+import { loadCalendarRecords } from '../calendar.mjs';
 
 const key = process.env.ACOMPANA_SUPABASE_PUBLISHABLE_KEY;
 if (!key) throw new Error('Define ACOMPANA_SUPABASE_PUBLISHABLE_KEY con la clave publicable de tu Supabase local.');
@@ -69,6 +70,7 @@ test('inventory lets family members buy stock without applying a concurrent purc
   const history = await loadInventoryPurchases(caregiver, family, patient);
   assert.deepEqual(history.map(row => [row.inventory_items.patient_id, row.quantity]), [[patient, 2.5]]);
   assert.deepEqual(await loadInventoryPurchases(outsider, family, patient), []);
+  assert.deepEqual((await loadCalendarRecords(owner, family, patient, new Date(2026, 10, 16), true)).inventory, []);
 });
 
 test('auth and PostgREST keep two families separate while authorized clients share a patient', async () => {
@@ -203,6 +205,14 @@ test('auth and PostgREST keep two families separate while authorized clients sha
   assert.equal(updated.upcoming.some(row => row.id === appointmentId), false);
   assert.equal(await caregiver.rpc('add_appointment', booking), appointmentId);
   await assert.rejects(outsider.rpc('edit_appointment', { ...editBooking, details: '' }), { status: 403 });
+  const agenda = await loadCalendarRecords(owner, family, patient, new Date(2026, 10, 16), true);
+  assert.ok(agenda.appointments.some(row => row.appointment_day === previousDay));
+  assert.deepEqual(agenda.shifts.map(row => row.service_day), [day]);
+  const caregiverCalendar = await loadCalendarRecords(caregiver, family, patient, new Date(2026, 10, 16), false);
+  assert.deepEqual(caregiverCalendar.appointments, agenda.appointments);
+  assert.deepEqual(caregiverCalendar.shifts, []);
+  const foreignCalendar = await loadCalendarRecords(outsider, family, patient, new Date(2026, 10, 16), true);
+  assert.deepEqual([foreignCalendar.appointments, foreignCalendar.shifts, foreignCalendar.inventory], [[], [], []]);
 
   await owner.rpc('revoke_caregiver', { family, member: caregiverId });
   assert.deepEqual(await caregiver.select('patients', byId), []);
