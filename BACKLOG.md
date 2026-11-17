@@ -51,4 +51,4 @@ Selecciona primero P0 y P1, entre tareas **Lista** dentro de la orden vigente. A
 
 | RECONST-027 · Conectar Supabase nube | P2 · En revisión | Selector local/nube y esquema remoto inicializado con nueve migraciones en una transacción. | Pendientes cuenta confirmada, recuperación, redirección Auth y Preview separada. | 21/21 piloto, 102/102 regresión; 15 tablas remotas con RLS y acceso anónimo denegado. | Autorización del propietario en sesión; [guía](backend/README.md). |
 
-| RECONST-028 · Preview móvil del piloto | P2 · En ejecución | Artefacto estático aislado y configuración de Vercel preparados. | Publicación development, creación del proyecto y verificación HTTPS en curso. | 22/22 piloto; compilación y recursos comprobados. | Publicación solicitada por propietario en sesión. |
+| RECONST-028 · Preview móvil del piloto | P2 · En revisión | Proyecto acompana-piloto, Preview de development Ready con 428686f. | Pendientes acceso autenticado, redirecciones Auth y recorrido físico en iPhone. Preview protegida por Vercel. | 22/22 piloto; compilación, recursos y formulario HTTPS comprobados. | Publicación solicitada por propietario; evidencia en historial. |

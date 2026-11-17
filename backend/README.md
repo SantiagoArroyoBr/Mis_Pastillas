@@ -1,6 +1,6 @@
 # Acompaña · Piloto local de datos y cuentas
 
-El piloto corre en `127.0.0.1` y tiene su propio servidor, origen y configuración. Úsalo con cuentas y datos ficticios. La PWA de referencia conserva su propio servidor, respaldo y clave `pastillas-v1`. `.vercelignore` excluye el piloto del despliegue estático actual. [Exclusiones de Vercel](https://vercel.com/docs/deployments/vercel-ignore).
+El piloto corre en `127.0.0.1` y tiene su propio servidor, origen y configuración. Úsalo con cuentas y datos ficticios. La PWA de referencia conserva su propio servidor, respaldo y clave `pastillas-v1`. `.vercelignore` permite los archivos públicos del piloto y excluye SQL, pruebas, herramientas y entorno. [Exclusiones de Vercel](https://vercel.com/docs/deployments/vercel-ignore).
 
 ## Ejecutar
 
@@ -102,3 +102,5 @@ Diagnóstico Auth (2026-11-17): se observaron respuestas 429 `over_email_send_ra
 ## Despliegue estático del piloto
 
 Proyecto Vercel separado de `pastillas-1`, repositorio compartido, rama `development`. Raíz `backend`; habilitar inclusión de archivos fuera de la raíz durante compilación. `vercel.json` en backend fija compilación `node build-preview.mjs`, sin instalación de dependencias, y salida `supabase/.temp/preview`. No cambiar la raíz del proyecto de producción existente. El artefacto usa solo Supabase nube y necesita conexión; no incluye service worker ni sincronización offline. La clave incluida es publicable, los tokens permanecen en memoria y RLS controla los datos.
+
+Preview verificada (commit `428686f`): [piloto de development](https://acompana-piloto-git-development-dinamita20.vercel.app/). Proyecto separado `acompana-piloto`, entorno Preview. La protección de Vercel está activa: entrar en Vercel primero y luego usar la cuenta de Acompaña. Comprobación visual del formulario HTTPS realizada; recorrido autenticado y dispositivo iPhone pendientes.

@@ -513,3 +513,9 @@ Verificación: 22/22 pruebas del piloto; compilación y comprobación de recurso
 ### Corrección de exclusiones de Vercel
 
 Tras la verificación de identidad, el despliegue `dpl_GVdYRkzNS1sJyVMbnH8hQSwavCJs` de `165be7e` falló: la `.vercelignore` raíz eliminaba backend/build-preview.mjs y los demás archivos del piloto. Se sustituye la exclusión total por una lista explícita de archivos públicos y de compilación permitidos; SQL, .env, respaldos, pruebas, servidor local y herramientas siguen excluidos. El artefacto se reconstruyó localmente: 16 archivos. Las futuras Previews del proyecto raíz también podrán servir esos archivos públicos bajo backend; main y la producción vigente no se modifican. Pendiente confirmar el nuevo despliegue remoto.
+
+### Preview móvil verificada
+
+El despliegue `dpl_5U8YaXoQZyKnSvD3JzEi9xX5s5RV`, commit `428686f`, terminó Ready en el proyecto separado `acompana-piloto` y entorno Preview, rama development. URL estable de rama: https://acompana-piloto-git-development-dinamita20.vercel.app/ . Se abrió el formulario HTTPS y se comprobó nube como única opción y precarga de la clave publicable. No se reenviaron credenciales ni se probó acceso autenticado a Supabase en esta Preview.
+
+La comprobación sin cookies termina en Login de Vercel: la protección de Preview sigue activa. En iPhone el propietario necesita iniciar sesión en Vercel y después en Acompaña. No se redujo la protección del despliegue. No se cambiaron main, el proyecto pastillas-1 ni su dominio de producción. La configuración Auth de redirecciones y correo transaccional sigue pendiente para alta/recuperación; el acceso con la cuenta administrativa existente usa correo y contraseña. Captura local excluida: backend/supabase/.temp/preview-ready.jpg. Quedan pruebas físicas de iPhone y de edición compartida con dos dispositivos.
