@@ -80,6 +80,7 @@ function run(action) {
     busy = true;
     families.disabled = true;
     appointmentFilter.disabled = true;
+    $('inventory-filter').disabled = true;
     try {
       await action(event);
     } catch (error) {
@@ -106,6 +107,7 @@ function run(action) {
       busy = false;
       families.disabled = false;
       appointmentFilter.disabled = false;
+      $('inventory-filter').disabled = false;
     }
   };
 }

@@ -28,6 +28,8 @@ En **Citas**, la cuenta propietaria o cuidadora puede registrar una cita vincula
 
 En **Inventario**, da de alta una medicina o insumo para una ficha activa y agrega las pautas necesarias. Las frecuencias disponibles son diaria, días de la semana e intervalo. Las existencias se calculan con el mismo módulo de la PWA y se actualizan al guardar y al pulsar **Actualizar fichas**. Registra una compra con su cantidad y, si aplica, el precio total y la tienda. **Últimas compras** muestra hasta 20 movimientos. Su botón **Ver montos** revela los precios por 30 segundos y es independiente de Pagos.
 
+**Filtrar existencias y compras por ficha** aplica la selección a ambos listados, incluidas las fichas archivadas. En una ficha activa se distingue el stock agotado del que aún tiene unidades, pero no alcanza para la siguiente toma. Cuando hay existencias, el aviso de reposición usa la proyección de la PWA. Las fichas archivadas mantienen su consulta sin avisos de reposición.
+
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
 
 Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.

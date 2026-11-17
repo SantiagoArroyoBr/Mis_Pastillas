@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-016 · Inventario por ficha y reposición
+
+Sobre `fed555e`, el filtro consulta existencias y compras de una ficha activa o archivada. La consulta de compras aplica el filtro antes del límite de 20. El estado de reposición utiliza el cálculo de la PWA y distingue agotado, existencias insuficientes y compra próxima. Los avisos se muestran en fichas activas.
+
+Pasaron **16/16** pruebas del piloto y **102/102** de regresión PWA. En Edge con respuestas ficticias simuladas se verificaron los avisos, el historial filtrado de una ficha archivada y los precios ocultos. Docker Desktop seguía en pausa manual, por lo que queda pendiente ejecutar la prueba de integración añadida contra Supabase local. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-015 · Inventario en la interfaz del piloto
 
 Sobre `5cd5d15`, la pantalla permite alta de artículos por ficha, captura de pautas diarias, semanales o por intervalo, cálculo de existencias con el módulo de la PWA y registro de compras. El historial de 20 compras tiene control de montos independiente. El lote usa el esquema existente. Se reinició el servidor local para servir el módulo y las dependencias compartidas.

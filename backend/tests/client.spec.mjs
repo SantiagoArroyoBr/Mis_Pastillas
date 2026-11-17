@@ -3,7 +3,27 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
-import { inventoryNumber } from '../inventory.mjs';
+import { inventoryNumber, stockMessage, loadInventoryPurchases } from '../inventory.mjs';
+
+test('purchase history filters the joined inventory item before applying its limit', async () => {
+  const calls = [];
+  const client = { select(table, filter) { calls.push({ table, ...filter }); return []; } };
+  await loadInventoryPurchases(client, 'fixture-family');
+  await loadInventoryPurchases(client, 'fixture-family', 'fixture-patient');
+  assert.ok(calls.every(call => call.table === 'inventory_purchases' && call.family_id === 'eq.fixture-family'
+    && call.limit === 20 && call.select.includes('inventory_items!inner')));
+  assert.equal(calls[0]['inventory_items.patient_id'], undefined);
+  assert.equal(calls[1]['inventory_items.patient_id'], 'eq.fixture-patient');
+});
+
+test('inventory distinguishes depleted, insufficient and replenishment states', () => {
+  const domain = { fmt: () => 'martes 17 de noviembre' };
+  assert.equal(stockMessage(domain, { rem: 0, left: 0 }), 'Agotado');
+  assert.equal(stockMessage(domain, { rem: 0.25, left: 0 }), 'Existencias insuficientes');
+  assert.equal(stockMessage(domain, { rem: 2, left: 2, st: 'red' }), 'Comprar hoy');
+  assert.equal(stockMessage(domain, { rem: 2, left: 2, st: 'amber', now: false }), 'Comprar antes del martes 17 de noviembre');
+  assert.equal(stockMessage(domain, { rem: 20, left: 20, st: 'green' }), 'Existencias suficientes');
+});
 
 test('inventory decimal fields preserve fractional stock and reject partial numeric input', () => {
   assert.equal(inventoryNumber('12,5', 'la cantidad', true), 12.5);

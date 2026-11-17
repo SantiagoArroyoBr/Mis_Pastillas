@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { loadAppliedPayments } from '../finance.mjs';
+import { loadInventoryPurchases } from '../inventory.mjs';
 
 const key = process.env.ACOMPANA_SUPABASE_PUBLISHABLE_KEY;
 if (!key) throw new Error('Define ACOMPANA_SUPABASE_PUBLISHABLE_KEY con la clave publicable de tu Supabase local.');
@@ -47,6 +48,12 @@ test('inventory lets family members buy stock without applying a concurrent purc
   assert.deepEqual(await outsider.select('inventory_items', { id: 'eq.' + item }), []);
   assert.deepEqual(await outsider.select('inventory_purchases', { item_id: 'eq.' + item }), []);
   await assert.rejects(request(outsider), { status: 403 });
+  const homonym = await owner.rpc('add_patient', { family, patient_name: 'Ficha ficticia' });
+  assert.deepEqual(await loadInventoryPurchases(owner, family, homonym), []);
+  assert.equal(await owner.rpc('set_patient_archived', { family, patient, expected_revision: 1, archived: true }), 2);
+  const history = await loadInventoryPurchases(caregiver, family, patient);
+  assert.deepEqual(history.map(row => [row.inventory_items.patient_id, row.quantity]), [[patient, 2.5]]);
+  assert.deepEqual(await loadInventoryPurchases(outsider, family, patient), []);
 });
 
 test('auth and PostgREST keep two families separate while authorized clients share a patient', async () => {

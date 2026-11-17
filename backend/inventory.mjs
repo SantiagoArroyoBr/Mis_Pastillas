@@ -10,8 +10,29 @@ export function inventoryNumber(input, label, positive = false) {
   return number;
 }
 
+function projectStock(domain, item, now) {
+  return domain.calc({ base: item.base_quantity, t0: item.base_at, cons: item.consumptions }, now);
+}
+
 export function remainingStock(domain, item, now) {
-  return domain.calc({ base: item.base_quantity, t0: item.base_at, cons: item.consumptions }, now).rem;
+  return projectStock(domain, item, now).rem;
+}
+
+export function stockMessage(domain, stock) {
+  if (stock.rem === 0) return 'Agotado';
+  if (!stock.left) return 'Existencias insuficientes';
+  if (stock.st === 'red') return 'Comprar hoy';
+  if (stock.st === 'amber') return stock.now ? 'Comprar pronto' : 'Comprar antes del ' + domain.fmt(stock.buy);
+  return 'Existencias suficientes';
+}
+
+export function loadInventoryPurchases(client, family, patient = '') {
+  return client.select('inventory_purchases', {
+    family_id: 'eq.' + family,
+    ...(patient && { 'inventory_items.patient_id': 'eq.' + patient }),
+    select: 'quantity,total_price,purchased_on,shop,inventory_items!inner(name,patient_id,patients(name))',
+    order: 'purchased_on.desc,observed_at.desc,id.desc', limit: 20
+  });
 }
 
 export function createInventory({ run, status }) {
@@ -20,8 +41,11 @@ export function createInventory({ run, status }) {
   const purchaseItem = buy.elements.namedItem('item');
   const schedules = $('inventory-schedules');
   const history = $('inventory-purchases');
+  const patientFilter = $('inventory-filter');
   const toggle = $('inventory-price-toggle');
   let client, family, patients = [], items = [], pendingAdd, pendingBuy, timer;
+  let visiblePatient = '', patientNames = new Map();
+  const patientLabel = (id, name) => name + (patientNames.get(name) > 1 ? ' · ' + id.slice(0, 8) : '');
 
   function showPrices(visible) {
     clearTimeout(timer);
@@ -87,10 +111,13 @@ export function createInventory({ run, status }) {
     family = nextFamily;
     client = pendingAdd = pendingBuy = undefined;
     items = patients = [];
+    visiblePatient = '';
+    patientNames.clear();
     resetAdd();
     buy.reset();
     add.elements.patient.replaceChildren();
     purchaseItem.replaceChildren();
+    patientFilter.replaceChildren();
     $('inventory-items').replaceChildren();
     history.replaceChildren();
     showPrices(false);
@@ -105,16 +132,16 @@ export function createInventory({ run, status }) {
       client.select('inventory_items', { ...filter,
         select: 'id,patient_id,name,kind,base_quantity,base_at,consumptions,revision,patients(name,archived_at)',
         order: 'name.asc,id.asc' }),
-      client.select('inventory_purchases', { ...filter, select: 'quantity,total_price,purchased_on,shop,inventory_items(name,patients(name))',
-        order: 'purchased_on.desc,observed_at.desc,id.desc', limit: 20 })
+      loadInventoryPurchases(client, family, visiblePatient)
     ]);
     items = available;
-    const domain = window.AcompanaDomain;
-    const now = Date.now();
     const active = patients.filter(patient => !patient.archived_at);
-    const patientNames = new Map();
+    patientNames = new Map();
     for (const patient of patients) patientNames.set(patient.name, (patientNames.get(patient.name) ?? 0) + 1);
-    const patientLabel = (id, name) => name + (patientNames.get(name) > 1 ? ' · ' + id.slice(0, 8) : '');
+    patientFilter.replaceChildren(new Option('Todas las fichas', ''), ...patients.map(row => new Option(
+      patientLabel(row.id, row.name) + (row.archived_at ? ' (archivada)' : ''), row.id
+    )));
+    patientFilter.value = visiblePatient;
     const oldPatient = add.elements.patient.value;
     add.elements.patient.replaceChildren(...active.map(row => new Option(patientLabel(row.id, row.name), row.id)));
     if (active.some(row => row.id === oldPatient)) add.elements.patient.value = oldPatient;
@@ -126,18 +153,28 @@ export function createInventory({ run, status }) {
     )));
     if (purchasable.some(row => row.id === oldItem)) purchaseItem.value = oldItem;
     buy.querySelector('button').disabled = !purchasable.length;
-    $('inventory-items').replaceChildren(...items.map(row => {
+    renderLists(purchases);
+  }
+
+  function renderLists(purchases) {
+    const domain = window.AcompanaDomain;
+    const now = Date.now();
+    const visible = visiblePatient ? items.filter(row => row.patient_id === visiblePatient) : items;
+    const stockRows = visible.map(row => {
       const item = document.createElement('li');
       const count = row.consumptions.length;
+      const stock = projectStock(domain, row, now);
       item.textContent = row.name + ' · ' + patientLabel(row.patient_id, row.patients.name)
-        + (row.patients.archived_at ? ' (archivada)' : '') + ' · ' + remainingStock(domain, row, now)
+        + (row.patients.archived_at ? ' (archivada)' : '') + ' · ' + stock.rem
         + ' unidades · ' + count + (count === 1 ? ' pauta' : ' pautas');
+      if (!row.patients.archived_at) item.append(' · ' + stockMessage(domain, stock));
       return item;
-    }));
-    history.replaceChildren(...purchases.map(row => {
+    });
+    const purchaseRows = purchases.map(row => {
       const item = document.createElement('li');
       const product = row.inventory_items;
-      item.textContent = [row.purchased_on, product.name, product.patients.name, row.quantity + ' unidades', row.shop]
+      item.textContent = [row.purchased_on, product.name, patientLabel(product.patient_id, product.patients.name),
+        row.quantity + ' unidades', row.shop]
         .filter(Boolean).join(' · ');
       if (row.total_price !== null) {
         const price = document.createElement('span');
@@ -145,7 +182,18 @@ export function createInventory({ run, status }) {
         item.append(' · ', price);
       }
       return item;
-    }));
+    });
+    for (const [list, rows, emptyText] of [
+      [$('inventory-items'), stockRows, 'No hay artículos para esta selección.'],
+      [history, purchaseRows, 'No hay compras para esta selección.']
+    ]) {
+      if (!rows.length) {
+        const empty = document.createElement('li');
+        empty.textContent = emptyText;
+        rows.push(empty);
+      }
+      list.replaceChildren(...rows);
+    }
     toggle.disabled = !purchases.some(row => row.total_price !== null);
     showPrices(false);
   }
@@ -161,6 +209,18 @@ export function createInventory({ run, status }) {
   }
 
   $('add-schedule').addEventListener('click', () => addSchedule(true));
+  patientFilter.addEventListener('change', run(async () => {
+    const chosen = patientFilter.value;
+    try {
+      const purchases = await loadInventoryPurchases(client, family, chosen);
+      visiblePatient = chosen;
+      renderLists(purchases);
+      status('Inventario filtrado.');
+    } catch (error) {
+      patientFilter.value = visiblePatient;
+      throw error;
+    }
+  }));
   toggle.addEventListener('click', () => showPrices(!timer));
   add.addEventListener('submit', run(async () => {
     const form = new FormData(add);
