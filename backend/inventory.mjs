@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
+const projectionFormat = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 
 export function inventoryNumber(input, label, positive = false) {
   const value = input.trim();
@@ -26,6 +27,13 @@ export function stockMessage(domain, stock) {
   return 'Existencias suficientes';
 }
 
+export function formatConsumption(domain, row) {
+  const { dose, times, schedule } = row;
+  const start = schedule.type === 'interval' ? ' desde ' + dateFormat.format(schedule.start) : '';
+  return domain.num(dose) + (dose === 1 ? ' unidad' : ' unidades') + ' · '
+    + domain.schedText(schedule) + start + ' · ' + times.join(', ');
+}
+
 export function loadInventoryPurchases(client, family, patient = '') {
   return client.select('inventory_purchases', {
     family_id: 'eq.' + family,
@@ -45,6 +53,7 @@ export function createInventory({ run, status }) {
   const toggle = $('inventory-price-toggle');
   let client, family, patients = [], items = [], pendingAdd, pendingBuy, timer;
   let visiblePatient = '', patientNames = new Map();
+  const openDetails = new Set();
   const patientLabel = (id, name) => name + (patientNames.get(name) > 1 ? ' · ' + id.slice(0, 8) : '');
 
   function showPrices(visible) {
@@ -113,6 +122,7 @@ export function createInventory({ run, status }) {
     items = patients = [];
     visiblePatient = '';
     patientNames.clear();
+    openDetails.clear();
     resetAdd();
     buy.reset();
     add.elements.patient.replaceChildren();
@@ -168,6 +178,30 @@ export function createInventory({ run, status }) {
         + (row.patients.archived_at ? ' (archivada)' : '') + ' · ' + stock.rem
         + ' unidades · ' + count + (count === 1 ? ' pauta' : ' pautas');
       if (!row.patients.archived_at) item.append(' · ' + stockMessage(domain, stock));
+      const details = document.createElement('details');
+      details.open = openDetails.has(row.id);
+      const summary = document.createElement('summary');
+      summary.textContent = 'Ver pautas';
+      summary.setAttribute('aria-label', 'Ver pautas de ' + row.name + ' · ' + patientLabel(row.patient_id, row.patients.name));
+      const list = document.createElement('ul');
+      list.replaceChildren(...row.consumptions.map(consumption => {
+        const entry = document.createElement('li');
+        entry.textContent = formatConsumption(domain, consumption);
+        return entry;
+      }));
+      details.append(summary, list);
+      if (!row.patients.archived_at && stock.end) {
+        const projection = document.createElement('p');
+        projection.textContent = (row.kind === 'sup' ? 'Último uso completo proyectado: ' : 'Última toma completa proyectada: ')
+          + projectionFormat.format(stock.end);
+        details.append(projection);
+      }
+      details.addEventListener('toggle', () => {
+        if (!details.isConnected) return;
+        if (details.open) openDetails.add(row.id);
+        else openDetails.delete(row.id);
+      });
+      item.append(details);
       return item;
     });
     const purchaseRows = purchases.map(row => {

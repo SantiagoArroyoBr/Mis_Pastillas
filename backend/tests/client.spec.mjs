@@ -3,7 +3,16 @@ import { test } from 'node:test';
 import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
-import { inventoryNumber, stockMessage, loadInventoryPurchases } from '../inventory.mjs';
+import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption } from '../inventory.mjs';
+
+test('inventory describes each schedule using its own dose, frequency and hours', () => {
+  const domain = { num: n => String(n).replace('.', ','), schedText: schedule => schedule.type };
+  assert.equal(formatConsumption(domain, { dose: 0.5, times: ['08:00', '20:00'], schedule: { type: 'daily' } }),
+    '0,5 unidades · daily · 08:00, 20:00');
+  assert.equal(formatConsumption(domain, { dose: 1, times: ['09:30'],
+    schedule: { type: 'interval', start: new Date(2026, 10, 16).getTime() } }),
+  '1 unidad · interval desde 2026-11-16 · 09:30');
+});
 
 test('purchase history filters the joined inventory item before applying its limit', async () => {
   const calls = [];

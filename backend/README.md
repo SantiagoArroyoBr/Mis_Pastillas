@@ -30,6 +30,8 @@ En **Inventario**, da de alta una medicina o insumo para una ficha activa y agre
 
 **Filtrar existencias y compras por ficha** aplica la selección a ambos listados, incluidas las fichas archivadas. En una ficha activa se distingue el stock agotado del que aún tiene unidades, pero no alcanza para la siguiente toma. Cuando hay existencias, el aviso de reposición usa la proyección de la PWA. Las fichas archivadas mantienen su consulta sin avisos de reposición.
 
+En cada artículo, **Ver pautas** muestra la cantidad y las horas de cada pauta, su frecuencia y la fecha de inicio cuando es por intervalo. Para fichas activas también muestra la última toma o uso completo proyectado cuando el cálculo dispone de ese dato. El detalle permanece abierto al actualizar la misma familia.
+
 Auth utiliza correo y contraseña con confirmación externa desactivada únicamente en este stack local. La sesión vive en memoria durante la prueba. La recarga, el cierre o la expiración requieren volver a iniciar sesión. Las invitaciones son códigos revocables de un solo uso, caducan en siete días y se canjean desde la cuenta con el correo indicado. Antes de un piloto externo, habilitar y comprobar la confirmación de correo, la recuperación de cuenta y la política de sesión.
 
 Si el stack ya está iniciado, ejecuta `npx supabase migration up` desde este directorio para aplicar migraciones pendientes. Reinicia el servidor web del piloto con `npm start` si estaba ejecutando una versión anterior.

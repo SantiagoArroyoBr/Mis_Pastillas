@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — RECONST-017 · Pautas y proyección por artículo
+
+Sobre `5e63259`, **Ver pautas** muestra las cantidades, frecuencias, horas y fechas de inicio de intervalo. En fichas activas, usa la proyección de la PWA para mostrar la última toma o uso completo estimado. Las fichas archivadas conservan sus pautas para consulta. El detalle abierto permanece visible al actualizar dentro de la familia.
+
+Pasaron **17/17** pruebas del piloto y **2/2** integradas con Supabase local. En Edge se comprobó un artículo con pautas diaria y por intervalo, la proyección, la consulta de una ficha archivada y la conservación del detalle abierto. El cambio usa el esquema vigente. [Guía del piloto](backend/README.md).
+
 ## 2026-11-16 — RECONST-016 · Inventario por ficha y reposición
 
 Sobre `fed555e`, el filtro consulta existencias y compras de una ficha activa o archivada. La consulta de compras aplica el filtro antes del límite de 20. El estado de reposición utiliza el cálculo de la PWA y distingue agotado, existencias insuficientes y compra próxima. Los avisos se muestran en fichas activas.
