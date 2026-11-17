@@ -509,3 +509,7 @@ Verificación: 22/22 pruebas del piloto; compilación y comprobación de recurso
 ### Publicación y verificación pendiente de identidad
 
 `165be7e` se publicó en `origin/development` con autorización para el piloto. Se abrió la importación en Vercel Hobby, proyecto propuesto `acompana-piloto`, rama development, raíz backend y preset Other. Al pulsar Deploy, Vercel solicitó el código de seis dígitos de la aplicación autenticadora. Se dejó la pantalla al propietario sin introducir códigos ni eludir la verificación. El proyecto y el despliegue aún no están confirmados. No hay enlace móvil verificado. Pendientes: completar verificación, revisar compilación e inclusión de archivos externos, comprobar HTTPS y configurar URL Auth si corresponde. Evidencia local excluida de Git: `backend/supabase/.temp/vercel-verify.jpg`.
+
+### Corrección de exclusiones de Vercel
+
+Tras la verificación de identidad, el despliegue `dpl_GVdYRkzNS1sJyVMbnH8hQSwavCJs` de `165be7e` falló: la `.vercelignore` raíz eliminaba backend/build-preview.mjs y los demás archivos del piloto. Se sustituye la exclusión total por una lista explícita de archivos públicos y de compilación permitidos; SQL, .env, respaldos, pruebas, servidor local y herramientas siguen excluidos. El artefacto se reconstruyó localmente: 16 archivos. Las futuras Previews del proyecto raíz también podrán servir esos archivos públicos bajo backend; main y la producción vigente no se modifican. Pendiente confirmar el nuevo despliegue remoto.

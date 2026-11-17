@@ -1,1 +1,13 @@
-backend
+backend/*
+!backend/build-preview.mjs
+!backend/connection-config.mjs
+!backend/index.html
+!backend/pilot.mjs
+!backend/pilot.css
+!backend/supabase-client.mjs
+!backend/finance.mjs
+!backend/inventory.mjs
+!backend/calendar.mjs
+!backend/backup-diagnostics.mjs
+!backend/package.json
+!backend/vercel.json
