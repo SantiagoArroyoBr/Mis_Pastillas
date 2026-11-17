@@ -4,7 +4,9 @@
 
 Sobre `fed555e`, el filtro consulta existencias y compras de una ficha activa o archivada. La consulta de compras aplica el filtro antes del límite de 20. El estado de reposición utiliza el cálculo de la PWA y distingue agotado, existencias insuficientes y compra próxima. Los avisos se muestran en fichas activas.
 
-Pasaron **16/16** pruebas del piloto y **102/102** de regresión PWA. En Edge con respuestas ficticias simuladas se verificaron los avisos, el historial filtrado de una ficha archivada y los precios ocultos. Docker Desktop seguía en pausa manual, por lo que queda pendiente ejecutar la prueba de integración añadida contra Supabase local. [Guía del piloto](backend/README.md).
+Pasaron **16/16** pruebas del piloto y **102/102** de regresión PWA. En Edge con respuestas ficticias simuladas se verificaron los avisos, el historial filtrado de una ficha archivada y los precios ocultos.
+
+Tras reanudar Docker Desktop, sobre `80f9af2` pasaron **2/2** pruebas integradas con Supabase local. Se comprobó que una cuenta cuidadora puede consultar las compras de la ficha archivada correcta, que las fichas homónimas se filtran por ID y que una cuenta ajena recibe una lista vacía. El servidor local entregó el HTML con el filtro. [Prueba integrada](backend/tests/supabase.integration.mjs) · [Guía del piloto](backend/README.md).
 
 ## 2026-11-16 — RECONST-015 · Inventario en la interfaz del piloto
 
