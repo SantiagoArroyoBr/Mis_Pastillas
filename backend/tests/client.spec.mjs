@@ -4,7 +4,14 @@ import { createClient, loadAppointments } from '../supabase-client.mjs';
 import { parseCents, formatCents, describeBalance, loadAppliedPayments } from '../finance.mjs';
 import { auditBackup } from '../audit-backup.mjs';
 import { inventoryNumber, stockMessage, loadInventoryPurchases, formatConsumption } from '../inventory.mjs';
-import { buildCalendarEvents, monthRange } from '../calendar.mjs';
+import { buildCalendarEvents, monthRange, upcomingCalendarDays } from '../calendar.mjs';
+
+test('calendar shortcuts show the first three upcoming days including today', () => {
+  const entries = new Map([26, 7, 20, 16, 17].map(day => ['2026-11-' + String(day).padStart(2, '0'), []]));
+  assert.deepEqual(upcomingCalendarDays(entries, '2026-11-16').map(([day]) => day),
+    ['2026-11-16', '2026-11-17', '2026-11-20']);
+  assert.deepEqual(upcomingCalendarDays(entries, '2026-12-01'), []);
+});
 
 test('calendar groups scheduled events and estimated inventory events by local day', () => {
   const now = new Date(2026, 10, 16, 9).getTime();

@@ -3,6 +3,7 @@ import { projectStock } from './inventory.mjs';
 const $ = id => document.getElementById(id);
 const monthFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
 const dayFormat = new Intl.DateTimeFormat('es-MX', { dateStyle: 'full' });
+const shortDayFormat = new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
 const dateKey = new Intl.DateTimeFormat('sv-SE');
 const categories = {
   appointment: ['C', 'Citas'],
@@ -10,6 +11,17 @@ const categories = {
   stock: ['R', 'Reposición estimada'],
   depletion: ['A', 'Agotamiento estimado']
 };
+const sectionLinks = {
+  appointment: ['#appointments-heading', 'Ir a Citas'],
+  shift: ['#finance', 'Ir a Enfermería y pagos'],
+  stock: ['#inventory', 'Ir a Inventario'],
+  depletion: ['#inventory', 'Ir a Inventario']
+};
+
+export function upcomingCalendarDays(byDay, today) {
+  return Array.from(byDay).filter(([day]) => day >= today)
+    .sort(([left], [right]) => left.localeCompare(right)).slice(0, 3);
+}
 
 export function monthRange(date) {
   const first = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -96,6 +108,8 @@ export function createCalendar(run) {
     filter.replaceChildren();
     grid.replaceChildren();
     detail.hidden = true;
+    $('pilot-calendar-upcoming').hidden = true;
+    $('pilot-calendar-upcoming-days').replaceChildren();
     $('pilot-calendar-events').replaceChildren();
     feedback.textContent = '';
   }
@@ -105,17 +119,31 @@ export function createCalendar(run) {
     const events = byDay.get(day) ?? [];
     const title = $('pilot-calendar-day');
     title.textContent = dayFormat.format(window.AcompanaDomain.pd(day));
-    const rows = events.map(event => {
+    const rows = Object.entries(categories).flatMap(([kind, [, label]]) => {
+      const grouped = events.filter(event => event.kind === kind);
+      if (!grouped.length) return [];
       const item = document.createElement('li');
-      const heading = document.createElement('strong');
-      heading.textContent = categories[event.kind][1] + ' · ' + event.name;
-      item.append(heading);
-      if (event.details) {
-        const description = document.createElement('p');
-        description.textContent = event.details;
-        item.append(description);
+      item.className = 'pilot-calendar-event-group';
+      const heading = document.createElement('h5');
+      heading.dataset.calendarKind = kind;
+      heading.textContent = label + ' · ' + grouped.length;
+      const entries = document.createElement('ul');
+      for (const event of grouped) {
+        const entry = document.createElement('li');
+        const name = document.createElement('strong');
+        name.textContent = event.name;
+        entry.append(name);
+        if (event.details) {
+          const description = document.createElement('p');
+          description.textContent = event.details;
+          entry.append(description);
+        }
+        entries.append(entry);
       }
-      return item;
+      const link = document.createElement('a');
+      [link.href, link.textContent] = sectionLinks[kind];
+      item.append(heading, entries, link);
+      return [item];
     });
     if (!rows.length) {
       const empty = document.createElement('li');
@@ -125,6 +153,26 @@ export function createCalendar(run) {
     $('pilot-calendar-events').replaceChildren(...rows);
     detail.hidden = false;
     for (const button of grid.querySelectorAll('button')) button.setAttribute('aria-expanded', String(button.dataset.day === day));
+  }
+
+  function renderUpcoming(today) {
+    const rows = upcomingCalendarDays(byDay, today).map(([day, events]) => {
+      const row = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.openDay = day;
+      button.setAttribute('aria-controls', 'pilot-calendar-detail');
+      button.textContent = day === today ? 'Hoy' : shortDayFormat.format(window.AcompanaDomain.pd(day));
+      const text = document.createElement('span');
+      const names = [...new Set(events.map(event => event.name))];
+      text.textContent = names.slice(0, 2).join(' · ') + (names.length > 2 ? ' · +' + (names.length - 2) : '');
+      const count = document.createElement('small');
+      count.textContent = events.length + (events.length === 1 ? ' evento' : ' eventos');
+      row.append(button, text, count);
+      return row;
+    });
+    $('pilot-calendar-upcoming').hidden = !rows.length;
+    $('pilot-calendar-upcoming-days').replaceChildren(...rows);
   }
 
   function render() {
@@ -171,6 +219,7 @@ export function createCalendar(run) {
       children.push(button);
     }
     grid.replaceChildren(...children);
+    renderUpcoming(today);
     if (selected) showDay(selected);
   }
 
@@ -215,6 +264,23 @@ export function createCalendar(run) {
     if (!button) return;
     moveFocus(button);
     showDay(button.dataset.day);
+    if (event.detail) detail.scrollIntoView({ block: 'nearest' });
+  });
+  $('pilot-calendar-upcoming-days').addEventListener('click', event => {
+    const shortcut = event.target.closest('button[data-open-day]');
+    if (!shortcut) return;
+    const button = grid.querySelector('[data-day="' + shortcut.dataset.openDay + '"]');
+    if (!button) return;
+    moveFocus(button);
+    showDay(button.dataset.day);
+    $('pilot-calendar-day').focus();
+  });
+  $('pilot-calendar-close-day').addEventListener('click', () => {
+    const button = grid.querySelector('[aria-expanded=true]');
+    selected = undefined;
+    detail.hidden = true;
+    button?.setAttribute('aria-expanded', 'false');
+    button?.focus();
   });
   grid.addEventListener('keydown', event => {
     const offsets = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };

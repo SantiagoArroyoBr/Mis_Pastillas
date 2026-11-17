@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-16 — Detalle y próximos días del calendario
+
+Sobre `011ab0f`, el calendario resalta Hoy y los días con eventos, muestra los tres próximos días con actividad del mes y organiza el detalle por tipo, con accesos a Citas, Inventario y Enfermería y pagos. Al abrir un día desde el resumen, el foco va al detalle. Al cerrarlo vuelve al día seleccionado.
+
+Pasaron **19/19** pruebas del piloto y **2/2** integradas con Supabase. En Edge a 320 px se comprobaron el resumen visible, la nota de varias líneas en el detalle, el cierre con restitución de foco y el enlace a Citas.
+
 ## 2026-11-16 — RECONST-022 · Calendario del cuidado en Inicio
 
 Sobre `3b75b11`, el piloto incorpora la vista mensual por ficha con indicadores y cantidades por día. El detalle separa citas con hora y notas, turnos con modalidad y fechas estimadas de reposición y agotamiento con el stock al consultar. El calendario reutiliza el cálculo de la PWA, excluye del mes fechas históricas imposibles y limita la lectura de turnos a la cuenta propietaria. Carga, agrupación y presentación quedan separadas para facilitar mejoras.

@@ -79,7 +79,7 @@
             <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
             <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
           </div>
-          <section aria-labelledby="pilot-calendar-heading">
+          <section class="pilot-calendar" aria-labelledby="pilot-calendar-heading">
             <h3 id="pilot-calendar-heading">Calendario del cuidado</h3>
             <label>Ficha del calendario <select id="pilot-calendar-patient"></select></label>
             <div class="pilot-calendar-controls">
@@ -97,8 +97,15 @@
             <p id="pilot-calendar-status" role="status"></p>
             <div id="pilot-calendar-grid" class="pilot-calendar-grid" aria-labelledby="pilot-calendar-heading"></div>
             <section id="pilot-calendar-detail" aria-labelledby="pilot-calendar-day" hidden>
-              <h4 id="pilot-calendar-day" tabindex="-1"></h4>
+              <div class="pilot-calendar-detail-heading">
+                <h4 id="pilot-calendar-day" tabindex="-1"></h4>
+                <button id="pilot-calendar-close-day" type="button" aria-label="Cerrar detalle del día">×</button>
+              </div>
               <ul id="pilot-calendar-events"></ul>
+            </section>
+            <section id="pilot-calendar-upcoming" aria-labelledby="pilot-calendar-upcoming-heading" hidden>
+              <h4 id="pilot-calendar-upcoming-heading">Lo próximo de este mes</h4>
+              <ul id="pilot-calendar-upcoming-days"></ul>
             </section>
           </section>
         </section>

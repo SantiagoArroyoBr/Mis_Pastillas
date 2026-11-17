@@ -149,7 +149,26 @@
   align-items: center;
   gap: .35rem;
 }
-.connected-pilot .pilot-calendar-controls p { flex: 1 1 7rem; margin: 0; text-align: center; font-weight: 850; text-transform: capitalize; }
+.connected-pilot .pilot-calendar {
+  padding: clamp(.55rem, 2vw, 1rem);
+  border: 1px solid #a9bec4;
+  border-radius: 18px;
+  background: linear-gradient(165deg, var(--calendar-surface), var(--card) 55%);
+}
+.connected-pilot #pilot-calendar-heading { color: var(--navy); font-size: clamp(1.15rem, 4vw, 1.55rem); }
+.connected-pilot .pilot-calendar-controls {
+  padding: .35rem;
+  border-radius: 12px;
+  background: var(--calendar-surface);
+}
+.connected-pilot .pilot-calendar-controls p {
+  flex: 1 1 7rem;
+  margin: 0;
+  text-align: center;
+  font-weight: 850;
+  text-transform: capitalize;
+  color: var(--navy);
+}
 .connected-pilot .pilot-calendar-controls button { min-width: 44px; margin: 0; }
 .connected-pilot .pilot-calendar-grid {
   display: grid;
@@ -166,10 +185,11 @@
   margin: 0;
   padding: .18rem .05rem;
   border-radius: 7px;
-  border-color: #948780;
+  border-color: #c0c8c8;
   font-size: .85rem;
 }
-.connected-pilot .pilot-calendar-grid [aria-current=date] { border: 2px solid var(--navy); }
+.connected-pilot .pilot-calendar-grid button:has([data-calendar-kind]) { border-color: #748a92; }
+.connected-pilot .pilot-calendar-grid [aria-current=date] { border: 2px solid var(--navy); box-shadow: inset 0 3px var(--navy); }
 .connected-pilot .pilot-calendar-grid [aria-expanded=true] { background: var(--calendar-surface); border-color: var(--navy); }
 .connected-pilot .pilot-calendar-marks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; width: 100%; }
 .connected-pilot .pilot-calendar-marks span { font-size: .63rem; line-height: 1.2; border-radius: 3px; }
@@ -179,6 +199,43 @@
 .connected-pilot [data-calendar-kind=shift] { background: var(--payment-surface); color: var(--payment-accent); }
 .connected-pilot [data-calendar-kind=stock] { background: var(--inventory-surface); color: var(--inventory-accent); }
 .connected-pilot [data-calendar-kind=depletion] { background: #fbe8e6; color: #862c28; }
-.connected-pilot #pilot-calendar-detail { border: 1px solid #948780; border-radius: 9px; padding: .6rem .8rem; }
-.connected-pilot #pilot-calendar-day, .connected-pilot #pilot-calendar-events p { margin: .2rem 0; }
+.connected-pilot #pilot-calendar-detail {
+  border: 1px solid #a9bec4;
+  border-radius: 12px;
+  padding: .55rem .65rem;
+  background: var(--card);
+}
+.pilot-calendar-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: .35rem; }
+.connected-pilot #pilot-calendar-day { margin: 0; color: var(--navy); }
+.connected-pilot #pilot-calendar-close-day { min-width: 44px; padding: 0; margin: 0; }
+.connected-pilot #pilot-calendar-events, .connected-pilot #pilot-calendar-upcoming-days { padding: 0; margin: .35rem 0 0; list-style: none; }
+.connected-pilot .pilot-calendar-event-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pilot-calendar-event-group h5 { margin: 0; padding: .32rem .55rem; font-size: .85rem; }
+.pilot-calendar-event-group ul { padding: 0; list-style: none; }
+.connected-pilot .pilot-calendar-event-group li { margin: 0; padding: .35rem .55rem; }
+.pilot-calendar-event-group li + li { border-top: 1px solid var(--line); }
+.pilot-calendar-event-group p { margin: .1rem 0; white-space: pre-wrap; font-size: .86rem; }
+.pilot-calendar-event-group a { display: inline-flex; align-items: center; min-height: 44px; padding-inline: .55rem; color: var(--navy); font-size: .83rem; }
+.connected-pilot #pilot-calendar-upcoming-heading { margin: 0; color: var(--navy); }
+.connected-pilot #pilot-calendar-upcoming-days li {
+  display: grid;
+  grid-template-columns: minmax(3.4rem, auto) minmax(0, 1fr);
+  column-gap: .45rem;
+  align-items: center;
+  margin: .3rem 0;
+  padding: .3rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+}
+.connected-pilot #pilot-calendar-upcoming-days button {
+  grid-row: span 2; margin: 0; padding: .2rem .4rem; font-size: .8rem;
+  color: var(--navy); background: var(--calendar-surface);
+}
+.connected-pilot #pilot-calendar-upcoming-days span { font-size: .86rem; font-weight: 800; }
+.connected-pilot #pilot-calendar-upcoming-days small { font-size: .74rem; }
 .connected-pilot #pilot-calendar-status:empty { margin: 0; }
