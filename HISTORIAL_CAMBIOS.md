@@ -567,3 +567,8 @@ Sobre 0f32723 se corrigió la caja nativa de fechas y horas señalada en tres fo
 
 Publicación RECONST-032: 3849796 publicado en origin/development; la URL estable de acompana-piloto sirve pilot.css con la corrección del editor de fecha WebKit, HTTP 200 sin cookies, comprobado el 18/11/2026. Main y pastillas-1 sin cambios. Falta confirmación en el iPhone del propietario.
 
+
+## 2026-11-18 — QA-009 · Auditoría integral de calidad
+
+Versión auditada b201c03, sin cambios de producto ni nube. Se identificaron diez hallazgos entre defectos, limitaciones y deuda: reintentos de altas, recuperación de datos conectados, borradores multifamiliares, historial, sesión, offline, actualización entre dispositivos, documentación, QA y feedback accesible. Ensayo: dos altas iguales generan registros distintos; cambiar familia borra borrador de cita y conserva el de ficha. Pasaron 54/54 backend y 102/102 PWA; build de 18 recursos; npm audit sin avisos; portada 200, cuatro rutas privadas 404 y API familiar anónima 401. [Informe completo con evidencia y límites](docs/auditorias/QA-009-calidad-integral.md). Commit local de documentación; sin publicación ni correcciones en este lote.
+
