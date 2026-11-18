@@ -53,7 +53,7 @@ Para levantar Supabase local, seguir el recorrido completo o ejecutar la PWA de 
 
 ## Calidad y prioridades
 
-La [auditoría QA-009](docs/auditorias/QA-009-calidad-integral.md) registra errores, limitaciones y evidencia. Los resultados verificados del ciclo anterior fueron **54/54 pruebas conectadas y 102/102 de la PWA**; cada entrega posterior registra sus propios resultados en el [historial](HISTORIAL_CAMBIOS.md).
+La [auditoría QA-009](docs/auditorias/QA-009-calidad-integral.md) registra errores, limitaciones y evidencia. Los resultados locales de QA-010 fueron **56/56 pruebas conectadas y 102/102 de la PWA**; cada entrega posterior registra sus propios resultados en el [historial](HISTORIAL_CAMBIOS.md).
 
 Las prioridades son proteger altas ante fallos de red y borradores entre familias, completar los historiales y preparar una recuperación comprobada de datos conectados. Sesión persistente y funcionamiento offline de la candidata requieren un diseño adicional.
 

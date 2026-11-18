@@ -28,7 +28,7 @@ Workflow Calidad: Node 22, npm ci, suite backend, regresión PWA en Chrome y bui
 - PWA **102/102** en Edge, ejecutada por separado de SQL.
 - Build **18 recursos públicos**, sintaxis y diff correctos.
 - **32 enlaces locales** de portada, contribución, seguridad y guías comprobados. README histórico conservado íntegro.
-- Navegador: entrada con fixture, borrador de ficha y cambio de familia. Se observó el diálogo nativo; Escape canceló y se comprobó familia A y texto intacto. La automatización del segundo recorrido de confirmación quedó bloqueada por el diálogo nativo del navegador integrado: no se registra como aprobado. Se usó la habilidad computer-use para cerrar el primer diálogo; no se tocaron datos reales.
+- Navegador: entrada con fixture, borrador de ficha y cambio de familia. Se observó el diálogo nativo; Escape canceló y se comprobó familia A y texto intacto. El primer intento de confirmar mediante selección por CDP quedó bloqueado por el diálogo síncrono. Se repitió con teclado nativo: al confirmar se comprobó familia B, borrador vacío y aria-busy retirado. Ambas ramas quedaron verificadas. Se usó la habilidad computer-use para manejar los diálogos; no se tocaron datos reales.
 
 No se repitieron recuperaciones reales ni se enviaron correos. Capturas y pruebas previas de iPhone no sustituyen la confirmación física de este lote.
 
@@ -38,13 +38,17 @@ No se repitieron recuperaciones reales ni se enviaron correos. Capturas y prueba
 | --- | --- |
 | 01 · reintentos | Parcial: commit confirmado protegido; respuesta de escritura perdida pendiente de servidor. |
 | 02 · recuperación nube | Pendiente de contrato de exportación/restauración y migraciones respaldadas si hacen falta. |
-| 03 · borradores | Guarda explícita implementada; cancelación comprobada; confirmación completa y expiración pendientes. |
+| 03 · borradores | Guarda explícita implementada; cancelación y confirmación comprobadas; recuperación tras expiración pendiente. |
 | 04 · historial | Pendiente paginación y consulta de movimientos anteriores a 20. |
 | 05 · sesión | Sin cambios de persistencia o renovación. |
 | 06 · offline | Conectada continúa necesitando internet. |
 | 07 · varios teléfonos | Actualización continúa bajo demanda. |
 | 08 · documentación | Entrada vigente corregida, portada y mapa reorganizados; historia conservada. |
-| 09 · QA | Workflow preparado; ejecución remota y protección de rama se verifican aparte. |
+| 09 · QA | Workflow ejecutado con éxito en GitHub; protección de rama no configurada. |
 | 10 · feedback | Errores persistentes y aria-busy añadidos; recorrido VoiceOver pendiente. |
 
-El siguiente lote debe cerrar la idempotencia completa y la prueba de borradores, y luego la consulta de historial. La restauración conectada, sesión persistente y offline exigen diseño y pruebas independientes; no se declaran implementados por esta entrega.
+El siguiente lote debe cerrar la idempotencia completa y luego la consulta de historial. La restauración conectada, sesión persistente y offline exigen diseño y pruebas independientes; no se declaran implementados por esta entrega.
+
+## Publicación y comprobación remota
+
+Código y presentación publicados en 73f09cb. Ajuste de arranque de Chrome en CI: c8ac0ca. La primera ejecución remota falló antes de las pruebas UI; la segunda, [44402807062](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44402807062), terminó success con las suites y el build aprobados. Vercel responde 200 y sirve discardDrafts/saveAndRefresh. La portada SVG se inspeccionó renderizada en GitHub. Se actualizó la descripción pública y se añadieron temas pwa, javascript, supabase y family-care, conservando el sitio web y la rama predeterminada. Capturas privadas de evidencia: github-readme-refined.jpg y quality-draft-confirmed.jpg en backend/supabase/.temp.

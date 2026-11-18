@@ -580,3 +580,6 @@ Sobre 92d2d54, las altas confirmadas distinguen recarga fallida; formularios con
 
 CI QA-010: la primera ejecución 44402309869 pasó backend y falló en el hook de arranque Chrome, sin DevTools en 10 s y con errores de bus de sesión. Se prepara dbus-run-session y margen de arranque de 30 s solo en CI; no se modifican aserciones ni límites de los casos. La ejecución remota posterior se verifica por separado.
 
+
+Cierre QA-010: la confirmación se repitió con teclado nativo sin abortar CDP; familia B, borrador vacío y fin de carga comprobados. Portada GitHub renderizada y metadatos públicos actualizados. Código publicado 73f09cb y corrección CI c8ac0ca; run 44402807062 success con backend, PWA y build. Vercel 200 con los cambios. Main sin integrar, protección de ramas sin modificar y pendientes de QA-009 preservados.
+
