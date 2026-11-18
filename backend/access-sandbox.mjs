@@ -95,6 +95,15 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
             : operator === 'is' && expected === 'null' ? row[key]==null
             : operator === 'gte' ? String(row[key])>=expected : operator === 'lt' ? String(row[key])<expected : true);
         }
+        // Relaciones usadas por las tablas financieras y el calendario del ensayo.
+        // Cada lectura sigue pasando por el mismo usuario y RLS; no usar service_role.
+        const projection = url.searchParams.get('select') ?? '';
+        for (const [related, foreignKey] of [['patients','patient_id'],['nurses','nurse_id']]) {
+          if (!projection.includes(related+'(') || !['shifts','individual_payments'].includes(table)) continue;
+          const visible = await query('select id,name from public."'+related+'"',[],identity);
+          const names = new Map(visible.map(row=>[row.id,row.name]));
+          rows = rows.map(row=>({...row,[related]:names.has(row[foreignKey])?{name:names.get(row[foreignKey])}:null}));
+        }
         return reply(200,rows.slice(Number(url.searchParams.get('offset')??0),Number(url.searchParams.get('limit')??1000)));
       }
       return reply(404,{});

@@ -559,3 +559,8 @@ Sobre 79451a4, acceso e Inicio comparten superficies y colores; el menú usa sie
 
 Publicación RECONST-031: commit 9ce4659 en origin/development, comprobado en el navegador de la URL estable de acompana-piloto con el nuevo panel, siete SVG de navegación y acceso móvil sin desbordamiento. Captura privada de la portada publicada: backend/supabase/.temp/access-coherent-published.jpg. No se repitió inicio de sesión real ni se enviaron correos en este lote.
 
+
+## 2026-11-18 — RECONST-032 · Fechas y formularios móviles
+
+Sobre 0f32723 se corrigió la caja nativa de fechas y horas señalada en tres fotos de iPhone; revisión de controles, botones y tablas en los siete apartados a 320 y 390 px efectivos. Se conservaron tipos de entrada y reglas. El simulador incorpora relaciones financieras solicitadas con RLS y comprobación de aislamiento. Suite conectada 54/54; PWA 99/102 en primera ejecución concurrente por tres timeouts y 102/102 al repetir por separado. Compilación de 18 recursos y diff correctos. Confirmación visual en iPhone físico pendiente. [Informe](docs/RECONST-032-formularios-moviles.md).
+

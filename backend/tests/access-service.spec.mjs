@@ -16,6 +16,14 @@ test('isolated gateway activates named access, scopes two owners and invalidates
   const families=(await send('/rest/v1/families',undefined,owner)).body;
   assert.equal(families.length,2);
   const family=families[0].id;
+  const patient=(await send('/rest/v1/rpc/add_patient',{family,patient_name:'Ficha de ensayo'},owner)).body;
+  const nurse=(await send('/rest/v1/rpc/add_nurse',{family,nurse_name:'Enfermería de ensayo',full_rate:30000,half_rate:15000},owner)).body;
+  const shift=await send('/rest/v1/rpc/record_shift',{family,patient,nurse,day:'2026-11-18',shift_type:'full',request_id:crypto.randomUUID()},owner);
+  assert.equal(shift.status,200);
+  const joined=(await send('/rest/v1/shifts?select=id,patients(name),nurses(name)',undefined,owner)).body;
+  assert.equal(joined[0].patients.name,'Ficha de ensayo');
+  assert.equal(joined[0].nurses.name,'Enfermería de ensayo');
+  assert.deepEqual((await send('/rest/v1/shifts?select=id,patients(name),nurses(name)',undefined,other)).body,[]);
   const issued=await send('/api/access',{action:'issue',family,name:'Ana de prueba',expiresAt:new Date(Date.now()+86400000).toISOString()},owner);
   assert.equal(issued.status,200);assert.ok(issued.body.code);assert.ok(issued.body.login);
   assert.equal((await send('/api/access',{action:'revoke',family,access:issued.body.id,revision:1},other)).status,403);

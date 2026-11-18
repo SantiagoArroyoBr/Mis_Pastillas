@@ -314,3 +314,41 @@
 }
 .connected-pilot #pilot-navigation a:last-child { grid-column: 1 / -1; }
 .connected-pilot [data-pilot-view] > h2, .connected-pilot #finance > h2 { text-align: center; }
+
+/* Safari iOS da a las fechas un ancho intrínseco distinto del resto de inputs.
+   Limitar la caja y su editor, conservando el selector nativo y el valor ISO. */
+.connected-pilot form, .connected-pilot label, .connected-pilot [data-pilot-view],
+.connected-pilot #finance, .connected-pilot .auth-password-group { min-inline-size: 0; }
+.connected-pilot input:is([type=date], [type=datetime-local], [type=time]) {
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: 48px;
+  text-align: start;
+}
+.connected-pilot input::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: start;
+}
+.connected-pilot input::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
+}
+.connected-pilot input, .connected-pilot select, .connected-pilot textarea { font-size: max(1rem, 16px); }
+.connected-pilot button { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.connected-pilot h2, .connected-pilot h3, .connected-pilot h4, .connected-pilot summary { overflow-wrap: anywhere; }
+.connected-pilot .pilot-table-scroll { min-inline-size: 0; overscroll-behavior-inline: contain; }
+.connected-pilot .pilot-table-scroll th, .connected-pilot .pilot-table-scroll td { overflow-wrap: normal; word-break: normal; }
+.connected-pilot textarea { resize: vertical; }
+.connected-pilot main { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 420px) {
+  .connected-pilot form > button:not([type=button]), .connected-pilot #save-inventory-movement {
+    width: 100%; margin-inline: 0;
+  }
+  .connected-pilot .pilot-section-heading { gap: .55rem; }
+  .connected-pilot .pilot-section-heading h2 { font-size: 1.45rem; }
+}
