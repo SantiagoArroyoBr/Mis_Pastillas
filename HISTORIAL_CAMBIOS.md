@@ -577,3 +577,6 @@ Versión auditada b201c03, sin cambios de producto ni nube. Se identificaron die
 
 Sobre 92d2d54, las altas confirmadas distinguen recarga fallida; formularios consultan antes de cambiar familia con borradores. Se añaden advertencias persistentes y aria-busy. README visual, referencia histórica íntegra, mapa documental, contribución, seguridad, plantillas y workflow de calidad. Pasaron 56/56 backend, 102/102 PWA y 19/19 cliente final; build de 18 recursos y 32 enlaces. Cancelación del diálogo comprobada; segundo recorrido automatizado de confirmación bloqueado, sin declararlo aprobado. Idempotencia ante pérdida de respuesta de escritura y otros pendientes siguen abiertos. [Alcance y límites](docs/QA-010-calidad-y-github.md).
 
+
+CI QA-010: la primera ejecución 44402309869 pasó backend y falló en el hook de arranque Chrome, sin DevTools en 10 s y con errores de bus de sesión. Se prepara dbus-run-session y margen de arranque de 30 s solo en CI; no se modifican aserciones ni límites de los casos. La ejecución remota posterior se verifica por separado.
+

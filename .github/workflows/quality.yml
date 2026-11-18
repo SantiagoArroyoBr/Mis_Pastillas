@@ -32,7 +32,7 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         run: |
           test -x "$CHROME_BIN"
-          node --test tests/payments.spec.js tests/persistence.spec.js
+          dbus-run-session -- node --test tests/payments.spec.js tests/persistence.spec.js
       - name: Compilación pública y limpieza del diff
         run: |
           node backend/build-preview.mjs

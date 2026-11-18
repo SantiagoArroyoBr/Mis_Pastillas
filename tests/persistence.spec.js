@@ -173,7 +173,9 @@ before(async () => {
   browser = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', '--user-data-dir=' + browserProfile, 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
   browserEndpoint = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Chromium no publicó DevTools: ' + stderr)), 10000);
+    // El primer arranque de Chrome en un runner compartido puede ser más lento.
+    // Solo cambia el arranque en CI; los límites y aserciones de cada prueba se conservan.
+    const timer = setTimeout(() => reject(new Error('Chromium no publicó DevTools: ' + stderr)), process.env.CI ? 30000 : 10000);
     browser.stderr.on('data', chunk => {
       stderr += chunk.toString();
       const match = stderr.match(/DevTools listening on ws:\/\/127\.0\.0\.1:(\d+)\/devtools\/browser\/[^\s]+/);
