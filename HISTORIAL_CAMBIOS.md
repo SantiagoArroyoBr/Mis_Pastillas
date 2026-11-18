@@ -564,3 +564,6 @@ Publicación RECONST-031: commit 9ce4659 en origin/development, comprobado en el
 
 Sobre 0f32723 se corrigió la caja nativa de fechas y horas señalada en tres fotos de iPhone; revisión de controles, botones y tablas en los siete apartados a 320 y 390 px efectivos. Se conservaron tipos de entrada y reglas. El simulador incorpora relaciones financieras solicitadas con RLS y comprobación de aislamiento. Suite conectada 54/54; PWA 99/102 en primera ejecución concurrente por tres timeouts y 102/102 al repetir por separado. Compilación de 18 recursos y diff correctos. Confirmación visual en iPhone físico pendiente. [Informe](docs/RECONST-032-formularios-moviles.md).
 
+
+Publicación RECONST-032: 3849796 publicado en origin/development; la URL estable de acompana-piloto sirve pilot.css con la corrección del editor de fecha WebKit, HTTP 200 sin cookies, comprobado el 18/11/2026. Main y pastillas-1 sin cambios. Falta confirmación en el iPhone del propietario.
+
