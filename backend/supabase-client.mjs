@@ -1,5 +1,18 @@
 import { connections } from './connection-config.mjs';
 
+// Una lectura fallida después del commit no debe invitar a repetir el alta.
+export async function saveAndRefresh({ write, reset, refresh, notify, message }) {
+  const result = await write();
+  reset();
+  try {
+    await refresh(result);
+    notify(message);
+  } catch {
+    notify(message + ' No se pudo actualizar la vista. Pulsa Actualizar fichas; no repitas el alta.', 'warning');
+  }
+  return result;
+}
+
 export async function loadAppointments(client, family, today, patient = '') {
   const fields = {
     family_id: 'eq.' + family,

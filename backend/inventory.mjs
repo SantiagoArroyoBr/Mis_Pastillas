@@ -183,7 +183,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
   }
 
   function startEdit(item, stock) {
-    if (editDraft && !confirm('¿Descartar el borrador de inventario abierto?')) return;
+    if (!add.hidden && (editDraft || add.elements.name.value || add.elements.quantity.value)
+        && !confirm('¿Descartar el borrador de inventario abierto?')) return;
     editDraft = { item: item.id, revision: item.revision };
     openEntry(item.kind, true);
     add.elements.patient.value = item.patient_id;

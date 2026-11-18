@@ -1,4 +1,4 @@
-import { createClient, loadAppointments } from './supabase-client.mjs';
+import { createClient, loadAppointments, saveAndRefresh } from './supabase-client.mjs';
 import { connections } from './connection-config.mjs';
 import { createFinance } from './finance.mjs';
 import { createInventory } from './inventory.mjs';
@@ -67,6 +67,24 @@ if (credentials.elements.environment.value === 'cloud') {
 }
 $('temporary-activation').hidden = !connections[credentials.elements.environment.value]?.accessUrl;
 let client, userId, memberships = [], draft, busy = false;
+const dirtyForms = new Set();
+for (const type of ['input', 'change']) $('session').addEventListener(type, event => {
+  const form = event.target.closest('form');
+  if (form?.id) dirtyForms.add(form.id);
+});
+$('session').addEventListener('reset', event => dirtyForms.delete(event.target.id), true);
+window.addEventListener('beforeunload', event => {
+  if (!dirtyForms.size) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+function discardDrafts(except) {
+  const pending = [...dirtyForms].filter(id => id !== except);
+  if (!pending.length) return true;
+  if (!confirm('Hay cambios sin guardar. ¿Descartarlos para continuar?')) return false;
+  for (const id of pending) $(id)?.reset();
+  return true;
+}
 let appointmentRetry, renderedFamily, appointmentDraft;
 let appointmentFilterValue = '', activeAppointmentPatients = new Set();
 let noticeTimer;
@@ -79,8 +97,7 @@ function status(message, kind = 'success') {
   notice.dataset.kind = kind;
   $('status').textContent = message;
   if (message) {
-    const duration = kind === 'error' || kind === 'warning' ? 12000 : 6000;
-    noticeTimer = setTimeout(dismissNotice, duration);
+    if (kind !== 'error' && kind !== 'warning') noticeTimer = setTimeout(dismissNotice, 6000);
   }
 }
 
@@ -170,6 +187,8 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  for (const id of dirtyForms) $(id)?.reset();
+  dirtyForms.clear();
   adminAccess.clear();
   clearBackup();
   finance.scope(undefined);
@@ -198,6 +217,8 @@ function run(action) {
     const trigger = event.currentTarget;
     if (busy) return;
     busy = true;
+    $('session').setAttribute('aria-busy', 'true');
+    $('auth').setAttribute('aria-busy', 'true');
     families.disabled = true;
     appointmentFilter.disabled = true;
     $('inventory-filter').disabled = true;
@@ -228,6 +249,8 @@ function run(action) {
       }
     } finally {
       busy = false;
+      $('session').removeAttribute('aria-busy');
+      $('auth').removeAttribute('aria-busy');
       families.disabled = !families.value;
       appointmentFilter.disabled = false;
       $('inventory-filter').disabled = false;
@@ -517,6 +540,7 @@ $('activate-temporary-access').addEventListener('submit', run(async event => {
 }));
 
 $('logout').addEventListener('click', run(async () => {
+  if (!discardDrafts()) return;
   try { await client.signOut(); } finally { endSession(); }
   status('Sesión cerrada.');
 }));
@@ -524,22 +548,29 @@ $('logout').addEventListener('click', run(async () => {
 function rpcForm(id, handler) {
   $(id).addEventListener('submit', run(async event => {
     const form = event.currentTarget;
-    await handler(new FormData(form));
+    if (await handler(new FormData(form)) === false) return;
     form.reset();
   }));
 }
 
 rpcForm('create-family', async values => {
-  const family = await client.rpc('create_family', { family_name: values.get('name') });
-  await refreshFamilies(family);
-  status('Familia creada.');
+  if (!discardDrafts('create-family')) return false;
+  await saveAndRefresh({
+    write: () => client.rpc('create_family', { family_name: values.get('name') }),
+    reset: () => $('create-family').reset(), refresh: family => refreshFamilies(family),
+    notify: status, message: 'Familia creada.'
+  });
 });
 rpcForm('accept-invite', async values => {
-  const family = await client.rpc('accept_invite', { invitation: values.get('code').trim() });
-  await refreshFamilies(family);
-  status('Invitación aceptada.');
+  if (!discardDrafts('accept-invite')) return false;
+  await saveAndRefresh({
+    write: () => client.rpc('accept_invite', { invitation: values.get('code').trim() }),
+    reset: () => $('accept-invite').reset(), refresh: family => refreshFamilies(family),
+    notify: status, message: 'Invitación aceptada.'
+  });
 });
 families.addEventListener('change', run(async () => {
+  if (!discardDrafts()) { families.value = renderedFamily ?? ''; return; }
   $('invite-result').hidden = true;
   $('invite-code').value = '';
   hideEditing();
@@ -565,9 +596,11 @@ $('reload').addEventListener('click', run(async () => {
   status('Fichas actualizadas.');
 }));
 rpcForm('add-patient', async values => {
-  await client.rpc('add_patient', { family: families.value, patient_name: values.get('name') });
-  await refreshFamily();
-  status('Ficha agregada.');
+  await saveAndRefresh({
+    write: () => client.rpc('add_patient', { family: families.value, patient_name: values.get('name') }),
+    reset: () => $('add-patient').reset(), refresh: () => refreshFamily(),
+    notify: status, message: 'Ficha agregada.'
+  });
 });
 rpcForm('rename-patient', async values => {
   if (!draft) return;

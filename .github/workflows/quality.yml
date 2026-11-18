@@ -1,0 +1,39 @@
+name: Calidad
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - name: SQL, Auth, cliente y correo con fixtures
+        run: npm test --prefix backend
+      - name: Pagos, persistencia y offline en navegador
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          test -x "$CHROME_BIN"
+          node --test tests/payments.spec.js tests/persistence.spec.js
+      - name: Compilación pública y limpieza del diff
+        run: |
+          node backend/build-preview.mjs
+          git diff --check

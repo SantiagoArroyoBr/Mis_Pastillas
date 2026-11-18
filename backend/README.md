@@ -1,3 +1,13 @@
+# Estado vigente · Acompaña conectada
+
+Actualizado el 18/11/2026. La candidata development utiliza Supabase Auth real y las migraciones 1–12. family-access y auth-email están desplegadas; el correo usa el hook firmado hacia Brevo. La barrera de acceso de Vercel está retirada. La recuperación principal se comprobó en iPhone. Los detalles y límites están en [RECONST-030](../docs/RECONST-030-integracion-real.md) y [QA-009](../docs/auditorias/QA-009-calidad-integral.md).
+
+La versión conectada requiere internet, mantiene la sesión en memoria y aún no tiene exportación/restauración integral de la nube. No repetir el bootstrap SQL sobre una base existente ni tomar los pendientes históricos siguientes como el estado actual. Las pruebas de sandbox simulan Auth/correo y no sustituyen PostgREST real.
+
+[Volver a la portada](../README.md) · [Mapa documental](../docs/README.md)
+
+---
+
 # Acompaña · Piloto local de datos y cuentas
 
 El piloto corre en `127.0.0.1` y tiene su propio servidor, origen y configuración. Úsalo con cuentas y datos ficticios. La PWA de referencia conserva su propio servidor, respaldo y clave `pastillas-v1`. `.vercelignore` permite los archivos públicos del piloto y excluye SQL, pruebas, herramientas y entorno. [Exclusiones de Vercel](https://vercel.com/docs/deployments/vercel-ignore).

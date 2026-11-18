@@ -572,3 +572,8 @@ Publicación RECONST-032: 3849796 publicado en origin/development; la URL establ
 
 Versión auditada b201c03, sin cambios de producto ni nube. Se identificaron diez hallazgos entre defectos, limitaciones y deuda: reintentos de altas, recuperación de datos conectados, borradores multifamiliares, historial, sesión, offline, actualización entre dispositivos, documentación, QA y feedback accesible. Ensayo: dos altas iguales generan registros distintos; cambiar familia borra borrador de cita y conserva el de ficha. Pasaron 54/54 backend y 102/102 PWA; build de 18 recursos; npm audit sin avisos; portada 200, cuatro rutas privadas 404 y API familiar anónima 401. [Informe completo con evidencia y límites](docs/auditorias/QA-009-calidad-integral.md). Commit local de documentación; sin publicación ni correcciones en este lote.
 
+
+## 2026-11-18 — QA-010 · Calidad y presentación de GitHub
+
+Sobre 92d2d54, las altas confirmadas distinguen recarga fallida; formularios consultan antes de cambiar familia con borradores. Se añaden advertencias persistentes y aria-busy. README visual, referencia histórica íntegra, mapa documental, contribución, seguridad, plantillas y workflow de calidad. Pasaron 56/56 backend, 102/102 PWA y 19/19 cliente final; build de 18 recursos y 32 enlaces. Cancelación del diálogo comprobada; segundo recorrido automatizado de confirmación bloqueado, sin declararlo aprobado. Idempotencia ante pérdida de respuesta de escritura y otros pendientes siguen abiertos. [Alcance y límites](docs/QA-010-calidad-y-github.md).
+

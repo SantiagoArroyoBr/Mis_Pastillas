@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="280" viewBox="0 0 1000 280" role="img" aria-labelledby="title desc">
+  <title id="title">Acompaña — Cuidar también es organizar</title>
+  <desc id="desc">Organización familiar de fichas, calendario, inventario y pagos. Colores petróleo, crema y terracota.</desc>
+  <rect width="1000" height="280" rx="26" fill="#245565"/>
+  <circle cx="948" cy="42" r="160" fill="#315f6c"/>
+  <circle cx="890" cy="250" r="122" fill="#3d6a75"/>
+  <g fill="none" stroke="#f5e4db" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M815 89c-20-22-43-5-43 13 0 24 43 52 43 52s43-28 43-52c0-18-23-35-43-13Z"/>
+  </g>
+  <g font-family="system-ui,Segoe UI,sans-serif">
+    <text x="54" y="100" fill="#fffcf8" font-size="54" font-weight="750">Acompaña</text>
+    <text x="56" y="145" fill="#e2edf0" font-size="24">Cuidar también es organizar.</text>
+    <rect x="56" y="184" width="565" height="43" rx="21" fill="#f8f4ee"/>
+    <text x="79" y="212" fill="#245565" font-size="17" font-weight="600">Familia · Calendario · Inventario · Enfermería y pagos</text>
+  </g>
+</svg>

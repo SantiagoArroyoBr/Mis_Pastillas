@@ -1,7 +1,24 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createClient, loadAppointments } from '../supabase-client.mjs';
+import { createClient, loadAppointments, saveAndRefresh } from '../supabase-client.mjs';
 import { connections } from '../connection-config.mjs';
+
+test('confirmed writes clear the draft even if the following read fails, without resubmitting', async () => {
+  let writes = 0, resets = 0;
+  const notices = [];
+  const result = await saveAndRefresh({write: async () => { writes++; return 'saved-id'; },
+    reset: () => resets++, refresh: async id => { assert.equal(id,'saved-id'); throw Error('offline'); },
+    notify: (...args) => notices.push(args), message:'Ficha agregada.'});
+  assert.equal(result,'saved-id'); assert.equal(writes,1); assert.equal(resets,1);
+  assert.equal(notices[0][1],'warning'); assert.match(notices[0][0],/no repitas el alta/);
+});
+
+test('unconfirmed writes retain the draft and never report success or perform a read', async () => {
+  let resets = 0, reads = 0, notices = 0;
+  await assert.rejects(saveAndRefresh({write:async()=>{throw Error('timeout');},reset:()=>resets++,
+    refresh:async()=>reads++,notify:()=>notices++,message:'Ficha agregada.'}),/timeout/);
+  assert.deepEqual([resets,reads,notices],[0,0,0]);
+});
 
 test('recovery updates use only the recovery token and do not open an application session',async t=>{
   const calls=[];
