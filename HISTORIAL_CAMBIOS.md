@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-19 — Publicación comprobada de COORD-CUIDADO-001
+
+`358fb573b2d87ec16d70273d10f42d82da0ab44b` publicado en development. [CI44583330668](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44583330668) **success** completo y ambos estados Vercel **success**. Preview contiene Hoy, pendientes y módulos nuevos; SQL/copia privada/pruebas excluidos404. Tablas nuevas rechazan consulta anónima401. Evidencia final en [informe](docs/COORD-CUIDADO-001-hoy-pendientes-bitacora.md), commit local posterior; main y propuestas ajenas intactos.
+
 ## 2026-11-19 — COORD-CUIDADO-001 · Hoy, pendientes y bitácora
 
 Sobre `cf90dee`, se completan alta segura de enfermería y catálogos paginados antes de integrar Hoy, pendientes con responsable y notas por ficha. Responsables vigentes, permisos familiares, revisión concurrente y borradores que conservan su destino al archivarse una ficha. Respaldo v2 compatible con v1, sin reactivar asignaciones de cuentas.

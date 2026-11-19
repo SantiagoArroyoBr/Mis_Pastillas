@@ -43,3 +43,11 @@ Consulta posterior: **original_counts_equal=true**, **new_rls_enabled=true**, **
 Offline sólo consulta opcional de lecturas previas con sesión vigente; temporales y escrituras necesitan internet. Los nombres del equipo se consultan online. No hay push, repetición automática de tareas, edición de notas, adjuntos ni entrega de turno. VoiceOver/TalkBack físico sigue pendiente; no se declara conformidad WCAG.
 
 Main separado de development. Publicación y Preview se registran por separado al completar despliegue. La siguiente ampliación se decide tras probar este lote en uso real.
+
+## Publicación comprobada
+
+Código y pruebas publicados en `origin/development`: **`358fb573b2d87ec16d70273d10f42d82da0ab44b`**. [CI Calidad 44583330668](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44583330668): **success** en todas las etapas, incluidos los recorridos de navegador en Linux/Chrome. Estados Vercel **success** para ambos proyectos.
+
+La [Preview conectada](https://acompana-piloto-git-development-dinamita20.vercel.app/) contiene Hoy y el formulario de pendientes; `/today.mjs` y `/care-coordination.mjs` responden200. SQL016, respaldo privado y pruebaSQL responden404. Consultas anónimas reales a `care_tasks` y `care_notes`: **401**, sin lectura de datos. Esto complementa el ensayo real SQL con rollback; no se afirma un nuevo recorrido UI autenticado sobre datos reales.
+
+33 enlaces locales verificados y diff correcto. El seguimiento documental final se conserva en commit local para revisión. Captura de la interfaz con datos exclusivamente ficticios: `backend/supabase/.temp/care-coordination-preview.jpg`. VoiceOver/TalkBack físico y main permanecen separados.
