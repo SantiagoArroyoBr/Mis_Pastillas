@@ -38,8 +38,9 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
   const safeUser = user => ({ id:user.id,email:user.email,app_metadata:user.app_metadata });
   const owner = await addAccount('admin@acompana.test','Acompana-demo-2026!');
   const outsider = await addAccount('otra@acompana.test','Acompana-demo-2026!');
-  async function query(sql, params, identity, service = false) {
+  async function query(sql, params, identity, service = false, readOnly = false) {
     return db.transaction(async tx => {
+      if(readOnly)await tx.exec('set transaction read only');
       await tx.exec('set local role ' + (service ? 'service_role' : identity ? 'authenticated' : 'anon'));
       await tx.query("select set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',$2,true)",
         [identity?.id ?? '', JSON.stringify({sub:identity?.id,iat:identity?.iat,session_id:identity?.session_id})]);
@@ -104,11 +105,13 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
         const name = path.split('/').pop();
         if (!/^[a-z_]+$/.test(name) || Object.keys(body).some(key => !/^[a-z_]+$/.test(key))) return reply(400,{});
         const args = Object.keys(body).map((key,index) => '"'+key+'" => $'+(index+1)).join(',');
+        const metadata=await db.query("select p.provolatile from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=$1",[name]);
+        const readOnly=metadata.rows.length>0&&metadata.rows.every(row=>row.provolatile!=='v');
         if(name==='list_care_members'){
-          const rows=await query('select * from public.list_care_members('+args+')',Object.values(body),identity,service);
+          const rows=await query('select * from public.list_care_members('+args+')',Object.values(body),identity,service,readOnly);
           return reply(200,rows);
         }
-        const rows = await query('select public."'+name+'"('+args+') as result',Object.values(body),identity,service);
+        const rows = await query('select public."'+name+'"('+args+') as result',Object.values(body),identity,service,readOnly);
         return reply(200,rows[0].result);
       }
       if (path.startsWith('/rest/v1/')) {

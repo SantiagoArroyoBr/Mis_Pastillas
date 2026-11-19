@@ -326,7 +326,10 @@ function run(action) {
     try {
       await action(event);
     } catch (error) {
-      if (error.stale) {
+      if (error.sessionExpired) {
+        if (userId) endSession();
+        status(error.message, 'warning');
+      } else if (error.stale) {
         status('La sesión cambió durante la consulta. Actualiza para continuar con la cuenta actual.', 'warning');
       } else if (error.status === 401 && userId) {
         endSession();

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-19 — FIX-ACCESO-001 · Corrección preparada de acceso
+
+Sobre `1caa024`, se distingue refresh inválido de error de carga posterior. Logs reales confirman SQL25006 en listado de responsables por transacción PostgRESTread-only. Migración17 preparada: modo VOLATILE para listado y exportación, sin cambiar cuerpos/permisos/datos; simulador y prueba representan ahora esa decisión real de PostgREST. Refresh rechazado limpia sesión/caché y vuelve al formulario sin exponer error privado ni borrar tickets.
+
+112/112 conectadas, 102/102 PWA, 1/1 recorrido integrado. Copia privada de26 tablas/20 filas restaurada y migración17 ensayada con conteos preservados. Aplicación remota y publicación pendientes de autorización específica, solicitada al propietario. [Informe](docs/FIX-ACCESO-001-tokens-transacciones.md). Main y propuestas ajenas intactos.
+
 ## 2026-11-19 — Publicación comprobada de COORD-CUIDADO-001
 
 `358fb573b2d87ec16d70273d10f42d82da0ab44b` publicado en development. [CI44583330668](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44583330668) **success** completo y ambos estados Vercel **success**. Preview contiene Hoy, pendientes y módulos nuevos; SQL/copia privada/pruebas excluidos404. Tablas nuevas rechazan consulta anónima401. Evidencia final en [informe](docs/COORD-CUIDADO-001-hoy-pendientes-bitacora.md), commit local posterior; main y propuestas ajenas intactos.

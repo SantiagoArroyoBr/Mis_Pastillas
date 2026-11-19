@@ -143,7 +143,10 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
     }
     if (protectedCall) {
       try { await ensureFresh(); }
-      catch (error) { requireCurrentSession(); if (selected) return cachedResult(path, error); throw error; }
+      catch (error) {
+        if(error.sessionExpired&&!session)throw error;
+        requireCurrentSession(); if (selected) return cachedResult(path, error); throw error;
+      }
       requireCurrentSession();
     }
     let response;
@@ -171,6 +174,11 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
       else if (response.status === 403) { cache.clear(); offline = false; report(); }
       const responseCode = typeof result?.error_code === 'string' ? result.error_code
         : typeof result?.code === 'string' ? result.code : undefined;
+      if (path.startsWith('/auth/') && ['refresh_token_not_found','refresh_token_already_used','session_not_found','session_expired'].includes(responseCode)) {
+        clearSession();
+        throw Object.assign(new Error('La sesión guardada ya no es válida. Inicia sesión de nuevo con tu correo y contraseña.'),
+          {status:401,code:responseCode,sessionExpired:true});
+      }
       let message = 'La operación fue rechazada.';
       if (responseCode === 'PGRST205' || responseCode === 'PGRST202') {
         message = 'Falta inicializar o actualizar el esquema de Acompaña en este proyecto.';
@@ -236,6 +244,7 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
           offline = true; report(); return session.userId;
         }
         clearSession();
+        if (error.sessionExpired) return undefined;
         if (error.network) return undefined;
         throw error;
       }

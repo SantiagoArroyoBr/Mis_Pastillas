@@ -20,6 +20,33 @@ function auth(now, seconds = 3600, id = user, temporary = false) {
 }
 function stores(extra = {}) { return {sessionStorage:memoryStorage(),localStorage:memoryStorage(),...extra}; }
 
+test('an unrecognized saved refresh token returns to login and clears only session/cache data',async t=>{
+  let clock=1_000_000;
+  const storage=stores({now:()=>clock,remember:true,offlineCache:true});
+  t.mock.method(globalThis,'fetch',async url=>url.includes('grant_type=refresh_token')
+    ?Response.json({error_code:'refresh_token_not_found',msg:'private-provider-message'},{status:400})
+    :Response.json(url.includes('grant_type=password')?auth(clock,40):[]));
+  const first=createClient(key,api,undefined,storage);
+  await first.signIn('principal@acompana.test','fixture-password');await first.select('patients');
+  storage.localStorage.setItem('acompana-request-v1:fixture','opaque-ticket');
+  clock+=20_000;
+  const restored=createClient(key,api,undefined,storage);
+  assert.equal(await restored.restoreSession(),undefined);
+  assert.equal(storage.localStorage.length,1);
+  assert.equal(storage.localStorage.getItem('acompana-request-v1:fixture'),'opaque-ticket');
+  assert.equal(restored.lastSync,undefined);
+  assert.equal(await restored.signIn('principal@acompana.test','fixture-password'),user);
+});
+
+test('a rejected refresh during use asks for a new login rather than a raw HTTP400',async t=>{
+  let clock=1_000_000;const storage=stores({now:()=>clock});
+  t.mock.method(globalThis,'fetch',async url=>url.includes('grant_type=password')?Response.json(auth(clock,40))
+    :Response.json({error_code:'refresh_token_not_found'},{status:400}));
+  const client=createClient(key,api,undefined,storage);await client.signIn('principal@acompana.test','fixture-password');clock+=20_000;
+  await assert.rejects(client.select('patients'),error=>error.status===401&&error.sessionExpired&&/Inicia sesión de nuevo/.test(error.message));
+  assert.equal(storage.sessionStorage.length,0);
+});
+
 test('sessions default to tab storage, personal-device opt-in uses local storage, and passwords are never persisted', async t => {
   const now=1_000_000, storage=stores({now:()=>now});
   t.mock.method(globalThis,'fetch',async()=>Response.json(auth(now)));
