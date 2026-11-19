@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-19 — Aplicación y publicación de FIX-ACCESO-001
+
+Con autorización específica, migración17 aplicada después de restaurar la copia privada26 tablas/20 filas. Modo de los dosRPC verificado y lecturas reales de equipo/respaldo aprobadas bajo rol autorizado con ROLLBACK. `a7f2475b7dc5d1f292f58dbb7b433c024b815f67` publicado en development; [CI44590074054](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44590074054) success completo y ambos Vercel success. Cliente corregido comprobado en Preview. Sin cambios de datos, permisos, contraseñas o main. [Evidencia](docs/FIX-ACCESO-001-tokens-transacciones.md).
+
 ## 2026-11-19 — FIX-ACCESO-001 · Corrección preparada de acceso
 
 Sobre `1caa024`, se distingue refresh inválido de error de carga posterior. Logs reales confirman SQL25006 en listado de responsables por transacción PostgRESTread-only. Migración17 preparada: modo VOLATILE para listado y exportación, sin cambiar cuerpos/permisos/datos; simulador y prueba representan ahora esa decisión real de PostgREST. Refresh rechazado limpia sesión/caché y vuelve al formulario sin exponer error privado ni borrar tickets.

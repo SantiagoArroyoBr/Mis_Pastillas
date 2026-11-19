@@ -24,4 +24,12 @@ Cliente: códigos de refresh/sesión invalidada reciben estado de sesión termin
 - 102/102 en la regresión conjunta PWA de pagos/persistencia, con Edge aislado.
 - Copia privada de26 tablas/20 filas restaurada en PostgreSQL desechable; aplicación de17 migraciones y conteos preservados (`restored=true`, `existingRowsPreserved=true`). Archivo y evidencia ignorados en supabase/.temp, sin publicar datos reales.
 
-La aplicación de17 requiere autorización específica según AGENTS.md, copia privada y restauración comprobada. Solicitud presentada al propietario; no confundir archivo local con esquema ya aplicado. Main y las cuatro propuestas ajenas se conservan. No se enviaron correos ni se cambió contraseña alguna.
+La aplicación de17 requería autorización específica según AGENTS.md, copia privada y restauración comprobada. El propietario aprobó explícitamente «Aplicalas y subelas quedan aprobadas» y confirmó la solicitud de17. Main y las cuatro propuestas ajenas se conservan. No se enviaron correos ni se cambió contraseña alguna.
+
+## Aplicación y publicación comprobadas
+
+Migración17 aplicada en Supabase tras restauración comprobada de26 tablas/20 filas. Se verificó `members_mode_ok=true` y `backup_mode_ok=true`. Con una identidad propietaria autorizada, dentro de una transacción terminada en ROLLBACK, las consultas reales devolvieron `members_read_ok=true` y `backup_read_ok=true`, sin imprimir el contenido privado. No se escribieron registros operativos.
+
+Código publicado en `origin/development`: **`a7f2475b7dc5d1f292f58dbb7b433c024b815f67`**. [CI44590074054](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44590074054): **success** en todas las etapas. Ambos estados Vercel **success**; cliente corregido servido y comprobado en la Preview. Captura ignorada sin datos personales: `backend/supabase/.temp/rpc-fix-applied.jpg`.
+
+No se afirma un nuevo inicio de sesión manual en el teléfono del propietario. Al volver a abrir la app debe utilizarse el cliente actualizado e iniciar sesión otra vez si la autorización anterior fue invalidada. No borrar datos del navegador ni cambiar la contraseña como solución de este defecto. Seguimiento final en commit local para revisión.
