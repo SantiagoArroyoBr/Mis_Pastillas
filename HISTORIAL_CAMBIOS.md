@@ -6,6 +6,8 @@ Sobre `e5aaf48`, el lote autorizado completa altas recuperables tras una respues
 
 Migraciones 13/14 aplicadas en Supabase tras respaldo privado de 21 tablas/19 filas y restauración comprobada en PostgreSQL desechable. Conteos remotos preservados y RLS de ambas tablas internas verificados. Pasaron **87/87** conectadas, **102/102** PWA y **1/1** recorrido de navegador compilado; build público de 32 archivos. Publicación, CI remoto y prueba física se distinguen en el [informe QA-012](docs/QA-012-cierre-calidad-conectada.md). Main sin modificar; se prepara su revisión completa.
 
+Publicación de producto: `6560beaf1689341be424c2311b13b5b6f91223c4` en origin/development. CI [44443402538](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44443402538) **success**, ambos estados Vercel **success**, Preview y exclusiones privadas comprobadas. Seguimiento documental final en commit local para revisión. Instalación física y accesibilidad dedicada siguen pendientes.
+
 ## 2026-11-17 — RECONST-030 · Integración real y acceso móvil
 
 Sobre `8328963` se verificaron Auth real, activación y revocación de un acceso ficticio con aislamiento de familias, entrega por Brevo y recuperación principal. El propietario confirmó el restablecimiento desde iPhone tras retirar, con su autorización específica, la barrera de Vercel de acompana-piloto. Se corrigió el acuse de entrega para no devolver error ni duplicar un correo ya aceptado.

@@ -2,6 +2,10 @@
 
 Fecha: 18/11/2026. Versión auditada: `b201c03a2ba4b465a27eed084bd77fde561cf77a`, rama `development`. Alcance: PWA histórica de la raíz y candidata conectada de `backend`, con especial atención al uso móvil y multifamiliar. Se conservaron cuatro documentos ajenos pendientes. No se cambiaron código de producto, esquema, configuración de nube ni datos reales.
 
+## Seguimiento posterior
+
+Este informe conserva el diagnóstico original. [QA-010](../QA-010-calidad-y-github.md) corrigió borradores, acuse de guardado, mensajes y documentación/CI. [QA-012](../QA-012-cierre-calidad-conectada.md), código `6560bea`, completa idempotencia de altas, recuperación familiar, historial ampliable, sesión renovable, consulta offline y recarga al recuperar foco/conexión con protección de borradores. El simulador y la automatización también se ampliaron. Persisten límites: offline sin escrituras ni comprobación de revocación, equivalencia de PostgREST no exhaustiva, instalación física y recorrido dedicado de accesibilidad pendientes. El dictamen histórico siguiente no describe por sí solo el código actualizado.
+
 ## Dictamen
 
 La base tiene controles útiles y regresiones aprobadas. Es razonable continuar un piloto controlado. No recomiendo declarar terminada la transición a producción: quedan riesgos de reintento y borradores, recuperación de datos de nube y límites funcionales de historial, sesión y conectividad. Aprobar pruebas no equivale a cobertura total ni a un porcentaje de calidad.

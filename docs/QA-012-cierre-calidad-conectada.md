@@ -45,3 +45,11 @@ Con referencias actualizadas, antes de este lote `development` tenía **230 comm
 5. Confirmar corte de producción y plan de retorno antes de integrar: la versión anterior puede seguir usando los RPC previos, conservados por estas migraciones. No revertir la base eliminando registros ni funciones con datos históricos.
 
 **Main permanece sin modificar.** Merge, cambio de producción y sincronización offline con escrituras quedan fuera de esta publicación de development. Publicación GitHub, CI remoto y Preview se registran con evidencia al terminar.
+
+## Publicación y evidencia final
+
+- Código y documentación publicados en `origin/development`: **`6560beaf1689341be424c2311b13b5b6f91223c4`**, 56 archivos propios; las cuatro propuestas ajenas permanecieron fuera del commit.
+- Workflow [Calidad, ejecución 44443402538](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44443402538): **success**. Aprobados SQL/Auth/cliente/correo, regresión PWA, recorrido integrado conectado y compilación/diff en Linux con Chrome.
+- Estados de commit Vercel **success** para acompana-piloto y pastillas-1. [Preview conectada](https://acompana-piloto-git-development-dinamita20.vercel.app/) abierta: opciones de sesión/offline presentes, manifest enlazado y sin desbordamiento en el viewport observado. Sin nuevo inicio de sesión real ni operaciones sobre las familias reales en este cierre.
+- HTTP: manifest, SW, apple-touch, sesión y recuperación responden 200 con MIME correspondiente. SQL de migración, respaldo privado y generador Python responden 404. Evidencia visual privada ignorada: `backend/supabase/.temp/quality-preview-published.jpg`.
+- `git diff --check` correcto; 29 enlaces locales comprobados en las guías y los informes del lote. El seguimiento documental final se conserva en commit local para revisión, posterior al SHA de producto probado por CI.
