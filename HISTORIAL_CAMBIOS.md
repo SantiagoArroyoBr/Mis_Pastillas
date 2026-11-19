@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-19 — COORD-CUIDADO-001 · Hoy, pendientes y bitácora
+
+Sobre `cf90dee`, se completan alta segura de enfermería y catálogos paginados antes de integrar Hoy, pendientes con responsable y notas por ficha. Responsables vigentes, permisos familiares, revisión concurrente y borradores que conservan su destino al archivarse una ficha. Respaldo v2 compatible con v1, sin reactivar asignaciones de cuentas.
+
+109/109 conectadas, 102/102 PWA y1/1 recorrido integrado ampliado a ocho apartados, dos cuentas, recuperación y offline; build34 archivos. Migraciones15/16 aplicadas con autorización específica tras exportación/restauración privada de23 tablas/19 filas. Ensayo real con rollback aprobado; conteos originales, RLS y acceso directo denegado verificados. Sin datos ficticios persistidos ni correos nuevos. [Informe y límites](docs/COORD-CUIDADO-001-hoy-pendientes-bitacora.md). Main y cuatro propuestas ajenas preservadas; publicación separada.
+
 ## 2026-11-19 — UX-PAGOS-014 · Enfermería y pagos sin ojos
 
 Sobre `58788b9`, se retira el pseudoicono de ojo de los cinco controles de montos de la candidata conectada. Los formularios reciben tarjetas con bordes y espaciado consistente, dos columnas desde640px, controles de montos redondeados y estado activo diferenciado. Ayuda breve sobre privacidad independiente. Inventario conserva su icono; la PWA raíz ya usaba texto en estos botones. Sin cambios de lógica, datos ni plazos de ocultación.

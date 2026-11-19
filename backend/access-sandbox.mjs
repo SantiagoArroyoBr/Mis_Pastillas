@@ -52,7 +52,7 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
   await query('select public.create_family($1)', ['Familia ajena'], {id:outsider.id,iat:initial.iat});
   const allowedTables = new Set(['families','family_members','patients','nurses','shifts','receipts',
     'receipt_cancellations','individual_payments','individual_allocations','appointments','appointment_details',
-    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events']);
+    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events','care_tasks','care_notes']);
   async function simulatedSupabase(input, options = {}) {
     const url = new URL(input), path = url.pathname, body = options.body ? JSON.parse(options.body) : {};
     const token = new Headers(options.headers).get('Authorization')?.replace(/^Bearer /,'');
@@ -104,6 +104,10 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
         const name = path.split('/').pop();
         if (!/^[a-z_]+$/.test(name) || Object.keys(body).some(key => !/^[a-z_]+$/.test(key))) return reply(400,{});
         const args = Object.keys(body).map((key,index) => '"'+key+'" => $'+(index+1)).join(',');
+        if(name==='list_care_members'){
+          const rows=await query('select * from public.list_care_members('+args+')',Object.values(body),identity,service);
+          return reply(200,rows);
+        }
         const rows = await query('select public."'+name+'"('+args+') as result',Object.values(body),identity,service);
         return reply(200,rows[0].result);
       }

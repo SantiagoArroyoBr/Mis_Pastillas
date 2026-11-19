@@ -60,6 +60,24 @@ test('connected build restores sessions, pages history, restores a private backu
   await cdp.evaluate(`document.querySelector('#remember-session').checked=true;document.querySelector('#offline-consultation').checked=true`);await submit('#credentials');
   await check(`!document.querySelector('#session').hidden&&!document.querySelector('#session').hasAttribute('aria-busy')`);
   assert.equal(await cdp.evaluate(`document.querySelector('#pilot-active-count').textContent`),'1');
+  await click('#pilot-navigation a[href="#care-coordination"]');await check(`!document.querySelector('#care-coordination').hidden`);
+  await cdp.evaluate(`document.querySelector('#care-task-form').closest('details').open=true;document.querySelector('#care-task-form [name=patient]').value=${JSON.stringify(patient)};document.querySelector('#care-task-form [name=assignee]').value=${JSON.stringify(session.user.id)}`);
+  await fill('#care-task-form [name=title]','Comprar insumos ficticios');await fill('#care-task-form [name=day]',day);await submit('#care-task-form');
+  await check(`!document.querySelector('#session').hasAttribute('aria-busy')&&document.querySelector('#care-tasks').textContent.includes('Comprar insumos ficticios')`);
+  assert.match(await cdp.evaluate(`document.querySelector('#today-list').textContent`),/Comprar insumos ficticios/);
+  await cdp.evaluate(`document.querySelector('#care-note-form').closest('details').open=true`);
+  await fill('#care-note-form [name=body]','Nota ficticia <img src=x onerror=alert(1)>');await submit('#care-note-form');
+  await check(`!document.querySelector('#session').hasAttribute('aria-busy')&&document.querySelector('#care-notes').textContent.includes('Nota ficticia')`);
+  assert.equal(await cdp.evaluate(`document.querySelector('#care-notes img')===null`),true);
+  await cdp.evaluate(`document.querySelector('#care-task-form').closest('details').open=false;document.querySelector('#care-note-form').closest('details').open=false;document.querySelector('#care-heading').scrollIntoView()`);
+  const careShot=await cdp.send('Page.captureScreenshot',{format:'jpeg',quality:80,captureBeyondViewport:false});
+  await writeFile(path.join(root,'backend/supabase/.temp/care-coordination-preview.jpg'),Buffer.from(careShot.data,'base64'));
+  await click('#care-tasks button');await check(`!document.querySelector('#session').hasAttribute('aria-busy')&&!document.querySelector('#care-tasks').textContent.includes('Comprar insumos ficticios')`);
+  await cdp.evaluate(`const f=document.querySelector('#care-task-filter');f.value='done';f.dispatchEvent(new Event('change',{bubbles:true}))`);
+  await check(`document.querySelector('#care-tasks').textContent.includes('Comprar insumos ficticios')&&!document.querySelector('#session').hasAttribute('aria-busy')`);
+  await send('/rest/v1/rpc/add_care_note',{family,patient,note_body:'Nota desde la segunda cuenta',request_id:crypto.randomUUID()},caregiver.access_token);
+  await click('#reload');await check(`document.querySelector('#care-notes').textContent.includes('Nota desde la segunda cuenta')&&!document.querySelector('#session').hasAttribute('aria-busy')`);
+  await writeFile(archivePath,JSON.stringify(await send('/rest/v1/rpc/export_family_backup',{family},token)));
   assert.match(await cdp.evaluate(`document.querySelector('#last-updated').textContent`),/Última actualización completa/);
   await click('#pilot-navigation a[href="#family"]');await check(`!document.querySelector('[data-pilot-view="#family"]').hidden`);
   await fill('#add-patient [name=name]','   ');await submit('#add-patient');
@@ -99,14 +117,14 @@ test('connected build restores sessions, pages history, restores a private backu
   assert.deepEqual(await send('/rest/v1/patients?family_id=eq.'+family,null,caregiver.access_token),[],'La segunda cuenta pierde lectura tras revocación.');
   for(const width of [320,390,768,1280]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:true});
-    for(const hash of ['#inicio','#family','#appointments-heading','#inventory','#finance','#configuracion','#backup-review']){
+    for(const hash of ['#inicio','#family','#appointments-heading','#inventory','#finance','#care-coordination','#configuracion','#backup-review']){
       await click('#pilot-navigation a[href="'+hash+'"]');await check(`document.querySelector('#pilot-navigation a[aria-current=page]').hash===${JSON.stringify(hash)}`);
       assert.equal(await cdp.evaluate(`document.documentElement.scrollWidth<=document.documentElement.clientWidth`),true,'Reflujo '+hash+' a '+width);
     }
   }
   await cdp.send('Emulation.setDeviceMetricsOverride',{width:320,height:844,deviceScaleFactor:1,mobile:true});
   await cdp.evaluate(`document.documentElement.style.fontSize='200%'`);
-  for(const hash of ['#inicio','#family','#appointments-heading','#inventory','#finance','#configuracion','#backup-review']){
+  for(const hash of ['#inicio','#family','#appointments-heading','#inventory','#finance','#care-coordination','#configuracion','#backup-review']){
     await click('#pilot-navigation a[href="'+hash+'"]');await check(`document.querySelector('#pilot-navigation a[aria-current=page]').hash===${JSON.stringify(hash)}`);
     assert.equal(await cdp.evaluate(`document.documentElement.scrollWidth<=document.documentElement.clientWidth`),true,'Texto 200% '+hash);
   }
@@ -128,6 +146,9 @@ test('connected build restores sessions, pages history, restores a private backu
   await check(`document.querySelector('#families').selectedOptions[0]?.textContent==='Familia recuperada de integración'&&!document.querySelector('#session').hasAttribute('aria-busy')`);
   const restoredFamily=await cdp.evaluate(`document.querySelector('#families').value`);
   assert.equal((await send('/rest/v1/patients?family_id=eq.'+restoredFamily,null,token))[0].name,'Ficha ficticia de integración','La copia conserva el nombre original previo a la edición.');
+  assert.equal((await send('/rest/v1/care_notes?family_id=eq.'+restoredFamily,null,token)).length,2);
+  const restoredTasks=await send('/rest/v1/care_tasks?family_id=eq.'+restoredFamily,null,token);
+  assert.equal(restoredTasks.length,1);assert.equal(restoredTasks[0].assignee_id,null);assert.ok(restoredTasks[0].completed_at);
   assert.equal((await send('/rest/v1/receipts?family_id=eq.'+family,null,token)).length,25,'La familia original conserva sus abonos.');
   await cdp.send('Page.reload');await check(`!document.querySelector('#session').hidden&&!document.querySelector('#session').hasAttribute('aria-busy')`);
   await check(`navigator.serviceWorker.controller!==null`);await cdp.evaluate(`caches.open('acompanha-fixture-legacy')`);
@@ -151,6 +172,7 @@ test('connected build restores sessions, pages history, restores a private backu
   assert.equal(await cdp.evaluate(`Object.keys(localStorage).some(k=>k.startsWith('acompana-auth-v1:')||k.startsWith('acompana-offline-v1:'))`),false);
  }catch(error){
   console.error('Fallo integrado:',error.message);
+  if(cdp)console.error('Estado ficticio:',await cdp.evaluate(`({notice:document.querySelector('#status')?.textContent,calendar:document.querySelector('#pilot-calendar-status')?.textContent,today:document.querySelector('#today-status')?.textContent})`).catch(()=>({unavailable:true})));
   throw error;
  }finally{
   cdp?.close();

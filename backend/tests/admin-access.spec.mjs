@@ -57,6 +57,7 @@ test('switching families clears a displayed activation and ignores the previous 
     select: async (table, params) => {
       assert.equal(table, 'temporary_accesses');
       assert.ok(!params.select.includes('hash'));
+      if(params.offset>0)return [];
       if (params.family_id === 'eq.family-a') return new Promise(resolve => { finishPrevious = resolve; });
       assert.equal(params.family_id, 'eq.family-b');
       return [row('b', '<img src=x onerror=alert(1)>')];
@@ -80,7 +81,7 @@ test('switching families clears a displayed activation and ignores the previous 
 test('losing ownership during a request leaves no stale administrative rows', async t => {
   const { controller, get, rendered } = fixture(t);
   let resolveRows;
-  const client = { temporaryAccessEnabled: true, select: () => new Promise(resolve => { resolveRows = resolve; }) };
+  const client = { temporaryAccessEnabled: true, select: (table,params) => params.offset>0?[]:new Promise(resolve => { resolveRows = resolve; }) };
   const loading = controller.load(client, 'family-a', true);
   await controller.load(client, 'family-a', false);
   resolveRows([row('a', 'Private caregiver')]);
@@ -120,7 +121,7 @@ test('a confirmed reset retains the new activation and reports success separatel
   const previous=globalThis.confirm;globalThis.confirm=()=>true;
   t.after(()=>previous===undefined?delete globalThis.confirm:globalThis.confirm=previous);
   let resets=0;
-  const client={temporaryAccessEnabled:true,select:async()=>[row('a','Persona ficticia')],access:async(action)=>{
+  const client={temporaryAccessEnabled:true,select:async(table,params)=>params.offset>0?[]:[row('a','Persona ficticia')],access:async(action)=>{
     assert.equal(action,'reset');resets++;return {code:'fixture-new-code',login:'temp-fixture'};
   }};
   await controller.load(client,'family-a',true);

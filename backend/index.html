@@ -98,6 +98,7 @@
         <a href="#backup-review"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Respaldo</a>
         <a href="#configuracion"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 3-.5 3-2 1L4 6l-2 4 2.5 2v2L2 16l2 4 2.5-1 2 1L9 23h6l.5-3 2-1 2.5 1 2-4-2.5-2v-2l2.5-2-2-4-2.5 1-2-1L15 3Z" transform="translate(1 -1) scale(.92)"/><circle cx="12" cy="12" r="3"/></svg>Configuración</a>
       </nav>
+      <a id="care-navigation" href="#care-coordination" hidden>Pendientes y bitácora</a>
       <button id="reload" type="button" data-icon="↻" hidden>Actualizar fichas</button>
       <section id="configuracion" data-pilot-view="#configuracion" aria-labelledby="settings-heading" hidden>
         <div class="pilot-section-heading"><span class="section-emblem"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 3-.5 3-2 1L4 6l-2 4 2.5 2v2L2 16l2 4 2.5-1 2 1L9 23h6l.5-3 2-1 2.5 1 2-4-2.5-2v-2l2.5-2-2-4-2.5 1-2-1L15 3Z" transform="translate(1 -1) scale(.92)"/><circle cx="12" cy="12" r="3"/></svg></span><div><p class="section-eyebrow">TODO EN SU LUGAR</p><h2 id="settings-heading">Configuración</h2></div></div>
@@ -173,6 +174,11 @@
             <article><h3>Fichas activas</h3><strong id="pilot-active-count">0</strong><a href="#family">Ver fichas</a></article>
             <article><h3>Fichas archivadas</h3><strong id="pilot-archived-count">0</strong><a href="#family">Ver historial</a></article>
           </div>
+          <section class="today-panel" aria-labelledby="today-heading">
+            <h3 id="today-heading">Hoy, de un vistazo</h3>
+            <p id="today-status" role="status"></p><ul id="today-list"></ul>
+            <a href="#care-coordination">Organizar pendientes y consultar la bitácora</a>
+          </section>
           <section class="pilot-calendar" aria-labelledby="pilot-calendar-heading">
             <h3 id="pilot-calendar-heading">Calendario del cuidado</h3>
             <label>Ficha del calendario <select id="pilot-calendar-patient"></select></label>
@@ -202,6 +208,33 @@
               <ul id="pilot-calendar-upcoming-days"></ul>
             </section>
           </section>
+        </section>
+        <section id="care-coordination" data-pilot-view="#care-coordination" aria-labelledby="care-heading" hidden>
+          <h2 id="care-heading">Pendientes y bitácora</h2>
+          <p>Acuerden quién se encarga y dejen constancia del cuidado. Las notas conservan su fecha y autor.</p>
+          <details class="pilot-entry-panel"><summary>Crear un pendiente</summary>
+            <form id="care-task-form">
+              <label>Tarea <input name="title" required maxlength="160"></label>
+              <label>Ficha (opcional) <select name="patient"></select></label>
+              <label>Fecha límite (opcional) <input name="day" type="date"></label>
+              <label>Responsable (opcional) <select name="assignee"></select></label>
+              <label>Detalles (opcional) <textarea name="details" maxlength="2000"></textarea></label>
+              <button>Guardar pendiente</button>
+            </form>
+          </details>
+          <label>Mostrar pendientes <select id="care-task-filter"><option value="pending">Por hacer</option><option value="done">Completados</option><option value="all">Todos</option></select></label>
+          <p id="care-tasks-empty-help"></p>
+          <p class="pilot-settings-help">En teléfono, desliza las tablas para consultar todas sus columnas.</p>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Pendientes de la familia"><table><thead><tr><th>Fecha</th><th>Tarea</th><th>Ficha</th><th>Responsable</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="care-tasks"></tbody></table></div>
+          <h3>Bitácora del cuidado</h3>
+          <details class="pilot-entry-panel"><summary>Registrar una nota</summary>
+            <form id="care-note-form">
+              <label>Ficha <select name="patient" required></select></label>
+              <label>Nota <textarea name="body" required maxlength="4000" placeholder="Observaciones y pendientes del cuidado"></textarea></label>
+              <button>Guardar nota</button>
+            </form>
+          </details>
+          <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Bitácora por ficha"><table><thead><tr><th>Fecha</th><th>Ficha</th><th>Nota</th><th>Autor</th></tr></thead><tbody id="care-notes"></tbody></table></div>
         </section>
         <section data-pilot-view="#family" aria-labelledby="pilot-patients-heading" hidden>
         <h2 id="pilot-patients-heading">Fichas</h2>

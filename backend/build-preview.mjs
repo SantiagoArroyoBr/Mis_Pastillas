@@ -7,6 +7,7 @@ const output = new URL('./supabase/.temp/preview/', import.meta.url);
 const files = {
   'index.html': 'index.html', 'pilot.mjs': 'pilot.mjs', 'finance.mjs': 'finance.mjs',
   'admin-access.mjs': 'admin-access.mjs',
+  'today.mjs':'today.mjs','care-coordination.mjs':'care-coordination.mjs',
   'history.mjs': 'history.mjs', 'durable-requests.mjs': 'durable-requests.mjs',
   'session-state.mjs':'session-state.mjs', 'offline-cache.mjs':'offline-cache.mjs',
   'family-backup.mjs':'family-backup.mjs', 'sw.js':'sw.js',

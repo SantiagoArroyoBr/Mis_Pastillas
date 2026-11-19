@@ -1,4 +1,4 @@
-import { readHistoryWindow, createHistoryControl } from './history.mjs';
+import { readHistoryWindow, createHistoryControl, readCatalog } from './history.mjs';
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const projectionFormat = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
@@ -246,7 +246,7 @@ export function createInventory({ run, status, renderTable, onChange }) {
     const filter = { family_id: 'eq.' + family };
     const requested = count ?? movementPages.count;
     const [available, purchasePage] = await Promise.all([
-      client.select('inventory_items', { ...filter,
+      readCatalog(client,'inventory_items', { ...filter,
         select: itemFields,
         order: 'name.asc,id.asc' }),
       movements(visiblePatient, requested)

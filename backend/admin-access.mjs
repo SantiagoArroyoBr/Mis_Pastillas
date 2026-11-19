@@ -1,3 +1,4 @@
+import { readCatalog } from './history.mjs';
 const $ = id => document.getElementById(id);
 const dayFormat = new Intl.DateTimeFormat('sv-SE');
 
@@ -78,7 +79,7 @@ export function createAdminAccess({ run, status, actionButton, renderTable, onCh
       date.setDate(date.getDate() + 30);
       form.elements.expires.value = dayFormat.format(date);
     }
-    const rows = await client.select('temporary_accesses', {
+    const rows = await readCatalog(client,'temporary_accesses', {
       family_id: 'eq.' + family,
       select: 'id,display_name,expires_at,revoked_at,user_id,revision,state', order: 'display_name.asc,id.asc'
     });

@@ -20,6 +20,8 @@ Acompaña ayuda a organizar fichas, citas médicas, medicamentos, insumos, jorna
 | Apartado | Para qué sirve |
 | --- | --- |
 | **Inicio** | Consultar el calendario del cuidado y abrir el detalle de citas, turnos y reposiciones estimadas. |
+| **Hoy** | Ver asuntos del día y pendientes vencidos, con accesos a su apartado. |
+| **Pendientes y bitácora** | Asignar tareas a miembros activos y registrar notas por ficha con fecha y autor. |
 | **Fichas** | Organizar a las personas de la familia y conservar su historial al archivar. |
 | **Citas médicas** | Registrar fecha, hora, médico, lugar y notas. |
 | **Inventario** | Registrar medicinas, pautas, compras e insumos con conteo manual. |

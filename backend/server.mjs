@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { connections } from './connection-config.mjs';
 
 const files = {
+  '/today.mjs':['today.mjs','text/javascript; charset=utf-8'],
+  '/care-coordination.mjs':['care-coordination.mjs','text/javascript; charset=utf-8'],
   '/history.mjs':['history.mjs','text/javascript; charset=utf-8'],
   '/durable-requests.mjs':['durable-requests.mjs','text/javascript; charset=utf-8'],
   '/session-state.mjs':['session-state.mjs','text/javascript; charset=utf-8'],

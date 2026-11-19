@@ -1,4 +1,5 @@
 import { projectStock } from './inventory.mjs';
+import { readCatalog } from './history.mjs';
 
 const $ = id => document.getElementById(id);
 const monthFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
@@ -23,13 +24,7 @@ export function monthRange(date) {
 }
 
 async function readRows(client, table, params) {
-  const limit = 250;
-  const rows = [];
-  for (let offset = 0; ; offset += limit) {
-    const page = await client.select(table, { ...params, limit, offset });
-    rows.push(...page);
-    if (page.length < limit) return rows;
-  }
+  return readCatalog(client,table,params);
 }
 
 export async function loadCalendarRecords(client, family, patient, month, owner) {
@@ -42,7 +37,7 @@ export async function loadCalendarRecords(client, family, patient, month, owner)
       select: 'id,appointment_day,appointment_time,patient_name,location,notes,doctor',
       order: 'appointment_day.asc,appointment_time.asc.nullslast,id.asc' }),
     owner ? readRows(client, 'shifts', { ...filter, and: range('service_day'),
-      select: 'service_day,modality,patients(name),nurses(name)', order: 'service_day.asc,id.asc' }) : [],
+      select: 'id,service_day,modality,patients(name),nurses(name)', order: 'service_day.asc,id.asc' }) : [],
     readRows(client, 'inventory_items', { ...filter, 'patients.archived_at': 'is.null',
       select: 'id,kind,name,base_quantity,base_at,consumptions,patients!inner(name),inventory_profiles(name,consumptions)',
       order: 'id.asc' })

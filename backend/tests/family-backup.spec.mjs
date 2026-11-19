@@ -89,7 +89,7 @@ test('invalid recovery is atomic and never grants membership or imports foreign 
     x=>{delete x.tables.receipts;},
     x=>{x.tables.auth_users=[];},
     x=>{x.administration.accesses[0].activation_hash='do-not-import';},
-    x=>{x.version=2;}
+    x=>{x.version=99;}
   ]){
     const invalid=structuredClone(archive);mutate(invalid);
     await assert.rejects(rpc(owner,'restore_family_backup($1,$2,$3)',[JSON.stringify(invalid),'No debe crearse',randomUUID()]));

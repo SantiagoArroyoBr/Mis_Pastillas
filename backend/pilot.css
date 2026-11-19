@@ -1,4 +1,16 @@
 .connected-pilot [hidden] { display: none !important; }
+.connected-pilot .today-panel { background:var(--calendar-surface);border:1px solid var(--line);border-radius:16px;padding:1rem; }
+.connected-pilot #today-list { list-style:none;padding:0;display:grid;gap:.65rem; }
+.connected-pilot #today-list li { background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.75rem; }
+.connected-pilot #today-list p { margin:.3rem 0;font-size:.9rem;overflow-wrap:anywhere; }
+.connected-pilot #today-list :is(a,button) { display:inline-flex;align-items:center;min-height:44px; }
+.connected-pilot #care-coordination { background:var(--calendar-surface); }
+.connected-pilot #care-coordination :is(td,th) { overflow-wrap:anywhere; }
+.connected-pilot #care-coordination table { min-inline-size:42rem; }
+.connected-pilot #care-tasks td:first-child { white-space:nowrap; }
+.connected-pilot #care-notes td:nth-child(3) { white-space:pre-wrap; }
+.connected-pilot #care-coordination textarea { min-height:6rem; }
+.connected-pilot #session[data-read-only=true] #care-coordination .pilot-entry-panel { display:none; }
 .connected-pilot main, .pilot-heading { max-width: 52rem; margin-inline: auto; }
 .pilot-heading p { margin: .25rem 0; }
 .connected-pilot main { padding: 1rem; }

@@ -7,6 +7,7 @@ const origin = 'http://127.0.0.1:'+port;
 const compiled = process.env.ACOMPANA_SANDBOX_PREVIEW==='1';
 const sandbox = await createAccessSandbox(origin);
 const files = {
+  '/today.mjs':'today.mjs','/care-coordination.mjs':'care-coordination.mjs',
   '/sw.js':'sw.js',
   '/history.mjs':'history.mjs','/durable-requests.mjs':'durable-requests.mjs',
   '/session-state.mjs':'session-state.mjs','/offline-cache.mjs':'offline-cache.mjs','/family-backup.mjs':'family-backup.mjs',

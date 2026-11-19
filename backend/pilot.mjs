@@ -8,6 +8,9 @@ import { createAdminAccess } from './admin-access.mjs';
 import { consumeRecoveryLocation, createAccountRecovery } from './account-recovery.mjs';
 import { durableRequest } from './durable-requests.mjs';
 import { createHistoryControl } from './history.mjs';
+import { readCatalog } from './history.mjs';
+import { createToday } from './today.mjs';
+import { createCareCoordination } from './care-coordination.mjs';
 import { createFamilyRecovery, familyBackupMaxBytes } from './family-backup.mjs';
 
 // Remove authentication capabilities from the visible URL before rendering any view.
@@ -23,6 +26,7 @@ const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 const credentials = $('credentials');
+$('pilot-navigation').append($('care-navigation'));
 $('session').append($('backup-review'));
 function connectionStatus(info) {
   $('session').dataset.readOnly=String(Boolean(info.readOnly));
@@ -192,7 +196,11 @@ function dismissNotice() {
 
 $('dismiss-notice').addEventListener('click', dismissNotice);
 const calendar = createCalendar(run, openCalendarRecord);
-const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
+const todaySummary = createToday({run,openRecord:openCalendarRecord});
+const care = createCareCoordination({run,status,actionButton,renderTable,getScope:()=>[connections[credentials.elements.environment.value].url,userId],
+  onChange:()=>todaySummary.load(client,families.value,memberships.some(row=>row.family_id===families.value&&row.role==='owner'))});
+const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload,
+  getRequestScope:()=>[connections[credentials.elements.environment.value].url,userId] });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
 const appointmentHistory = Object.fromEntries(appointmentLists.map(list=>[list,
@@ -272,6 +280,7 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  care.clear();todaySummary.clear();
   clearFamilyRecovery();
   for (const id of dirtyForms) $(id)?.reset();
   dirtyForms.clear();
@@ -487,6 +496,7 @@ async function loadFamilyView() {
   $('accept-invite').hidden = Boolean(client?.isTemporary);
   await adminAccess.load(client, family, owner && !readOnly);
   if (renderedFamily !== family) {
+    care.scope(family);todaySummary.clear();
     clearFamilyRecovery();
     $('members').replaceChildren();
     clearBackup();
@@ -502,11 +512,12 @@ async function loadFamilyView() {
   }
   const filter = { family_id: 'eq.' + family };
   const today = localDay.format(new Date());
-  const [patients, members, appointments] = await Promise.all([
-    client.select('patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
-    owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : [],
+  const [patients, members, appointments, careMembers] = await Promise.all([
+    readCatalog(client,'patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
+    readCatalog(client,'family_members', { ...filter, revoked_at: 'is.null', select: 'user_id,role',order:'user_id.asc' },{key:['user_id']}),
     loadAppointments(client, family, today, appointmentFilterValue,
-      Object.fromEntries(appointmentLists.map(list=>[list,appointmentHistory[list].count])))
+      Object.fromEntries(appointmentLists.map(list=>[list,appointmentHistory[list].count]))),
+    client.readOnly ? null : client.rpc('list_care_members',{family})
   ]);
   const active = patients.filter(patient => !patient.archived_at);
   $('pilot-active-count').textContent = String(active.length);
@@ -548,7 +559,7 @@ async function loadFamilyView() {
   appointmentFilter.replaceChildren(new Option('Todas las fichas', ''), ...patients.map(option));
   appointmentFilter.value = appointmentFilterValue;
   renderAppointments(appointments, family, today);
-  renderTable($('members'), members.map(member => [
+  renderTable($('members'), (owner?members.filter(member=>member.role==='caregiver'):[]).map(member => [
     member.user_id, actionButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
       if (!confirm('¿Revocar el acceso de esta cuenta cuidadora a la familia? Se conservará su historial.')) return;
       await saveAndRefresh({write: () => client.rpc('revoke_caregiver', { family, member: member.user_id }),
@@ -556,7 +567,9 @@ async function loadFamilyView() {
     })
   ]), 'Aún no hay cuentas cuidadoras.');
   await Promise.all([owner && !client.readOnly ? finance.load(client, family, active) : undefined,
-    inventory.load(client, family, patients), calendar.load(client, family, patients, owner)]);
+    inventory.load(client, family, patients), calendar.load(client, family, patients, owner),
+    care.load(client,family,patients,(careMembers??members).map(member=>({...member,label:member.user_id===userId?'Mi cuenta':(member.label??(member.role==='owner'?'Administrador':'Cuidador'))+' · '+member.user_id.slice(0,8)}))),
+    todaySummary.load(client,family,owner)]);
 }
 
 function renderAppointments(appointments, family, today, counts={}) {
@@ -600,8 +613,8 @@ function renderAppointments(appointments, family, today, counts={}) {
 
 async function refreshFamilies(preferred = families.value) {
   const [available, roles] = await Promise.all([
-    client.select('families', { select: 'id,name', order: 'name.asc,id.asc' }),
-    client.select('family_members', { user_id: 'eq.' + userId, revoked_at: 'is.null', select: 'family_id,role' })
+    readCatalog(client,'families', { select: 'id,name', order: 'name.asc,id.asc' }),
+    readCatalog(client,'family_members', { user_id: 'eq.' + userId, revoked_at: 'is.null', select: 'family_id,role',order:'family_id.asc' },{key:['family_id']})
   ]);
   memberships = roles;
   families.replaceChildren(...available.map(f => new Option(f.name, f.id)));
@@ -861,6 +874,7 @@ $('family-backup-file').addEventListener('change',async()=>{
     const summary=recovery.review(raw);
     $('family-backup-review-status').textContent='Copia de '+summary.name+'. Revisa los conteos antes de crear la familia recuperada.';
     const labels={patients:'Fichas',nurses:'Personal de enfermería',shifts:'Jornadas',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones'};
+    Object.assign(labels,{care_tasks:'Pendientes',care_notes:'Notas de bitácora'});
     renderTable($('family-backup-counts'),Object.entries(summary.counts).map(([key,value])=>[labels[key]??key,String(value)]),'Sin registros.');
     $('restore-family-backup').reset();$('restore-family-backup').elements.name.value=(summary.name+' · recuperada').slice(0,80);
     $('family-backup-review').hidden=false;

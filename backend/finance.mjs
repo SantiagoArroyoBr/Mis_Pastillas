@@ -1,4 +1,5 @@
-import { readHistoryWindow, createHistoryControl } from './history.mjs';
+import { readHistoryWindow, createHistoryControl, readCatalog } from './history.mjs';
+import { durableRequest } from './durable-requests.mjs';
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const integerFormat = new Intl.NumberFormat('es-MX');
@@ -91,7 +92,7 @@ export async function loadReceiptCancellations(client, family, receipts) {
   return rows;
 }
 
-export function createFinance({ run, status, actionButton, renderTable, onChange }) {
+export function createFinance({ run, status, actionButton, renderTable, onChange, getRequestScope }) {
   const panel = $('finance');
   const toggle = $('finance-toggle');
   const shift = $('record-shift');
@@ -172,7 +173,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     const counts = { receipts: requested.receipts ?? receiptPages.count,
       shifts: requested.shifts ?? shiftPages.count, individual: requested.individual ?? individualPages.count };
     const [nurses, receiptPage, totals, shiftPage, individualPage] = await Promise.all([
-      client.select('nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
+      readCatalog(client,'nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
       readHistoryWindow(client, 'receipts', { ...filter, select: 'id,paid_on,amount_cents,concept', order: 'paid_on.desc,id.desc' }, counts.receipts),
       client.rpc('financial_balance', { family, as_of: today }),
       readHistoryWindow(client, 'shifts', {
@@ -246,7 +247,14 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     const form = $(id);
     form.addEventListener('submit', run(async () => {
       const args = { family, ...payload(new FormData(form)) };
-      if (repeatable) {
+      let writeWarning;
+      if (rpc === 'add_nurse') {
+        let storage;try{storage=localStorage;}catch{}
+        const scope=getRequestScope?.();
+        if(!scope)throw Error('No se pudo identificar la cuenta. Vuelve a iniciar sesión antes de registrar enfermería.');
+        try { await durableRequest({storage,scope,operation:'nurse',payload:args,send:payload=>client.rpc('add_nurse_once',payload)}); }
+        catch(error){if(!error.saved)throw error;writeWarning=error.message;}
+      } else if (repeatable) {
         const key = JSON.stringify([rpc, args]);
         if (!pending.has(key)) pending.set(key, crypto.randomUUID());
         args.request_id = pending.get(key);
@@ -273,7 +281,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
       try {
         await load(client, family, patients);
         await onChange();
-        status(message);
+        status(writeWarning??message,writeWarning?'warning':undefined);
       } catch {
         scope(undefined);
         status(message + ' Usa Actualizar para consultar los datos.', 'warning');

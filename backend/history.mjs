@@ -1,5 +1,26 @@
 const columnName = /^[a-z_][a-z0-9_]*$/;
 
+// Catálogos completos con páginas acotadas. El offset avanza por lo realmente
+// recibido, incluso cuando el proveedor aplica un máximo menor que el solicitado.
+export async function readCatalog(client, table, params, {key=['id'],pageSize=200,maxRows=20000}={}) {
+  if(!params.order || params.offset!==undefined || params.limit!==undefined || !key.length
+    || key.some(name=>!columnName.test(name)) || !Number.isSafeInteger(pageSize) || pageSize<1 || pageSize>200
+    || !Number.isSafeInteger(maxRows) || maxRows<1) throw Error('Consulta de catálogo inválida.');
+  const rows=[],seen=new Set();
+  while(true){
+    const page=await client.select(table,{...params,limit:Math.min(pageSize,maxRows+1-rows.length),offset:rows.length});
+    if(!Array.isArray(page))throw Error('No se pudo leer el catálogo.');
+    if(!page.length)return rows;
+    for(const row of page){
+      if(key.some(name=>row[name]==null))throw Error('El catálogo requiere una identidad estable.');
+      const id=JSON.stringify(key.map(name=>row[name]));
+      if(seen.has(id))throw Error('El catálogo cambió durante la lectura. Actualiza e inténtalo de nuevo.');
+      seen.add(id);rows.push(row);
+      if(rows.length>maxRows)throw Error('El catálogo supera el tamaño admitido. No se mostraron datos parciales.');
+    }
+  }
+}
+
 function quoted(value) {
   return typeof value === 'number' ? String(value)
     : '"' + String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"') + '"';
