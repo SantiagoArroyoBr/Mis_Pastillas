@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-18 — QA-013 · Pulido y revisión de cierre
+
+Sobre `a1a8150`, se corrigen carreras entre renovación/lecturas/cambio de identidad, preservación del resultado de accesos ante recarga fallida y acuse de renombrado/archivo/revocación. Progreso accesible, actualización completa fechada, validación junto al campo, foco entre pantallas, objetivos táctiles y ayudas de Configuración/Respaldo. Confirmación manual del propietario para instalación, icono, sesión y consulta offline en iPhone y Android registrada para QA-012.
+
+95/95 conectadas, 102/102 PWA y 1/1 recorrido integrado ampliado con dos cuentas, conflicto/borrador, guardado con lectura503, archivo/reactivación/revocación, siete apartados a320/390/768/1280 y texto200%, respaldo/offline/actualización. Cero avisos npm conocidos; build32 archivos. Pendientes P2 explícitos: idempotencia de alta de enfermería (aviso preventivo añadido), escala de catálogos y lector de pantalla físico. Sin migraciones ni datos reales nuevos. [Informe y límites](docs/QA-013-cierre-de-ciclo.md). Main sin modificar; publicación y CI separados.
+
 ## 2026-11-18 — QA-012 · Recuperación, sesión e instalación
 
 Sobre `e5aaf48`, el lote autorizado completa altas recuperables tras una respuesta perdida, historiales ampliables, exportación y restauración familiar en una familia nueva, sesión renovable por pestaña o dispositivo personal y consulta offline opcional. Identidad compartida web/iPhone/Android y PWA raíz con caché v23. Se preservan `pastillas-v1`, reglas financieras y propuestas documentales ajenas.

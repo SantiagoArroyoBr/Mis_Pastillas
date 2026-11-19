@@ -2,6 +2,10 @@
 
 Fuente de prioridades y estados para la ejecución autónoma. La [conciliación de macrociclos](docs/AUTONOMIA-001-conciliacion.md) documenta la evidencia de partida. Las propuestas anteriores y las decisiones aprobadas se conservan en sus [documentos de origen](docs/AUTONOMIA-001-inventario.md).
 
+**QA-013 · P1 · En revisión:** lote de cierre implementado sobre `a1a8150`: accesibilidad móvil, estados/validación, Configuración, acuse de guardado y carreras de sesión. 95/95 conectadas, 102/102 PWA, 1/1 recorrido ampliado. iPhone/Android confirmados por el propietario para QA-012; lector físico pendiente. [Informe de cierre](docs/QA-013-cierre-de-ciclo.md).
+
+**QA-013-P2 · Pendiente:** ticket duradero de alta de enfermería (requiere esquema y respaldo), catálogos paginados para gran volumen y recorrido dedicado VoiceOver/TalkBack. Sin bloquear el cierre del lote local; no declarar idempotencia universal ni accesibilidad certificada. Evidencia y alcance en QA-013.
+
 Prioridades **P0** para pérdida o corrupción, error financiero grave, vulnerabilidad crítica o fallo de recuperación. **P1** para defectos importantes, accesibilidad que impide usar una función y fallos relevantes de PWA. **P2** para rendimiento, UX/UI, mantenimiento y refactorización acotada. **P3** para nuevas funciones, backend, sincronización y arquitectura posterior a 1.0.
 
 Estados **Pendiente**, **Lista**, **En ejecución**, **Bloqueada**, **En revisión**, **Aprobada**, **Publicada** y **Cerrada**. Una tarea pasa a **Lista** cuando alcance, pruebas, dependencias y autorización están definidos. **En revisión** indica una entrega local preparada o una revisión en curso, según su evidencia. Registra el alcance de **Aprobada**, el destino y SHA de **Publicada**, y el resultado de **Cerrada**. Conserva la evidencia de cada hito al cambiar de estado.

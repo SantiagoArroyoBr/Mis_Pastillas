@@ -53,6 +53,22 @@
   background: #fff; color: var(--ink); border: 1px solid #756f73; border-radius: 10px; font: inherit;
 }
 .connected-pilot input[type=checkbox] { width: 1.1rem; min-height: auto; }
+.connected-pilot label:has(> input[type=checkbox]) {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-height: 44px;
+  padding-block: .25rem;
+  cursor: pointer;
+}
+.connected-pilot input[type=checkbox] {
+  flex: none;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
+  min-block-size: 1.2rem;
+  padding: 0;
+  accent-color: var(--navy);
+}
 .connected-pilot button {
   max-width: 100%; min-height: 44px; margin: .2rem .25rem .2rem 0; padding: .4rem .8rem;
   font: inherit; font-weight: 800; color: var(--panel-accent, var(--navy)); background: #fff;
@@ -63,6 +79,8 @@
 .connected-pilot li { margin-block: .45rem; overflow-wrap: anywhere; }
 .connected-pilot fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 12px; }
 .connected-pilot :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+.connected-pilot :is(input, select, textarea, button, summary, a, [tabindex]) { scroll-margin-block: 7rem 2rem; }
+.connected-pilot summary { min-height: 44px; padding-block: .55rem; cursor: pointer; }
 .connected-pilot .pilot-notice {
   --notice-fill: var(--calendar-surface);
   --notice-ink: var(--navy);
@@ -92,6 +110,19 @@
   box-shadow: 0 5px 14px #25252f2b;
 }
 .connected-pilot #status { margin: 0; font-weight: 750; }
+.connected-pilot #operation-progress:empty, .connected-pilot #last-updated:empty { display: none; }
+.connected-pilot #operation-progress:not(:empty) {
+  color: var(--navy);
+  background: var(--calendar-surface);
+  border-inline-start: 3px solid var(--navy);
+  border-radius: 6px;
+  margin-block: .65rem;
+  padding: .55rem .75rem;
+  font-size: .9rem;
+}
+.connected-pilot .pilot-settings-help { color: #52676c; font-size: .85rem; overflow-wrap: anywhere; }
+.connected-pilot .pilot-field-error { display: block; color: #862c28; font-size: .85rem; font-weight: 750; margin-block: .3rem .6rem; overflow-wrap: anywhere; }
+.connected-pilot :is(input, select, textarea)[aria-invalid=true] { border-color: #862c28; border-width: 2px; }
 .connected-pilot #status:not(:empty)::before, .connected-pilot .pilot-notice-inline:not(:empty)::before {
   content: var(--notice-label);
   display: block;
@@ -305,6 +336,7 @@
 .connected-pilot .settings-disclosure { margin-top: .8rem; border-top: 1px solid var(--line); }
 .connected-pilot .settings-disclosure summary { cursor: pointer; min-height: 44px; padding: .8rem 0 .4rem; color: var(--navy); font-size: .9rem; }
 .connected-pilot .settings-account { background: var(--calendar-surface); }
+.connected-pilot .settings-link { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding-block: .4rem; color: var(--navy); font-weight: 800; overflow-wrap: anywhere; }
 .connected-pilot #logout { display: block; margin-inline: auto; width: 100%; }
 .connected-pilot #reload { display: block; margin: .5rem auto 1rem; }
 .connected-pilot button[data-icon]::before { display: inline-block; width: 1.2em; text-align: center; font-family: system-ui,sans-serif; font-weight: 500; }

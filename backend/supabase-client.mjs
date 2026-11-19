@@ -66,9 +66,12 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
   }
   function install(auth, preferences = options) {
     const next = sessionFromAuth(auth, preferences, now());
+    const identityChanged = session?.userId !== next.userId || temporary !== next.temporary;
     if (session?.userId !== next.userId) cache.retainUser(next.userId);
     session = next; token = next.accessToken; temporary = next.temporary;
-    sessionGeneration++;
+    // Rotar el token de la misma identidad no invalida lecturas ya autorizadas.
+    // Cierre/cambio de cuenta sí avanza la generación y descarta respuestas tardías.
+    if (identityChanged) sessionGeneration++;
     persisted = vault.save(session); report();
   }
   function offlineAllowed() {
@@ -92,13 +95,16 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
       // Otra pestaña puede haber rotado el token mientras esperábamos el lock.
       const saved = vault.readFor(session.remember);
       if (saved && saved.userId === session.userId && saved.accessToken !== token && saved.expiresAt - now() > 30000) {
-        session = saved; token = saved.accessToken; temporary = saved.temporary; sessionGeneration++; report(); return;
+        const identityChanged = temporary !== saved.temporary;
+        session = saved; token = saved.accessToken; temporary = saved.temporary;
+        if (identityChanged) sessionGeneration++;
+        report(); return;
       }
       const previousUser = session.userId;
       const generation = sessionGeneration;
       try {
         const result = await request('/auth/v1/token?grant_type=refresh_token',
-          { refresh_token: session.refreshToken }, api, { skipSession: true, noAuth: true });
+          { refresh_token: session.refreshToken }, api, { skipSession: true, noAuth: true, guardIdentity: true });
         if (generation !== sessionGeneration || session?.userId !== previousUser) {
           throw Object.assign(new Error('La sesión cambió.'), { status: 401, stale: true });
         }
@@ -117,14 +123,29 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
   async function request(path, body, destination = api, overrides = {}) {
     const selected = body === undefined && destination === api && cacheableSelect(path);
     const protectedCall = token && !overrides.skipSession && !path.startsWith('/auth/');
+    const guardedCall = protectedCall || overrides.guardIdentity;
+    const generation = sessionGeneration;
+    function requireCurrentSession() {
+      if (guardedCall && generation !== sessionGeneration) {
+        throw Object.assign(new Error('La sesión cambió. Vuelve a consultar los datos.'), { status: 401, stale: true });
+      }
+    }
+    function networkFailure() {
+      requireCurrentSession();
+      const error = Object.assign(new Error(api === connections.local?.url
+        ? 'No se pudo conectar con Supabase local. Revisa que esté iniciado.'
+        : 'No se pudo conectar con Supabase. Revisa tu conexión.'), { network: true });
+      if (selected) return cachedResult(path, error);
+      throw error;
+    }
     if (protectedCall && offline && body !== undefined) {
       throw Object.assign(new Error('Estás consultando sin conexión. Reconecta antes de guardar cambios.'), { offline: true });
     }
     if (protectedCall) {
       try { await ensureFresh(); }
-      catch (error) { if (selected) return cachedResult(path, error); throw error; }
+      catch (error) { requireCurrentSession(); if (selected) return cachedResult(path, error); throw error; }
+      requireCurrentSession();
     }
-    const generation = sessionGeneration;
     let response;
     try {
       response = await fetch(destination + path, {
@@ -138,19 +159,13 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
         cache: 'no-store',
         signal: AbortSignal.timeout(10000)
       });
-    } catch {
-      const error = Object.assign(new Error(api === connections.local?.url
-        ? 'No se pudo conectar con Supabase local. Revisa que esté iniciado.'
-        : 'No se pudo conectar con Supabase. Revisa tu conexión.'), { network: true });
-      if (selected) return cachedResult(path, error);
-      throw error;
-    }
-    const text = await response.text();
+    } catch { return networkFailure(); }
+    let text;
+    try { text = await response.text(); }
+    catch { if (response.ok) return networkFailure(); text = ''; }
     let result;
     try { result = text ? JSON.parse(text) : null; } catch { result = null; }
-    if (protectedCall && generation !== sessionGeneration) {
-      throw Object.assign(new Error('La sesión cambió. Vuelve a consultar los datos.'), { status: 401, stale: true });
-    }
+    requireCurrentSession();
     if (!response.ok) {
       if (response.status === 401 || (response.status === 403 && path.startsWith('/auth/'))) clearSession();
       else if (response.status === 403) { cache.clear(); offline = false; report(); }
@@ -202,13 +217,21 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
       if (!saved) { cache.clear(); return undefined; }
       session = saved; token = saved.accessToken; temporary = saved.temporary; persisted = true;
       sessionGeneration++;
+      const generation = sessionGeneration;
+      const requireRestoringSession = () => {
+        if (generation !== sessionGeneration) throw Object.assign(new Error('La sesión cambió. Vuelve a consultar los datos.'), {status:401,stale:true});
+      };
       cache.retainUser(saved.userId);
       try {
         await ensureFresh();
-        const user = await request('/auth/v1/user', undefined, api, { skipSession: true });
+        requireRestoringSession();
+        const user = await request('/auth/v1/user', undefined, api, { skipSession: true, guardIdentity: true });
         if (user?.id !== session?.userId) { clearSession(); return undefined; }
         offline = false; report(); return user.id;
       } catch (error) {
+        if (error.stale) throw error;
+        // Un error de una recuperación anterior no puede borrar la nueva cuenta.
+        if (generation !== sessionGeneration && session) requireRestoringSession();
         if (error.network && offlineAllowed() && cache.lastSync(session.userId)) {
           offline = true; report(); return session.userId;
         }
@@ -219,8 +242,10 @@ export function createClient(key, api = (connections.local ?? connections.cloud)
     },
     async reconnect() {
       if (!session) return undefined;
+      const generation = sessionGeneration;
       await ensureFresh();
-      const user = await request('/auth/v1/user', undefined, api, { skipSession: true });
+      if (generation !== sessionGeneration) throw Object.assign(new Error('La sesión cambió. Vuelve a consultar los datos.'), {status:401,stale:true});
+      const user = await request('/auth/v1/user', undefined, api, { skipSession: true, guardIdentity: true });
       if (user?.id !== session?.userId) { clearSession(); throw new Error('La sesión cambió. Vuelve a entrar.'); }
       offline = false; report(); return user.id;
     },

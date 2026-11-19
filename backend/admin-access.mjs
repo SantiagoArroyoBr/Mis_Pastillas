@@ -52,9 +52,13 @@ export function createAdminAccess({ run, status, actionButton, renderTable, onCh
       family: current.family, name: values.get('name').trim(), expiresAt: endOfDay(values.get('expires'))
     });
     form.reset();
-    await onChange();
     if (scope?.family === current.family && scope?.client === current.client) reveal(result);
-    status('Acceso creado. Entrega el identificador y el código solo a la persona indicada.', 'info');
+    try {
+      await onChange();
+      status('Acceso creado. Entrega el identificador y el código solo a la persona indicada.', 'info');
+    } catch {
+      status('Acceso creado. Conserva el identificador y el código; no repitas el alta. Pulsa Actualizar fichas para consultar la lista.', 'warning');
+    }
   }));
 
   async function load(client, family, owner) {
@@ -87,10 +91,11 @@ export function createAdminAccess({ run, status, actionButton, renderTable, onCh
         if (!confirm(message + ' ' + row.display_name + '?')) return;
         clearCode();
         const result = await client.access(action, { family, access: row.id, revision: row.revision, ...extra });
-        await onChange();
         if (action === 'reset' && scope?.family === family && scope?.client === client) reveal(result);
-        status(action === 'reset' ? 'Recuperación preparada. La persona debe activar su acceso de nuevo.'
-          : action === 'revoke' ? 'Acceso revocado. Se conserva su historial.' : 'Vencimiento actualizado.');
+        const confirmation = action === 'reset' ? 'Recuperación preparada. La persona debe activar su acceso de nuevo.'
+          : action === 'revoke' ? 'Acceso revocado. Se conserva su historial.' : 'Vencimiento actualizado.';
+        try { await onChange(); status(confirmation); }
+        catch { status(confirmation + ' No repitas la operación; pulsa Actualizar fichas para consultar la lista.', 'warning'); }
       };
       if (!row.revoked_at) {
         const renewal = document.createElement('input');

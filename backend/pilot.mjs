@@ -103,6 +103,48 @@ function createRecordOnce(operation, payload) {
     operation,payload,send:args=>client.rpc(operation === 'family' ? 'create_family_once' : 'add_patient_once',args)});
 }
 const dirtyForms = new Set();
+const fieldErrors = new WeakMap();
+let fieldErrorSequence = 0;
+function clearFieldError(field) {
+  const entry = fieldErrors.get(field);
+  if (!entry) return;
+  entry.note.remove();
+  const described = (field.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(id => id && id !== entry.id);
+  if (described.length) field.setAttribute('aria-describedby', described.join(' '));
+  else field.removeAttribute('aria-describedby');
+  field.removeAttribute('aria-invalid');
+  field.setCustomValidity('');
+  fieldErrors.delete(field);
+}
+document.addEventListener('invalid', event => {
+  const field = event.target;
+  if (!field.form) return;
+  const previous = fieldErrors.get(field);
+  const note = previous?.note ?? document.createElement('p');
+  const id = previous?.id ?? 'pilot-field-error-' + ++fieldErrorSequence;
+  note.id = id; note.className = 'pilot-field-error';
+  note.textContent = field.validity.valueMissing ? 'Completa este campo.'
+    : field.validity.typeMismatch ? 'Revisa el formato de este dato.'
+    : field.validity.rangeUnderflow || field.validity.rangeOverflow ? 'Usa un valor dentro del intervalo indicado.'
+    : field.validationMessage || 'Revisa este campo antes de continuar.';
+  if (!previous) (field.closest('label, .auth-password-group') ?? field).after(note);
+  field.setAttribute('aria-invalid', 'true');
+  const described = new Set((field.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean));
+  described.add(id); field.setAttribute('aria-describedby', [...described].join(' '));
+  fieldErrors.set(field, { note, id });
+}, true);
+document.addEventListener('input', event => clearFieldError(event.target));
+document.addEventListener('change', event => clearFieldError(event.target));
+document.addEventListener('reset', event => {
+  for (const field of event.target.elements ?? []) clearFieldError(field);
+}, true);
+document.addEventListener('submit', event => {
+  for (const field of event.target.elements ?? []) {
+    if (!field.required || !['text', 'search', 'email', 'textarea'].includes(field.type) || field.value.trim()) continue;
+    field.setCustomValidity('Escribe un valor; los espacios solos no son válidos.');
+    field.reportValidity(); event.preventDefault(); event.stopImmediatePropagation(); break;
+  }
+}, true);
 for (const type of ['input', 'change']) $('session').addEventListener(type, event => {
   const form = event.target.closest('form');
   if (form?.id) dirtyForms.add(form.id);
@@ -252,6 +294,7 @@ function endSession() {
   hideEditing();
   $('session').hidden = true;
   $('connection-current').textContent = '';
+  $('last-updated').textContent = '';
   $('auth').hidden = false;
 }
 
@@ -261,6 +304,10 @@ function run(action) {
     const trigger = event.currentTarget;
     if (busy) return;
     busy = true;
+    $('operation-progress').textContent = event.type === 'submit' ? 'Guardando… Espera la confirmación.' : 'Actualizando…';
+    const activeButton = trigger?.tagName === 'BUTTON' ? trigger : event.submitter;
+    const previousDisabled = activeButton?.getAttribute('aria-disabled');
+    activeButton?.setAttribute('aria-disabled', 'true');
     $('session').setAttribute('aria-busy', 'true');
     $('auth').setAttribute('aria-busy', 'true');
     families.disabled = true;
@@ -270,7 +317,9 @@ function run(action) {
     try {
       await action(event);
     } catch (error) {
-      if (error.status === 401 && userId) {
+      if (error.stale) {
+        status('La sesión cambió durante la consulta. Actualiza para continuar con la cuenta actual.', 'warning');
+      } else if (error.status === 401 && userId) {
         endSession();
         status('La sesión terminó. Vuelve a iniciar sesión.', 'warning');
       } else if (error.status === 409 || error.code === 'PT409') {
@@ -293,6 +342,11 @@ function run(action) {
       }
     } finally {
       busy = false;
+      $('operation-progress').textContent = '';
+      if (activeButton) {
+        if (previousDisabled === null) activeButton.removeAttribute('aria-disabled');
+        else activeButton.setAttribute('aria-disabled', previousDisabled);
+      }
       $('session').removeAttribute('aria-busy');
       $('auth').removeAttribute('aria-busy');
       families.disabled = !families.value;
@@ -375,9 +429,37 @@ async function openCalendarRecord(event) {
   $('calendar-opened-appointment-heading').focus();
 }
 
-window.addEventListener('hashchange', showPilotView);
+function focusCurrentView() {
+  const heading = $('session').querySelector('[data-pilot-view]:not([hidden]) h2');
+  if (heading) { heading.tabIndex = -1; heading.focus(); }
+}
+let focusNextView = false;
+$('session').addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  if (![...$('pilot-navigation').querySelectorAll('a')].some(item => !item.hidden && item.hash === link.hash)) return;
+  if (location.hash === link.hash) focusCurrentView();
+  else focusNextView = true;
+});
+window.addEventListener('hashchange', () => {
+  showPilotView();
+  if (focusNextView) focusCurrentView();
+  focusNextView = false;
+});
 
 async function refreshFamily() {
+  try {
+    await loadFamilyView();
+    $('last-updated').textContent = !families.value ? '' : client.readOnly
+      ? 'Mostrando información guardada. Reconecta y pulsa Actualizar fichas para comprobar novedades.'
+      : 'Última actualización completa: ' + new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()) + '.';
+  } catch (error) {
+    $('last-updated').textContent = 'No se pudo completar la actualización. La vista puede estar desactualizada; pulsa Actualizar fichas.';
+    throw error;
+  }
+}
+
+async function loadFamilyView() {
   const family = families.value;
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
   const readOnly=Boolean(client?.readOnly);
@@ -431,11 +513,11 @@ async function refreshFamily() {
   $('pilot-archived-count').textContent = String(patients.length - active.length);
   const archive = (patient, archived) => async () => {
     if (archived && !confirm('¿Archivar la ficha de ' + patient.name + '? Se conservará su historial.')) return;
-    await client.rpc('set_patient_archived', { family, patient: patient.id, expected_revision: patient.revision, archived });
-    hideEditing();
-    if (archived && appointmentDraft?.patient === patient.id) closeAppointment();
-    await refreshFamily();
-    status(archived ? 'Ficha archivada.' : 'Ficha reactivada.');
+    await saveAndRefresh({
+      write: () => client.rpc('set_patient_archived', { family, patient: patient.id, expected_revision: patient.revision, archived }),
+      reset: () => { hideEditing(); if (archived && appointmentDraft?.patient === patient.id) closeAppointment(); },
+      refresh: () => refreshFamily(), notify: status, message: archived ? 'Ficha archivada.' : 'Ficha reactivada.'
+    });
   };
   renderTable($('patients'), active.map(patient => {
     const actions = document.createElement('div');
@@ -448,7 +530,7 @@ async function refreshFamily() {
     }));
     if (owner) actions.append(actionButton(patient.name, 'Archivar ficha', archive(patient, true)));
     return [patient.name, actions];
-  }), 'Aún no hay fichas activas.');
+  }), 'Aún no hay fichas activas. Usa Agregar ficha para empezar, o reactiva una ficha archivada.');
   renderTable($('archived-patients'), patients.filter(patient => patient.archived_at).map(patient => [
     patient.name, owner ? actionButton(patient.name, 'Reactivar ficha', archive(patient, false)) : '—'
   ]), 'Aún no hay fichas archivadas.');
@@ -468,9 +550,9 @@ async function refreshFamily() {
   renderAppointments(appointments, family, today);
   renderTable($('members'), members.map(member => [
     member.user_id, actionButton('Cuenta ' + member.user_id, 'Revocar acceso', async () => {
-      await client.rpc('revoke_caregiver', { family, member: member.user_id });
-      await refreshFamily();
-      status('Acceso revocado.');
+      if (!confirm('¿Revocar el acceso de esta cuenta cuidadora a la familia? Se conservará su historial.')) return;
+      await saveAndRefresh({write: () => client.rpc('revoke_caregiver', { family, member: member.user_id }),
+        reset: () => {}, refresh: () => refreshFamily(), notify: status, message: 'Acceso revocado.'});
     })
   ]), 'Aún no hay cuentas cuidadoras.');
   await Promise.all([owner && !client.readOnly ? finance.load(client, family, active) : undefined,
@@ -510,7 +592,7 @@ function renderAppointments(appointments, family, today, counts={}) {
       } else cells.push('—');
       return cells;
     });
-    renderTable($('appointments-' + list), rows, list === 'upcoming' ? 'No hay próximas citas.' : 'No hay citas anteriores.');
+    renderTable($('appointments-' + list), rows, list === 'upcoming' ? 'No hay próximas citas. Abre Nueva cita médica para registrar una.' : 'No hay citas anteriores.');
     appointmentHistory[list].update(appointments.pagination[list],counts[list]??appointmentHistory[list].count);
   }
   $('appointments-legacy-section').hidden = !appointments.legacy.length;
@@ -657,12 +739,9 @@ rpcForm('add-patient', async values => {
 });
 rpcForm('rename-patient', async values => {
   if (!draft) return;
-  await client.rpc('rename_patient', {
+  await saveAndRefresh({write: () => client.rpc('rename_patient', {
     family: draft.family, patient: draft.id, expected_revision: draft.revision, patient_name: values.get('name')
-  });
-  hideEditing();
-  await refreshFamily();
-  status('Nombre guardado.');
+  }), reset: hideEditing, refresh: () => refreshFamily(), notify: status, message: 'Nombre guardado.'});
 });
 rpcForm('add-appointment', async values => {
   const args = {

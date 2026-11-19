@@ -260,7 +260,13 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
         }
         pending.delete(key);
       } else {
-        await client.rpc(rpc, args);
+        try { await client.rpc(rpc, args); }
+        catch (error) {
+          if (rpc === 'add_nurse' && (error.network || error.status >= 500)) {
+            throw new Error('No se pudo confirmar el alta de enfermería. Puede haberse guardado. Pulsa Actualizar fichas y revisa las tarifas antes de volver a agregarla.');
+          }
+          throw error;
+        }
       }
       if (form === cancel) dismissCancellation();
       else form.reset();

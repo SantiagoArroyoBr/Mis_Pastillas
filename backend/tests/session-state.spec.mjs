@@ -62,6 +62,126 @@ test('parallel reads refresh once before expiry and rotate the persisted refresh
   assert.match([...storage.sessionStorage.values.values()][0],/refresh-3600/);
 });
 
+test('renewing the same identity preserves successful reads already in flight', async t => {
+  let clock=1_000_000, finishRead, refreshes=0;
+  const storage=stores({now:()=>clock,offlineCache:true});
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(url.includes('grant_type=password'))return Response.json(auth(clock,40));
+    if(url.includes('grant_type=refresh_token')){refreshes++;return Response.json(auth(clock));}
+    if(url.includes('/patients?'))return new Promise(resolve=>{finishRead=()=>resolve(Response.json([{id:'before-refresh'}]));});
+    return Response.json([]);
+  });
+  const client=createClient(key,api,undefined,storage);
+  await client.signIn('principal@acompana.test','fixture-password');
+  const read=client.select('patients');
+  while(!finishRead)await new Promise(resolve=>setTimeout(resolve,0));
+  clock+=20_000;await client.select('families');
+  finishRead();
+  assert.deepEqual(await read,[{id:'before-refresh'}]);assert.equal(refreshes,1);
+  assert.equal(storage.sessionStorage.length,1);
+  assert.deepEqual(createOfflineCache(api,{storage:storage.localStorage}).get(user,'/rest/v1/patients?').data,[{id:'before-refresh'}]);
+});
+
+test('logout and a different identity still reject delayed reads without caching their data', async t => {
+  for(const changeAccount of [false,true]){
+    const clock=1_000_000, storage=stores({now:()=>clock,offlineCache:true});
+    let finishRead,identity=user;
+    const mock=t.mock.method(globalThis,'fetch',async url=>{
+      if(url.includes('grant_type=password'))return Response.json(auth(clock,3600,identity));
+      if(url.includes('/patients?'))return new Promise(resolve=>{finishRead=()=>resolve(Response.json([{id:'previous-user-data'}]));});
+      return Response.json([]);
+    });
+    const client=createClient(key,api,undefined,storage);
+    await client.signIn('principal@acompana.test','fixture-password');
+    const read=client.select('patients');
+    while(!finishRead)await new Promise(resolve=>setTimeout(resolve,0));
+    if(changeAccount){identity='22222222-2222-4222-8222-222222222222';await client.signIn('other@acompana.test','fixture-password');}
+    else await client.signOut();
+    finishRead();await assert.rejects(read,error=>error.status===401&&error.stale===true);
+    assert.equal(storage.localStorage.length,0);
+    mock.mock.restore();
+  }
+});
+
+test('late fetch and response-body failures cannot consult a newer identity cache or change its connection state', async t => {
+  for(const phase of ['fetch','body']){
+    const clock=1_000_000, storage=stores({now:()=>clock,offlineCache:true});
+    let identity=user, pending=true, failOld;
+    const mock=t.mock.method(globalThis,'fetch',async url=>{
+      if(url.includes('grant_type=password'))return Response.json(auth(clock,3600,identity));
+      if(url.includes('/patients?')&&pending){
+        pending=false;
+        const fail=()=>new Promise((resolve,reject)=>{failOld=()=>reject(TypeError('fixture connection lost'));});
+        return phase==='fetch'?fail():{ok:true,status:200,text:fail};
+      }
+      return Response.json([{id:'new-user-data'}]);
+    });
+    const client=createClient(key,api,undefined,storage);
+    await client.signIn('first@acompana.test','fixture-password');
+    const oldRead=client.select('patients');
+    while(!failOld)await new Promise(resolve=>setTimeout(resolve,0));
+    identity='22222222-2222-4222-8222-222222222222';
+    await client.signIn('second@acompana.test','fixture-password');
+    await client.select('patients');
+    failOld();await assert.rejects(oldRead,error=>error.status===401&&error.stale===true);
+    assert.equal(client.offline,false);
+    assert.deepEqual(createOfflineCache(api,{storage:storage.localStorage}).get(identity,'/rest/v1/patients?').data,[{id:'new-user-data'}]);
+    mock.mock.restore();
+  }
+});
+
+test('an interrupted successful body may use current-user cache, while an unreadable 401 body clears authorization', async t => {
+  const clock=1_000_000, storage=stores({now:()=>clock,offlineCache:true});let mode='online';
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(url.includes('grant_type=password'))return Response.json(auth(clock));
+    if(mode==='online')return Response.json([{id:'cached-current-user'}]);
+    return {ok:mode!=='denied',status:mode==='denied'?401:200,text:async()=>{throw TypeError('fixture body interrupted');}};
+  });
+  const client=createClient(key,api,undefined,storage);
+  await client.signIn('principal@acompana.test','fixture-password');await client.select('patients');
+  mode='body-failed';assert.deepEqual(await client.select('patients'),[{id:'cached-current-user'}]);
+  assert.equal(client.offline,true);
+  mode='denied';await assert.rejects(client.select('patients'),{status:401});
+  assert.equal(storage.sessionStorage.length,0);assert.equal(storage.localStorage.length,0);
+});
+
+test('late Auth verification from restore or reconnect cannot clear a newer identity, including a rejected response', async t => {
+  for(const operation of ['restoreSession','reconnect'])for(const responseStatus of [200,401]){
+    const clock=1_000_000,storage=stores({now:()=>clock});let identity=user,finishAuth;
+    const mock=t.mock.method(globalThis,'fetch',async url=>{
+      if(url.includes('grant_type=password'))return Response.json(auth(clock,3600,identity));
+      return new Promise(resolve=>{finishAuth=()=>resolve(Response.json(responseStatus===200?{id:user}:{},{status:responseStatus}));});
+    });
+    const client=createClient(key,api,undefined,storage);
+    await client.signIn('first@acompana.test','fixture-password');
+    const verification=client[operation]();
+    while(!finishAuth)await new Promise(resolve=>setTimeout(resolve,0));
+    identity='22222222-2222-4222-8222-222222222222';
+    await client.signIn('second@acompana.test','fixture-password');
+    finishAuth();await assert.rejects(verification,error=>error.status===401&&error.stale===true);
+    assert.equal(createSessionState(api,storage).read().userId,identity);
+    mock.mock.restore();
+  }
+});
+
+test('a rejected refresh from an old identity cannot clear a newer signed-in account', async t => {
+  let clock=1_000_000,identity=user,finishRefresh;
+  const storage=stores({now:()=>clock});
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(url.includes('grant_type=password'))return Response.json(auth(clock,identity===user?40:3600,identity));
+    if(url.includes('grant_type=refresh_token'))return new Promise(resolve=>{finishRefresh=()=>resolve(Response.json({},{status:401}));});
+    return Response.json([]);
+  });
+  const client=createClient(key,api,undefined,storage);
+  await client.signIn('first@acompana.test','fixture-password');clock+=20_000;
+  const read=client.select('patients');
+  while(!finishRefresh)await new Promise(resolve=>setTimeout(resolve,0));
+  identity='22222222-2222-4222-8222-222222222222';
+  await client.signIn('second@acompana.test','fixture-password');
+  finishRefresh();await assert.rejects(read,error=>error.status===401&&error.stale===true);
+  assert.equal(createSessionState(api,storage).read().userId,identity);
+});
+
 test('offline reads require opt-in and a valid token; RPC and access mutations never fall back to cache', async t => {
   const now=1_000_000, storage=stores({now:()=>now,offlineCache:true});let network=true;
   t.mock.method(globalThis,'fetch',async url=>{

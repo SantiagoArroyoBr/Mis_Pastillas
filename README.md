@@ -55,7 +55,7 @@ Para levantar Supabase local, seguir el recorrido completo o ejecutar la PWA de 
 
 La [auditoría QA-009](docs/auditorias/QA-009-calidad-integral.md) registra errores, limitaciones y evidencia. Los resultados locales de QA-010 fueron **56/56 pruebas conectadas y 102/102 de la PWA**; cada entrega posterior registra sus propios resultados en el [historial](HISTORIAL_CAMBIOS.md).
 
-El [lote QA-012](docs/QA-012-cierre-calidad-conectada.md) añade altas recuperables ante respuestas perdidas, historiales ampliables, respaldo familiar, sesión renovable y consulta offline opcional. El acceso temporal requiere conexión. La caché privada se elimina al cerrar sesión; actívala solo en un dispositivo personal. La instalación física y el corte de producción se comprueban por separado.
+El [lote QA-012](docs/QA-012-cierre-calidad-conectada.md) añade altas de familia/ficha recuperables ante respuestas perdidas, historiales ampliables, respaldo familiar, sesión renovable y consulta offline opcional. El [cierre QA-013](docs/QA-013-cierre-de-ciclo.md) corrige carreras de sesión y mejora validación, foco y Configuración; registra los límites pendientes. El acceso temporal requiere conexión. La caché privada se elimina al cerrar sesión; actívala solo en un dispositivo personal. Instalación iPhone/Android confirmada por el propietario; el corte de producción se comprueba por separado.
 
 ```sh
 npm test --prefix backend
