@@ -2,6 +2,8 @@
 
 Fuente de prioridades y estados para la ejecución autónoma. La [conciliación de macrociclos](docs/AUTONOMIA-001-conciliacion.md) documenta la evidencia de partida. Las propuestas anteriores y las decisiones aprobadas se conservan en sus [documentos de origen](docs/AUTONOMIA-001-inventario.md).
 
+**UX-PAGOS-014 · P2 · En revisión:** ojos retirados de Enfermería y pagos; formularios en tarjetas, separación de apartados, controles de montos con estado activo y disposición en dos columnas en escritorio/una en móvil. Base `58788b9`; recorrido integrado 1/1, siete apartados a320/390/768/1280 y texto200%, build32 y diff correctos. Lógica financiera y privacidad independiente conservadas. Publicación separada.
+
 **QA-013 · P1 · Cerrada:** lote de cierre publicado en development `73c3886`: accesibilidad móvil, estados/validación, Configuración, acuse de guardado y carreras de sesión. 95/95 conectadas, 102/102 PWA, 1/1 recorrido ampliado; CI44447305863 success, Vercel success y Preview comprobada. iPhone/Android confirmados por el propietario para QA-012; lector físico pendiente. Main sin modificar. [Informe de cierre](docs/QA-013-cierre-de-ciclo.md).
 
 **QA-013-P2 · Pendiente:** ticket duradero de alta de enfermería (requiere esquema y respaldo), catálogos paginados para gran volumen y recorrido dedicado VoiceOver/TalkBack. Sin bloquear el cierre del lote local; no declarar idempotencia universal ni accesibilidad certificada. Evidencia y alcance en QA-013.

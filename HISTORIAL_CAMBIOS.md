@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-19 — UX-PAGOS-014 · Enfermería y pagos sin ojos
+
+Sobre `58788b9`, se retira el pseudoicono de ojo de los cinco controles de montos de la candidata conectada. Los formularios reciben tarjetas con bordes y espaciado consistente, dos columnas desde640px, controles de montos redondeados y estado activo diferenciado. Ayuda breve sobre privacidad independiente. Inventario conserva su icono; la PWA raíz ya usaba texto en estos botones. Sin cambios de lógica, datos ni plazos de ocultación.
+
+Recorrido integrado conectado **1/1**, que comprueba montos, siete apartados a320/390/768/1280 y texto200%, sesión, dos cuentas, respaldo y offline. Build32 archivos y `git diff --check` correctos. Publicación de development autorizada en sesión; verificación de despliegue separada del resultado local. Main sin modificar y cuatro propuestas ajenas conservadas.
+
 ## 2026-11-19 — Verificación final de QA-013
 
 Confirmado `73c3886d0fb3ff827041ab199f1c7af2765bf013` publicado en development. CI [44447305863](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44447305863) **success** en todas las etapas; ambos estados Vercel **success**. Preview sirve el pulido vigente y las cuatro rutas privadas comprobadas responden404. Evidencia de cierre en [QA-013](docs/QA-013-cierre-de-ciclo.md), conservada en commit local de documentación. Main intacta y propuestas ajenas preservadas.

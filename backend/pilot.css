@@ -182,8 +182,40 @@
 .connected-pilot .pilot-patient-table td:first-child { width: 40%; overflow-wrap: anywhere; }
 .connected-pilot .pilot-row-actions { display: flex; flex-wrap: wrap; gap: .2rem; }
 .connected-pilot button[data-icon]::before { content: attr(data-icon) / ""; margin-inline-end: .3em; }
-.connected-pilot button[aria-pressed][aria-controls^="finance-"]::before,
 .connected-pilot #inventory-price-toggle::before { content: "👁︎" / ""; margin-inline-end: .3em; }
+.connected-pilot #finance > h3 {
+  margin-block: 1.5rem .65rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+  color: var(--payment-accent);
+}
+.connected-pilot #finance form {
+  display: grid;
+  gap: .65rem;
+  padding: clamp(.75rem, 3vw, 1.1rem);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.connected-pilot #finance form label { margin: 0; }
+.connected-pilot #finance form > button { justify-self: start; margin: .2rem 0 0; }
+.connected-pilot #finance button[aria-pressed][aria-controls^="finance-"] {
+  border-radius: 999px;
+  padding-inline: 1rem;
+  margin-block: 0 .7rem;
+  font-size: .9rem;
+  font-weight: 800;
+}
+.connected-pilot #finance button[aria-pressed=true][aria-controls^="finance-"] {
+  background: var(--payment-accent);
+  border-color: var(--payment-accent);
+  color: #fff;
+}
+.connected-pilot .finance-intro { text-align: center; font-size: .9rem; margin: .35rem 0 1rem; }
+@media (min-width: 640px) {
+  .connected-pilot #finance form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .connected-pilot #finance form > :is(button, p) { grid-column: 1 / -1; }
+}
 .connected-pilot .pilot-table-scroll td:has([data-cents], [data-price]), .connected-pilot .pilot-table-scroll .pilot-amount {
   text-align: end;
   white-space: nowrap;
