@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#245565">
+  <link rel="icon" href="/icons/acompana.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Acompaña">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Acompaña · Piloto local</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/pilot.css">
@@ -12,7 +19,7 @@
   <script type="module" src="/pilot.mjs"></script>
 </head>
 <body class="connected-pilot">
-  <header><div class="pilot-heading"><h1>Acompaña</h1>
+  <header><div class="pilot-heading"><h1><img class="brand-icon" src="/icons/acompana.svg" alt="" width="40" height="40">Acompaña</h1>
     <p>Prueba de cuentas y fichas compartidas. Usa datos de prueba.</p>
   </div></header>
   <main>
@@ -36,6 +43,9 @@
         <label><span id="auth-identifier-label">Correo o identificador de acceso</span> <input name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="320"></label>
         <div class="auth-password-group"><label for="auth-password">Contraseña</label><span class="auth-password-field"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button id="auth-show-password" type="button" aria-controls="auth-password" aria-pressed="false">Mostrar</button></span></div>
         <p id="auth-register-help" class="auth-hint" hidden>Tu cuenta principal puede administrar varias familias. Usa un correo propio y una contraseña de al menos 12 caracteres.</p>
+        <label class="device-choice"><input id="remember-session" type="checkbox"> Recordar sesión en este dispositivo personal</label>
+        <label class="device-choice"><input id="offline-consultation" type="checkbox"> Conservar una copia para consulta sin conexión</label>
+        <p class="auth-hint">Activa estas opciones solo en un teléfono propio. Sin conexión no se pueden comprobar cambios de permisos ni guardar cambios.</p>
         <button id="auth-submit-login" class="auth-primary">Entrar a Acompaña <span aria-hidden="true">→</span></button>
       </form>
       <p id="connection-help">Para el entorno local usa un correo ficticio que termine en .test.</p>
@@ -76,6 +86,7 @@
       </section>
     </section>
     <section id="session" hidden>
+      <p id="connection-state" role="status" aria-live="polite"></p>
       <nav id="pilot-navigation" aria-label="Secciones de Acompaña" hidden>
         <a href="#inicio"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>Inicio</a>
         <a href="#family"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Fichas</a>
@@ -380,7 +391,28 @@
         </div>
         </section>
         <section id="backup-review" data-pilot-view="#backup-review" hidden>
-          <h2>Revisar respaldo de prueba</h2>
+          <h2>Respaldo y recuperación</h2>
+          <section id="connected-recovery" class="settings-card" aria-labelledby="connected-recovery-heading" hidden>
+            <h3 id="connected-recovery-heading">Copia de la familia conectada</h3>
+            <p>Guarda una copia privada de sus fichas, citas, inventario y pagos. Las contraseñas y los códigos de acceso no se incluyen.</p>
+            <button id="export-family-backup" type="button" hidden>Descargar copia de la familia activa</button>
+            <hr>
+            <h3>Recuperar en una familia nueva</h3>
+            <p>La familia original se conserva. Los accesos anteriores quedan como historial; tendrás que conceder los permisos de nuevo. Quien restaura figura como responsable de los registros recuperados.</p>
+            <label>Copia conectada de Acompaña <input id="family-backup-file" type="file" accept=".json,application/json"></label>
+            <p id="family-backup-review-status" role="status" aria-live="polite"></p>
+            <div id="family-backup-review" hidden>
+              <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Contenido de la copia conectada">
+                <table><thead><tr><th scope="col">Registros</th><th scope="col">Cantidad</th></tr></thead><tbody id="family-backup-counts"></tbody></table>
+              </div>
+              <form id="restore-family-backup">
+                <label>Nombre de la familia recuperada <input name="name" maxlength="80" required></label>
+                <label><input name="confirmed" type="checkbox" required> Revisé el contenido y confirmo crear una familia nueva. Los permisos no se restauran.</label>
+                <button>Crear familia recuperada</button>
+              </form>
+            </div>
+          </section>
+          <h3>Revisar una copia de la PWA anterior</h3>
           <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
           <label>Respaldo JSON ficticio <input id="backup-review-file" type="file" accept=".json,application/json"></label>
           <p id="backup-review-status" class="pilot-notice pilot-notice-inline" role="status" aria-atomic="true" data-kind="info"></p>

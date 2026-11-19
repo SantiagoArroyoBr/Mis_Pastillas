@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-18 — QA-012 · Recuperación, sesión e instalación
+
+Sobre `e5aaf48`, el lote autorizado completa altas recuperables tras una respuesta perdida, historiales ampliables, exportación y restauración familiar en una familia nueva, sesión renovable por pestaña o dispositivo personal y consulta offline opcional. Identidad compartida web/iPhone/Android y PWA raíz con caché v23. Se preservan `pastillas-v1`, reglas financieras y propuestas documentales ajenas.
+
+Migraciones 13/14 aplicadas en Supabase tras respaldo privado de 21 tablas/19 filas y restauración comprobada en PostgreSQL desechable. Conteos remotos preservados y RLS de ambas tablas internas verificados. Pasaron **87/87** conectadas, **102/102** PWA y **1/1** recorrido de navegador compilado; build público de 32 archivos. Publicación, CI remoto y prueba física se distinguen en el [informe QA-012](docs/QA-012-cierre-calidad-conectada.md). Main sin modificar; se prepara su revisión completa.
+
 ## 2026-11-17 — RECONST-030 · Integración real y acceso móvil
 
 Sobre `8328963` se verificaron Auth real, activación y revocación de un acceso ficticio con aislamiento de familias, entrega por Brevo y recuperación principal. El propietario confirmó el restablecimiento desde iPhone tras retirar, con su autorización específica, la barrera de Vercel de acompana-piloto. Se corrigió el acuse de entrega para no devolver error ni duplicar un correo ya aceptado.

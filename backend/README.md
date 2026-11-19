@@ -1,8 +1,12 @@
 # Estado vigente · Acompaña conectada
 
-Actualizado el 18/11/2026. La candidata development utiliza Supabase Auth real y las migraciones 1–12. family-access y auth-email están desplegadas; el correo usa el hook firmado hacia Brevo. La barrera de acceso de Vercel está retirada. La recuperación principal se comprobó en iPhone. Los detalles y límites están en [RECONST-030](../docs/RECONST-030-integracion-real.md) y [QA-009](../docs/auditorias/QA-009-calidad-integral.md).
+Actualizado el 18/11/2026. Supabase tiene instaladas las migraciones 1–14. family-access y auth-email están desplegadas; el correo usa el hook firmado hacia Brevo. La barrera de acceso de Vercel está retirada. La recuperación principal se comprobó en iPhone. El código del lote [QA-012](../docs/QA-012-cierre-calidad-conectada.md) incorpora las capacidades siguientes; su publicación se registra por separado en ese informe.
 
-La versión conectada requiere internet, mantiene la sesión en memoria y aún no tiene exportación/restauración integral de la nube. No repetir el bootstrap SQL sobre una base existente ni tomar los pendientes históricos siguientes como el estado actual. Las pruebas de sandbox simulan Auth/correo y no sustituyen PostgREST real.
+La sesión se conserva por pestaña y permite recordar un dispositivo personal; renueva su autorización y borra tokens al salir. La consulta offline es opcional, conserva únicamente lecturas previas y exige una sesión no vencida. Pagos administrativos, accesos temporales y escrituras necesitan conexión. Una revocación remota no se puede comprobar mientras el dispositivo está desconectado.
+
+En **Respaldo**, la cuenta propietaria exporta un JSON privado de la familia. Seleccionar el archivo permite revisar conteos y confirmar la restauración en **una familia nueva**: la original queda intacta. Las cuentas, contraseñas y permisos no se restauran; los registros administrativos se conservan como procedencia y las autorías operativas se atribuyen a quien recupera. El formato conectado `acompana-family` es distinto del respaldo local `pastillas-v1`; este último conserva su diagnóstico y restauración en la PWA original.
+
+Los historiales de citas, jornadas, abonos y movimientos de inventario empiezan en 20 filas y permiten **Cargar más**. Los montos se vuelven a ocultar al actualizar el historial. No repetir el bootstrap SQL sobre una base existente ni tomar los pendientes históricos siguientes como el estado actual. Las pruebas de sandbox simulan Auth/correo y no sustituyen PostgREST real. `npm run test:ui` ejecuta el recorrido de navegador con datos desechables y necesita Chrome/Edge disponible o `CHROME_BIN`.
 
 [Volver a la portada](../README.md) · [Mapa documental](../docs/README.md)
 

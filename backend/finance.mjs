@@ -1,3 +1,4 @@
+import { readHistoryWindow, createHistoryControl } from './history.mjs';
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const integerFormat = new Intl.NumberFormat('es-MX');
@@ -56,25 +57,38 @@ function historyAmount(cents) {
 export async function loadAppliedPayments(client, family, shifts) {
   const totals = new Map();
   if (!shifts.length) return totals;
-  const filter = {
-    family_id: 'eq.' + family,
-    shift_id: 'in.(' + shifts.map(shift => shift.id).join(',') + ')',
-    select: 'payment_id,shift_id,amount_cents',
-    order: 'payment_id.asc,shift_id.asc',
-    limit: 500
-  };
-  let page;
-  do {
-    page = await client.select('individual_allocations', filter);
-    for (const row of page) {
-      totals.set(row.shift_id, (totals.get(row.shift_id) ?? 0n) + BigInt(row.amount_cents));
-    }
-    if (page.length) {
-      const { payment_id: payment, shift_id: shift } = page.at(-1);
-      filter.or = '(payment_id.gt.' + payment + ',and(payment_id.eq.' + payment + ',shift_id.gt.' + shift + '))';
-    }
-  } while (page.length === filter.limit);
+  for (let offset = 0; offset < shifts.length; offset += 100) {
+    const filter = {
+      family_id: 'eq.' + family,
+      shift_id: 'in.(' + shifts.slice(offset, offset + 100).map(shift => shift.id).join(',') + ')',
+      select: 'payment_id,shift_id,amount_cents',
+      order: 'payment_id.asc,shift_id.asc',
+      limit: 500
+    };
+    let page;
+    do {
+      page = await client.select('individual_allocations', filter);
+      for (const row of page) {
+        totals.set(row.shift_id, (totals.get(row.shift_id) ?? 0n) + BigInt(row.amount_cents));
+      }
+      if (page.length) {
+        const { payment_id: payment, shift_id: shift } = page.at(-1);
+        filter.or = '(payment_id.gt.' + payment + ',and(payment_id.eq.' + payment + ',shift_id.gt.' + shift + '))';
+      }
+    } while (page.length === filter.limit);
+  }
   return totals;
+}
+
+export async function loadReceiptCancellations(client, family, receipts) {
+  const rows = [];
+  for (let offset = 0; offset < receipts.length; offset += 100) {
+    rows.push(...await client.select('receipt_cancellations', {
+      family_id: 'eq.' + family, select: 'receipt_id,cancelled_on',
+      receipt_id: 'in.(' + receipts.slice(offset, offset + 100).map(row => row.id).join(',') + ')'
+    }));
+  }
+  return rows;
 }
 
 export function createFinance({ run, status, actionButton, renderTable, onChange }) {
@@ -92,6 +106,12 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
   const hideShiftAmounts = historyAmounts(shiftHistory, $('shift-toggle'));
   const hideIndividualAmounts = historyAmounts(individualHistory, $('individual-toggle'));
   const hideRates = historyAmounts(rates, $('rates-toggle'));
+  const receiptPages = createHistoryControl(history, 'abonos generales', run,
+    next => load(client, family, patients, { receipts: next }));
+  const shiftPages = createHistoryControl(shiftHistory, 'jornadas', run,
+    next => load(client, family, patients, { shifts: next }));
+  const individualPages = createHistoryControl(individualHistory, 'abonos individuales', run,
+    next => load(client, family, patients, { individual: next }));
   const pending = new Map();
   let family, client, patients, balance, selected, timer;
 
@@ -127,6 +147,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     shiftHistory.replaceChildren();
     individualHistory.replaceChildren();
     rates.replaceChildren();
+    receiptPages.reset(); shiftPages.reset(); individualPages.reset();
     $('add-nurse').reset();
     shift.reset();
     receipt.reset();
@@ -142,30 +163,33 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     if (rows.some(row => row.id === previous)) select.value = previous;
   }
 
-  async function load(nextClient, nextFamily, nextPatients) {
+  async function load(nextClient, nextFamily, nextPatients, requested = {}) {
     scope(nextFamily);
     client = nextClient;
     patients = nextPatients;
     const today = dateFormat.format(new Date());
     const filter = { family_id: 'eq.' + family };
-    const [nurses, receipts, totals, shifts, individualPayments] = await Promise.all([
+    const counts = { receipts: requested.receipts ?? receiptPages.count,
+      shifts: requested.shifts ?? shiftPages.count, individual: requested.individual ?? individualPages.count };
+    const [nurses, receiptPage, totals, shiftPage, individualPage] = await Promise.all([
       client.select('nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
-      client.select('receipts', { ...filter, select: 'id,paid_on,amount_cents,concept', order: 'paid_on.desc,id.desc', limit: 20 }),
+      readHistoryWindow(client, 'receipts', { ...filter, select: 'id,paid_on,amount_cents,concept', order: 'paid_on.desc,id.desc' }, counts.receipts),
       client.rpc('financial_balance', { family, as_of: today }),
-      client.select('shifts', {
+      readHistoryWindow(client, 'shifts', {
         ...filter, select: 'id,service_day,modality,cost_cents,patients(name),nurses(name)',
-        order: 'service_day.desc,id.desc', limit: 20
-      }),
-      client.select('individual_payments', {
-        ...filter, select: 'paid_on,amount_cents,concept,nurses(name)', order: 'paid_on.desc,id.desc', limit: 20
-      })
+        order: 'service_day.desc,id.desc'
+      }, counts.shifts),
+      readHistoryWindow(client, 'individual_payments', {
+        ...filter, select: 'id,paid_on,amount_cents,concept,nurses(name)', order: 'paid_on.desc,id.desc'
+      }, counts.individual)
     ]);
+    if (family !== nextFamily || client !== nextClient) return;
+    const receipts = receiptPage.rows, shifts = shiftPage.rows, individualPayments = individualPage.rows;
     const [cancellations, applied] = await Promise.all([
-      receipts.length ? client.select('receipt_cancellations', {
-        ...filter, select: 'receipt_id,cancelled_on', receipt_id: 'in.(' + receipts.map(row => row.id).join(',') + ')'
-      }) : [],
+      loadReceiptCancellations(client, family, receipts),
       loadAppliedPayments(client, family, shifts)
     ]);
+    if (family !== nextFamily || client !== nextClient) return;
     const cancelled = new Map(cancellations.map(row => [row.receipt_id, row.cancelled_on]));
     balance = totals[0];
     hideAmounts();
@@ -212,6 +236,9 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
       return [row.paid_on, row.concept || '—', amount, 'Activo', button];
     }), 'Aún no hay abonos generales.');
     hideReceiptAmounts();
+    receiptPages.update(receiptPage, counts.receipts);
+    shiftPages.update(shiftPage, counts.shifts);
+    individualPages.update(individualPage, counts.individual);
     panel.hidden = false;
   }
 

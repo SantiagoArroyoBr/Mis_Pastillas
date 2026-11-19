@@ -11,6 +11,7 @@ Empieza por el recorrido que necesites. Los informes conservan la evidencia de c
 | Entender permisos, nube y correo | [Integración real](RECONST-030-integracion-real.md) |
 | Revisar decisiones y arquitectura | [Arquitectura](../ARQUITECTURA.md) · [PLAN-005A](../PLAN-005A-DECISIONES.md) |
 | Saber qué se entregó y comprobó | [Historial](../HISTORIAL_CAMBIOS.md) |
+| Revisar sesión, respaldo, offline e integración a main | [Lote QA-012](QA-012-cierre-calidad-conectada.md) |
 | Colaborar o reportar un problema | [Contribución](../CONTRIBUTING.md) · [Seguridad](../SECURITY.md) |
 
 ## Cómo interpretar los estados

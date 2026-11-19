@@ -173,12 +173,14 @@ test('appointment history keeps its legacy dates and scopes each list before lim
   const client = { select(table, filter) {
     assert.equal(table, 'appointment_details');
     filters.push(filter);
-    return filter.appointment_day === 'is.null' ? [{ legacy_day: '2026-02-30' }] : [];
+    return filter.appointment_day === 'is.null' ? [{ id:'legacy-fixture',legacy_day: '2026-02-30' }] : [];
   } };
-  assert.deepEqual(await loadAppointments(client, 'fixture-family', '2026-11-16'),
-    { upcoming: [], past: [], legacy: [{ legacy_day: '2026-02-30' }] });
+  const result=await loadAppointments(client, 'fixture-family', '2026-11-16');
+  assert.deepEqual({upcoming:result.upcoming,past:result.past,legacy:result.legacy},
+    { upcoming: [], past: [], legacy: [{ id:'legacy-fixture',legacy_day: '2026-02-30' }] });
+  assert.equal(result.pagination.legacy.hasMore,false);
   assert.deepEqual(filters.map(filter => filter.appointment_day), ['gte.2026-11-16', 'lt.2026-11-16', 'is.null']);
-  assert.ok(filters.every(filter => filter.family_id === 'eq.fixture-family' && filter.limit === 20));
+  assert.ok(filters.every(filter => filter.family_id === 'eq.fixture-family' && filter.limit === 21));
   assert.ok(filters.every(filter => !('patient_id' in filter)));
   filters.length = 0;
   await loadAppointments(client, 'fixture-family', '2026-11-16', 'fixture-patient');

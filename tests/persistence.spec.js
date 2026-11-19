@@ -347,7 +347,8 @@ test('el tema del manifest, el navegador y la interfaz mantienen la identidad vi
     } finally { sample.remove(); }
   })()`);
   assert.ok(pairs.every(pair => contrastRatio(...pair) >= 4.5));
-  assert.equal(metadata.icons.length, 2);
+  assert.equal(metadata.icons.length, 3);
+  assert.deepEqual(metadata.icons.map(icon=>[icon.sizes,icon.purpose]), [['192x192','any'],['512x512','any'],['512x512','maskable']]);
   for (const icon of metadata.icons) assert.equal((await evaluate(`fetch(${JSON.stringify(icon.src)}).then(response=>response.ok)`)), true);
 });
 test('los nombres mostrados desde los datos se tratan como texto, no como HTML', async () => {

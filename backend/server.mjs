@@ -3,6 +3,19 @@ import { readFile } from 'node:fs/promises';
 import { connections } from './connection-config.mjs';
 
 const files = {
+  '/history.mjs':['history.mjs','text/javascript; charset=utf-8'],
+  '/durable-requests.mjs':['durable-requests.mjs','text/javascript; charset=utf-8'],
+  '/session-state.mjs':['session-state.mjs','text/javascript; charset=utf-8'],
+  '/offline-cache.mjs':['offline-cache.mjs','text/javascript; charset=utf-8'],
+  '/family-backup.mjs':['family-backup.mjs','text/javascript; charset=utf-8'],
+  '/manifest.webmanifest':['manifest.webmanifest','application/manifest+json'],
+  '/icons/acompana.svg':['icons/acompana.svg','image/svg+xml'],
+  '/icons/favicon-32.png':['icons/favicon-32.png','image/png'],
+  '/icons/favicon-48.png':['icons/favicon-48.png','image/png'],
+  '/icons/apple-touch-icon.png':['icons/apple-touch-icon.png','image/png'],
+  '/icons/icon-192.png':['icons/icon-192.png','image/png'],
+  '/icons/icon-512.png':['icons/icon-512.png','image/png'],
+  '/icons/icon-maskable-512.png':['icons/icon-maskable-512.png','image/png'],
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/pilot.mjs': ['pilot.mjs', 'text/javascript; charset=utf-8'],
   '/admin-access.mjs': ['admin-access.mjs', 'text/javascript; charset=utf-8'],
@@ -36,7 +49,7 @@ createServer(async (request, response) => {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src "
+      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src "
         + Object.values(connections).map(connection => connection.url).join(' ')
         + "; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
     }).end(content);

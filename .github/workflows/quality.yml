@@ -33,6 +33,10 @@ jobs:
         run: |
           test -x "$CHROME_BIN"
           dbus-run-session -- node --test tests/payments.spec.js tests/persistence.spec.js
+      - name: Sesión, recuperación y offline conectados con fixtures
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: dbus-run-session -- npm run test:ui --prefix backend
       - name: Compilación pública y limpieza del diff
         run: |
           node backend/build-preview.mjs

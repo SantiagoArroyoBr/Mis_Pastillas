@@ -1,5 +1,5 @@
 const APP_CACHE_PREFIX = 'acompanha-';
-const CACHE_NAME = APP_CACHE_PREFIX + 'v22';
+const CACHE_NAME = APP_CACHE_PREFIX + 'v23';
 const LEGACY_APP_CACHES = new Set(['cuidados-v8']);
 const ASSETS = [
   './',
@@ -18,6 +18,10 @@ const ASSETS = [
   './icons/house.svg',
   './icons/pill.svg',
   './icons/wallet.svg',
+  './icons/acompana.svg',
+  './apple-touch-icon.png',
+  './favicon-32.png',
+  './icon-maskable-512.png',
   './fonts/Nunito[wght].ttf',
   './manifest.json',
   './icon-192.png',

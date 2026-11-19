@@ -32,8 +32,8 @@ Acompaña ayuda a organizar fichas, citas médicas, medicamentos, insumos, jorna
 | --- | --- | --- |
 | Datos | `localStorage`, por origen y dispositivo | Supabase, con permisos por familia |
 | Cuenta | No necesita cuenta de nube | Cuenta principal y accesos temporales |
-| Sin conexión | Disponible, con service worker | Pendiente; requiere internet |
-| Respaldos | JSON y restauración local | Revisión de JSON; recuperación integral de nube pendiente |
+| Sin conexión | Disponible, con service worker | Consulta opcional de datos ya leídos, con sesión vigente; sin escrituras |
+| Respaldos | JSON y restauración local | Exportación familiar y restauración en una familia nueva |
 | Publicación | [pastillas-1](https://pastillas-1.vercel.app/) | [development](https://acompana-piloto-git-development-dinamita20.vercel.app/) |
 
 Los datos locales no se transfieren automáticamente a la nube. No interpretes una prueba offline de la PWA como prueba offline de la candidata conectada.
@@ -55,10 +55,11 @@ Para levantar Supabase local, seguir el recorrido completo o ejecutar la PWA de 
 
 La [auditoría QA-009](docs/auditorias/QA-009-calidad-integral.md) registra errores, limitaciones y evidencia. Los resultados locales de QA-010 fueron **56/56 pruebas conectadas y 102/102 de la PWA**; cada entrega posterior registra sus propios resultados en el [historial](HISTORIAL_CAMBIOS.md).
 
-Las prioridades son proteger altas ante fallos de red y borradores entre familias, completar los historiales y preparar una recuperación comprobada de datos conectados. Sesión persistente y funcionamiento offline de la candidata requieren un diseño adicional.
+El [lote QA-012](docs/QA-012-cierre-calidad-conectada.md) añade altas recuperables ante respuestas perdidas, historiales ampliables, respaldo familiar, sesión renovable y consulta offline opcional. El acceso temporal requiere conexión. La caché privada se elimina al cerrar sesión; actívala solo en un dispositivo personal. La instalación física y el corte de producción se comprueban por separado.
 
 ```sh
 npm test --prefix backend
+npm run test:ui --prefix backend
 node --test tests/payments.spec.js tests/persistence.spec.js
 node backend/build-preview.mjs
 ```

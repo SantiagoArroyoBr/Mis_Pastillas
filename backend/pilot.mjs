@@ -6,9 +6,13 @@ import { createCalendar } from './calendar.mjs';
 import { auditBackupRaw, maxBytes } from './backup-diagnostics.mjs';
 import { createAdminAccess } from './admin-access.mjs';
 import { consumeRecoveryLocation, createAccountRecovery } from './account-recovery.mjs';
+import { durableRequest } from './durable-requests.mjs';
+import { createHistoryControl } from './history.mjs';
+import { createFamilyRecovery, familyBackupMaxBytes } from './family-backup.mjs';
 
 // Remove authentication capabilities from the visible URL before rendering any view.
 let recoveryLink = consumeRecoveryLocation(location, history);
+const mayRestoreSession = recoveryLink.kind === 'none';
 
 const $ = id => document.getElementById(id);
 const families = $('families');
@@ -19,6 +23,19 @@ const appointmentFilter = $('appointment-filter');
 const appointmentLists = ['upcoming', 'past', 'legacy'];
 const localDay = new Intl.DateTimeFormat('sv-SE');
 const credentials = $('credentials');
+$('session').append($('backup-review'));
+function connectionStatus(info) {
+  $('session').dataset.readOnly=String(Boolean(info.readOnly));
+  const stamp=info.lastSync?new Intl.DateTimeFormat('es-MX',{dateStyle:'short',timeStyle:'short'}).format(info.lastSync):'';
+  $('connection-state').textContent=info.offline
+    ? 'Sin conexión · solo consulta de datos guardados'+(stamp?' · Última consulta: '+stamp:'')+'. Pagos y administración necesitan conexión. No se pueden comprobar cambios de permisos.'
+    : info.persisted?'Conectado · sesión conservada en '+(info.remember?'este dispositivo personal.':'esta pestaña.') : '';
+}
+function connectionClient() {
+  const connection=connections[credentials.elements.environment.value];
+  return createClient(credentials.elements.key.value.trim(),connection.url,connection.accessUrl,{
+    remember:$('remember-session').checked,offlineCache:$('offline-consultation').checked,onStatus:connectionStatus});
+}
 function selectAuthMode(register) {
   $('auth-mode-login').setAttribute('aria-pressed', String(!register));
   $('auth-mode-register').setAttribute('aria-pressed', String(register));
@@ -67,6 +84,24 @@ if (credentials.elements.environment.value === 'cloud') {
 }
 $('temporary-activation').hidden = !connections[credentials.elements.environment.value]?.accessUrl;
 let client, userId, memberships = [], draft, busy = false;
+const recovery = createFamilyRecovery({getClient:()=>client,
+  getScope:()=>[connections[credentials.elements.environment.value].url,userId]});
+let familyBackupRead = 0;
+function clearFamilyRecovery() {
+  familyBackupRead++;
+  recovery.clear();
+  $('family-backup-file').value='';
+  $('family-backup-counts').replaceChildren();
+  $('family-backup-review').hidden=true;
+  $('family-backup-review-status').textContent='';
+  $('restore-family-backup').reset();
+}
+function createRecordOnce(operation, payload) {
+  let storage;
+  try { storage = localStorage; } catch { /* El helper no envía sin ticket persistido. */ }
+  return durableRequest({storage,scope:[connections[credentials.elements.environment.value].url,userId],
+    operation,payload,send:args=>client.rpc(operation === 'family' ? 'create_family_once' : 'add_patient_once',args)});
+}
 const dirtyForms = new Set();
 for (const type of ['input', 'change']) $('session').addEventListener(type, event => {
   const form = event.target.closest('form');
@@ -118,6 +153,13 @@ const calendar = createCalendar(run, openCalendarRecord);
 const finance = createFinance({ run, status, actionButton, renderTable, onChange: calendar.reload });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
+const appointmentHistory = Object.fromEntries(appointmentLists.map(list=>[list,
+  createHistoryControl($('appointments-'+list), 'citas '+list, run, async next=>{
+    const counts=Object.fromEntries(appointmentLists.map(key=>[key,key===list?next:appointmentHistory[key].count]));
+    const today=localDay.format(new Date());
+    const rows=await loadAppointments(client,families.value,today,appointmentFilterValue,counts);
+    renderAppointments(rows,families.value,today,counts);
+  })]));
 createAccountRecovery({
   link: recoveryLink,
   getClient() {
@@ -153,6 +195,7 @@ function hideEditing() {
 }
 
 function resetAppointments() {
+  for (const control of Object.values(appointmentHistory)) control.reset();
   $('calendar-opened-appointment').hidden = true;
   $('calendar-opened-appointment-content').replaceChildren();
   for (const list of appointmentLists) $('appointments-' + list).replaceChildren();
@@ -187,6 +230,7 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  clearFamilyRecovery();
   for (const id of dirtyForms) $(id)?.reset();
   dirtyForms.clear();
   adminAccess.clear();
@@ -336,26 +380,32 @@ window.addEventListener('hashchange', showPilotView);
 async function refreshFamily() {
   const family = families.value;
   const owner = memberships.some(row => row.family_id === family && row.role === 'owner');
-  finance.scope(owner ? family : undefined);
+  const readOnly=Boolean(client?.readOnly);
+  $('session').dataset.readOnly=String(readOnly);
+  finance.scope(owner && !readOnly ? family : undefined);
   inventory.scope(family || undefined);
   calendar.scope(family || undefined);
   $('family').hidden = !family;
   $('pilot-navigation').hidden = false;
   for (const link of $('pilot-navigation').querySelectorAll('a')) {
-    link.hidden = link.hash !== '#configuracion' && (!family || (link.hash === '#finance' && !owner));
+    link.hidden = !['#configuracion','#backup-review'].includes(link.hash)
+      && (!family || (link.hash === '#finance' && (!owner || readOnly)));
   }
   $('no-family-help').hidden = Boolean(family);
   families.disabled = !family || busy;
   $('reload').hidden = !family;
   showPilotView();
-  $('owner-actions').hidden = !owner;
+  $('owner-actions').hidden = !owner || readOnly;
+  $('connected-recovery').hidden = Boolean(client?.isTemporary) || readOnly;
+  $('export-family-backup').hidden = !owner || readOnly;
   $('create-family').hidden = Boolean(client?.isTemporary);
   $('settings-create-family').hidden = Boolean(client?.isTemporary);
   $('settings-accept-invite').hidden = Boolean(client?.isTemporary);
   $('settings-create-family').open = !family && !client?.isTemporary;
   $('accept-invite').hidden = Boolean(client?.isTemporary);
-  await adminAccess.load(client, family, owner);
+  await adminAccess.load(client, family, owner && !readOnly);
   if (renderedFamily !== family) {
+    clearFamilyRecovery();
     $('members').replaceChildren();
     clearBackup();
     $('patients').replaceChildren();
@@ -373,7 +423,8 @@ async function refreshFamily() {
   const [patients, members, appointments] = await Promise.all([
     client.select('patients', { ...filter, select: 'id,name,revision,archived_at', order: 'name.asc,id.asc' }),
     owner ? client.select('family_members', { ...filter, revoked_at: 'is.null', role: 'eq.caregiver', select: 'user_id' }) : [],
-    loadAppointments(client, family, today, appointmentFilterValue)
+    loadAppointments(client, family, today, appointmentFilterValue,
+      Object.fromEntries(appointmentLists.map(list=>[list,appointmentHistory[list].count])))
   ]);
   const active = patients.filter(patient => !patient.archived_at);
   $('pilot-active-count').textContent = String(active.length);
@@ -422,11 +473,11 @@ async function refreshFamily() {
       status('Acceso revocado.');
     })
   ]), 'Aún no hay cuentas cuidadoras.');
-  await Promise.all([owner ? finance.load(client, family, active) : undefined,
+  await Promise.all([owner && !client.readOnly ? finance.load(client, family, active) : undefined,
     inventory.load(client, family, patients), calendar.load(client, family, patients, owner)]);
 }
 
-function renderAppointments(appointments, family, today) {
+function renderAppointments(appointments, family, today, counts={}) {
   for (const list of appointmentLists) {
     const rows = appointments[list].map(row => {
       const day = row.appointment_day === today ? 'Hoy, ' + today : row.appointment_day ?? row.legacy_day;
@@ -460,6 +511,7 @@ function renderAppointments(appointments, family, today) {
       return cells;
     });
     renderTable($('appointments-' + list), rows, list === 'upcoming' ? 'No hay próximas citas.' : 'No hay citas anteriores.');
+    appointmentHistory[list].update(appointments.pagination[list],counts[list]??appointmentHistory[list].count);
   }
   $('appointments-legacy-section').hidden = !appointments.legacy.length;
 }
@@ -491,7 +543,7 @@ $('credentials').addEventListener('submit', run(async event => {
   const temporary = /^temp-[0-9a-f-]{36}$/i.test(email);
   if (environment === 'local' && !email.endsWith('.test') && !temporary) throw new Error('Usa un correo ficticio que termine en .test o tu identificador temporal.');
   const password = values.get('password');
-  const next = createClient(values.get('key').trim(), connection.url, connection.accessUrl);
+  const next = connectionClient();
   if (event.submitter?.value === 'yes') {
     if (temporary || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Para crear una cuenta principal usa un correo válido.');
     const registration = await next.signUp(email, password);
@@ -556,7 +608,7 @@ function rpcForm(id, handler) {
 rpcForm('create-family', async values => {
   if (!discardDrafts('create-family')) return false;
   await saveAndRefresh({
-    write: () => client.rpc('create_family', { family_name: values.get('name') }),
+    write: () => createRecordOnce('family', { family_name: values.get('name').trim() }),
     reset: () => $('create-family').reset(), refresh: family => refreshFamilies(family),
     notify: status, message: 'Familia creada.'
   });
@@ -592,12 +644,13 @@ $('revoke-invite').addEventListener('click', run(async () => {
   status('Invitación pendiente revocada.');
 }));
 $('reload').addEventListener('click', run(async () => {
+  try { await client.reconnect(); } catch(error) { if(!error.network) throw error; }
   await refreshFamilies();
-  status('Fichas actualizadas.');
+  status(client.readOnly?'Consulta sin conexión. No puedes guardar cambios.':'Fichas actualizadas.',client.readOnly?'warning':'success');
 }));
 rpcForm('add-patient', async values => {
   await saveAndRefresh({
-    write: () => client.rpc('add_patient', { family: families.value, patient_name: values.get('name') }),
+    write: () => createRecordOnce('patient', { family: families.value, patient_name: values.get('name').trim() }),
     reset: () => $('add-patient').reset(), refresh: () => refreshFamily(),
     notify: status, message: 'Ficha agregada.'
   });
@@ -701,7 +754,7 @@ appointmentFilter.addEventListener('change', run(async () => {
   try {
     const rows = await loadAppointments(client, family, today, appointmentFilter.value);
     appointmentFilterValue = appointmentFilter.value;
-    renderAppointments(rows, family, today);
+    renderAppointments(rows, family, today,{upcoming:20,past:20,legacy:20});
     status('Agenda filtrada.', 'info');
   } catch (error) {
     appointmentFilter.value = appointmentFilterValue;
@@ -709,3 +762,77 @@ appointmentFilter.addEventListener('change', run(async () => {
   }
 }));
 $('cancel-rename').addEventListener('click', hideEditing);
+
+// Recuperación conectada: revisión local y restauración siempre en una familia nueva.
+$('export-family-backup').addEventListener('click',run(async()=>{
+  if(!confirm('La copia contiene información privada de esta familia. ¿Descargarla en este dispositivo?'))return;
+  const result=await recovery.export(families.value);
+  const url=URL.createObjectURL(new Blob([result.raw],{type:'application/json'}));
+  try{const link=document.createElement('a');link.href=url;link.download=result.filename;document.body.append(link);link.click();link.remove();}
+  finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  status('Copia descargada. Guárdala en un lugar privado.');
+}));
+$('family-backup-file').addEventListener('change',async()=>{
+  const sequence=++familyBackupRead,selectedClient=client;
+  $('family-backup-review').hidden=true;recovery.clear();
+  const file=$('family-backup-file').files?.[0];if(!file)return;
+  try{
+    if(file.size>familyBackupMaxBytes)throw Error('La copia supera el límite de 10 MiB.');
+    const raw=await file.text();if(sequence!==familyBackupRead||selectedClient!==client)return;
+    const summary=recovery.review(raw);
+    $('family-backup-review-status').textContent='Copia de '+summary.name+'. Revisa los conteos antes de crear la familia recuperada.';
+    const labels={patients:'Fichas',nurses:'Personal de enfermería',shifts:'Jornadas',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones'};
+    renderTable($('family-backup-counts'),Object.entries(summary.counts).map(([key,value])=>[labels[key]??key,String(value)]),'Sin registros.');
+    $('restore-family-backup').reset();$('restore-family-backup').elements.name.value=(summary.name+' · recuperada').slice(0,80);
+    $('family-backup-review').hidden=false;
+  }catch(error){$('family-backup-review-status').textContent=error.message;}
+});
+$('restore-family-backup').addEventListener('submit',run(async event=>{
+  const form=event.currentTarget;
+  let family,warning;
+  try{family=await recovery.restore({name:form.elements.name.value,confirmed:form.elements.confirmed.checked});}
+  catch(error){if(!error.saved)throw error;family=error.result;warning=error.message;}
+  clearFamilyRecovery();
+  try{await refreshFamilies(family);status(warning??'Familia recuperada. Los accesos deben concederse de nuevo.',warning?'warning':'success');}
+  catch{status('La familia se recuperó. Pulsa Actualizar fichas para consultarla; no repitas la restauración.','warning');}
+}));
+
+let lastAutomaticRefresh=0;
+async function automaticRefresh(force=false){
+  if(!client||busy||document.visibilityState==='hidden'||Date.now()-lastAutomaticRefresh<30000&&!force)return;
+  if(dirtyForms.size){if(force)status('La conexión cambió. Conservamos tu borrador; pulsa Actualizar fichas cuando termines.','info');return;}
+  lastAutomaticRefresh=Date.now();
+  await run(async()=>{
+    try{await client.reconnect();}catch(error){if(!error.network)throw error;}
+    await refreshFamilies();
+  })({preventDefault(){},currentTarget:$('reload')});
+}
+window.addEventListener('online',()=>automaticRefresh(true));
+window.addEventListener('offline',()=>automaticRefresh(true));
+window.addEventListener('focus',()=>automaticRefresh());
+
+// El SW solo almacena la lista estática del build; nunca las respuestas de Supabase.
+if(!connections.local&&'serviceWorker' in navigator){
+  let reloading=false,applyingUpdate=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(applyingUpdate&&!reloading){reloading=true;location.reload();}});
+  navigator.serviceWorker.register('/sw.js').then(registration=>{
+    const offerUpdate=()=>{
+      if(!registration.waiting||!navigator.serviceWorker.controller)return;
+      let button=$('apply-connected-update');
+      if(!button){button=document.createElement('button');button.id='apply-connected-update';button.type='button';button.textContent='Actualizar Acompaña';$('connection-state').after(button);}
+      button.onclick=()=>{if(discardDrafts()){applyingUpdate=true;registration.waiting?.postMessage({type:'APPLY_UPDATE'});}};
+    };
+    offerUpdate();registration.addEventListener('updatefound',()=>registration.installing?.addEventListener('statechange',offerUpdate));
+  }).catch(()=>status('No se pudo preparar la apertura sin conexión. Puedes seguir utilizando la aplicación con internet.','warning'));
+}
+
+if(mayRestoreSession){
+  await run(async()=>{
+    const next=connectionClient();const id=await next.restoreSession();if(!id)return;
+    client=next;userId=id;$('remember-session').checked=next.remember;$('offline-consultation').checked=next.offlineEnabled;
+    try{await refreshFamilies();}catch(error){endSession();throw error;}
+    $('auth').hidden=true;$('session').hidden=false;
+    const selected=connections[credentials.elements.environment.value];$('connection-current').textContent='Conectado a '+selected.label;
+    status(next.readOnly?'Sesión disponible para consulta sin conexión.':'Sesión recuperada.',next.readOnly?'warning':'success');
+  })({preventDefault(){},currentTarget:credentials});
+}

@@ -352,3 +352,8 @@
   .connected-pilot .pilot-section-heading { gap: .55rem; }
   .connected-pilot .pilot-section-heading h2 { font-size: 1.45rem; }
 }
+
+.connected-pilot .pilot-heading h1{display:flex;align-items:center;justify-content:center;gap:.55rem}.connected-pilot .brand-icon{border-radius:10px}.connected-pilot #auth .device-choice{display:flex;align-items:center;gap:.6rem;font-weight:600;line-height:1.4}.connected-pilot #auth .device-choice input{flex:none;width:1.2rem;min-height:1.2rem;height:1.2rem}.connected-pilot #connection-state:not(:empty){padding:.65rem .85rem;border:1px solid var(--line);background:var(--calendar-surface);border-radius:12px;font-size:.85rem}.pilot-history-control{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}.pilot-history-control p{font-size:.8rem;flex:1 1 12rem}.pilot-history-control button{flex:0 1 auto}
+
+
+.connected-pilot #session[data-read-only=true] form,.connected-pilot #session[data-read-only=true] .pilot-row-actions,.connected-pilot #session[data-read-only=true] #owner-actions,.connected-pilot #session[data-read-only=true] #finance,.connected-pilot #session[data-read-only=true] #finance-link,.connected-pilot #session[data-read-only=true] #connected-recovery,.connected-pilot #session[data-read-only=true] #new-medical-appointment,.connected-pilot #session[data-read-only=true] #open-inventory-medicine,.connected-pilot #session[data-read-only=true] #open-inventory-supply{display:none!important}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Acompaña</title>
+  <desc id="desc">Corazón de contorno claro sostenido por un arco terracota sobre fondo petróleo.</desc>
+  <rect width="512" height="512" fill="#245565"/>
+  <path d="M256 183C214 126 152 140 152 191C152 238 207 276 256 312C305 276 360 238 360 191C360 140 298 126 256 183Z" fill="none" stroke="#FFFCF8" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M167 310C182 337 215 354 256 354C297 354 330 337 345 310" fill="none" stroke="#D6A189" stroke-width="22" stroke-linecap="round"/>
+</svg>

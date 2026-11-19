@@ -1,3 +1,4 @@
+import { readHistoryWindow, createHistoryControl } from './history.mjs';
 const $ = id => document.getElementById(id);
 const dateFormat = new Intl.DateTimeFormat('sv-SE');
 const projectionFormat = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
@@ -48,12 +49,24 @@ export function loadInventoryPurchases(client, family, patient = '') {
   });
 }
 
-function loadInventoryQuotes(client, family, patient) {
-  return client.select('inventory_quotes', {
-    family_id: 'eq.' + family, ...(patient && { 'inventory_items.patient_id': 'eq.' + patient }),
-    select: 'quantity,total_price,quoted_on,shop,inventory_items!inner(id,name,patient_id,patients(name))',
-    order: 'quoted_on.desc,id.desc', limit: 20
+export async function readInventoryHistory(client, family, patient = '', count = 20) {
+  const filter = { family_id: 'eq.' + family, ...(patient && { 'inventory_items.patient_id': 'eq.' + patient }) };
+  const join = 'inventory_items!inner(id,name,patient_id,patients(name))';
+  const [purchases, quotes] = await Promise.all([
+    readHistoryWindow(client, 'inventory_purchases', { ...filter,
+      select: 'id,quantity,total_price,purchased_on,observed_at,shop,' + join,
+      order: 'purchased_on.desc,observed_at.desc,id.desc' }, count),
+    readHistoryWindow(client, 'inventory_quotes', { ...filter,
+      select: 'id,quantity,total_price,quoted_on,shop,' + join, order: 'quoted_on.desc,id.desc' }, count)
+  ]);
+  const rows = [...purchases.rows, ...quotes.rows].sort((a, b) => {
+    const observedA = BigInt(a.observed_at ?? 0), observedB = BigInt(b.observed_at ?? 0);
+    return (b.purchased_on ?? b.quoted_on).localeCompare(a.purchased_on ?? a.quoted_on)
+      || Number(Boolean(b.quoted_on)) - Number(Boolean(a.quoted_on))
+      || (observedA === observedB ? 0 : observedA < observedB ? 1 : -1)
+      || b.id.localeCompare(a.id);
   });
+  return { rows: rows.slice(0, count), hasMore: rows.length > count || purchases.hasMore || quotes.hasMore };
 }
 
 export function createInventory({ run, status, renderTable, onChange }) {
@@ -73,6 +86,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
   let editDraft;
   const openDetails = new Set();
   const patientLabel = (id, name) => name + (patientNames.get(name) > 1 ? ' · ' + id.slice(0, 8) : '');
+  const movementPages = createHistoryControl(history, 'compras y cotizaciones', run,
+    next => load(client, family, patients, next));
 
   function showPrices(visible) {
     clearTimeout(timer);
@@ -199,12 +214,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
     add.elements.name.focus();
   }
 
-  async function movements(patient) {
-    const [purchases, quotes] = await Promise.all([
-      loadInventoryPurchases(client, family, patient), loadInventoryQuotes(client, family, patient)
-    ]);
-    return [...purchases, ...quotes].sort((a, b) =>
-      (b.purchased_on ?? b.quoted_on).localeCompare(a.purchased_on ?? a.quoted_on));
+  async function movements(patient, count = movementPages.count) {
+    return readInventoryHistory(client, family, patient, count);
   }
 
   function scope(nextFamily) {
@@ -223,21 +234,24 @@ export function createInventory({ run, status, renderTable, onChange }) {
     patientFilter.replaceChildren();
     $('inventory-items').replaceChildren();
     history.replaceChildren();
+    movementPages.reset();
     clearCalendarSelection();
     showPrices(false);
   }
 
-  async function load(nextClient, nextFamily, nextPatients) {
+  async function load(nextClient, nextFamily, nextPatients, count) {
     scope(nextFamily);
     client = nextClient;
     patients = nextPatients;
     const filter = { family_id: 'eq.' + family };
-    const [available, purchases] = await Promise.all([
+    const requested = count ?? movementPages.count;
+    const [available, purchasePage] = await Promise.all([
       client.select('inventory_items', { ...filter,
         select: itemFields,
         order: 'name.asc,id.asc' }),
-      movements(visiblePatient)
+      movements(visiblePatient, requested)
     ]);
+    if (family !== nextFamily || client !== nextClient) return;
     items = available.map(row => ({ ...row, ...row.inventory_profiles }));
     const active = patients.filter(patient => !patient.archived_at);
     patientNames = new Map();
@@ -258,7 +272,8 @@ export function createInventory({ run, status, renderTable, onChange }) {
     )));
     if (purchasable.some(row => row.id === oldItem)) purchaseItem.value = oldItem;
     buy.querySelector('button').disabled = !purchasable.length;
-    renderLists(purchases);
+    renderLists(purchasePage.rows);
+    movementPages.update(purchasePage, requested);
   }
 
   async function openItem(id, navigate) {
@@ -393,9 +408,10 @@ export function createInventory({ run, status, renderTable, onChange }) {
   patientFilter.addEventListener('change', run(async () => {
     const chosen = patientFilter.value;
     try {
-      const purchases = await movements(chosen);
+      const purchases = await movements(chosen, 20);
       visiblePatient = chosen;
-      renderLists(purchases);
+      renderLists(purchases.rows);
+      movementPages.update(purchases, 20);
       status('Inventario filtrado.', 'info');
     } catch (error) {
       patientFilter.value = visiblePatient;

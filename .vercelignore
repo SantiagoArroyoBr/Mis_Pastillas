@@ -13,3 +13,15 @@ backend/*
 !backend/backup-diagnostics.mjs
 !backend/package.json
 !backend/vercel.json
+
+!backend/history.mjs
+!backend/durable-requests.mjs
+!backend/session-state.mjs
+!backend/offline-cache.mjs
+!backend/family-backup.mjs
+!backend/sw.js
+!backend/manifest.webmanifest
+!backend/icons/
+backend/icons/*
+!backend/icons/*.png
+!backend/icons/acompana.svg
