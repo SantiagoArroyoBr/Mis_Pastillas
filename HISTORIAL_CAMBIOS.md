@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-19 — Verificación final de QA-013
+
+Confirmado `73c3886d0fb3ff827041ab199f1c7af2765bf013` publicado en development. CI [44447305863](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44447305863) **success** en todas las etapas; ambos estados Vercel **success**. Preview sirve el pulido vigente y las cuatro rutas privadas comprobadas responden404. Evidencia de cierre en [QA-013](docs/QA-013-cierre-de-ciclo.md), conservada en commit local de documentación. Main intacta y propuestas ajenas preservadas.
+
 ## 2026-11-18 — QA-013 · Pulido y revisión de cierre
 
 Sobre `a1a8150`, se corrigen carreras entre renovación/lecturas/cambio de identidad, preservación del resultado de accesos ante recarga fallida y acuse de renombrado/archivo/revocación. Progreso accesible, actualización completa fechada, validación junto al campo, foco entre pantallas, objetivos táctiles y ayudas de Configuración/Respaldo. Confirmación manual del propietario para instalación, icono, sesión y consulta offline en iPhone y Android registrada para QA-012.

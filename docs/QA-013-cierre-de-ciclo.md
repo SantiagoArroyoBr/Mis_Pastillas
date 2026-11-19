@@ -58,3 +58,11 @@ El recorrido integrado ampliado es **1/1**, con múltiples verificaciones en el 
 Comandos: `npm test --prefix backend`; `npm run test:ui --prefix backend`; `node --test tests/payments.spec.js tests/persistence.spec.js`; `node backend/build-preview.mjs`; `npm audit --prefix backend --json`; `git diff --check`. Los navegadores corren con perfil temporal y acceso loopback autorizado. Captura ficticia ignorada: `backend/supabase/.temp/closing-settings.jpg`.
 
 Publicación, SHA y CI remoto se registran por separado. Se cierra el lote implementable; las decisiones de integración a main/corte de producción permanecen fuera de este commit.
+
+## Evidencia final de publicación · 19/11/2026
+
+- Producto publicado en `origin/development`: **`73c3886d0fb3ff827041ab199f1c7af2765bf013`**. Las cuatro propuestas ajenas quedaron fuera del commit.
+- [Calidad, ejecución 44447305863](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44447305863): **success**, incluidos SQL/Auth/cliente, PWA, recorrido conectado ampliado y build/diff en Linux/Chrome. Resultado confirmado al retomar el cierre tras la interrupción.
+- Vercel: **success** para acompana-piloto y pastillas-1 sobre ese SHA. La [Preview conectada](https://acompana-piloto-git-development-dinamita20.vercel.app/) sirve progreso, fecha de actualización, ayuda familiar, validación asociada y guarda de sesión actualizadas. Comprobación HTTP pública sin autenticación; no equivale a repetir el recorrido de dos cuentas en la nube.
+- SQL de migración, respaldo privado, `access-service.mjs` y `email-hook.mjs`: **404** en la Preview. Sin exposición de esos recursos en las rutas comprobadas.
+- 27 enlaces locales de las guías/informes de cierre verificados y `git diff --check` correcto. Seguimiento final conservado en commit local para revisión; main permanece sin modificar.
