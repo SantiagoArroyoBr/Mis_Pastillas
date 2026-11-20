@@ -8,7 +8,7 @@
 - Producto conectado publicado y probado: `a7f2475b7dc5d1f292f58dbb7b433c024b815f67`, [CI44590074054](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44590074054) aprobado. Seguimiento local `a0f4b5c`;112 pruebas conectadas,102 PWA y1 recorrido integrado en FIX-ACCESO-001.
 - Supabase tiene17 migraciones; se conservan ambas aplicaciones. La referencia local funciona con `pastillas-v1`, por origen y dispositivo. La nueva utiliza familias y permisos en Supabase.
 - El código de main contiene el botón **Exportar respaldo** y genera `cuidados-respaldo-AAAA-MM-DD.json`.
-- La candidata sólo diagnostica el JSON local anterior; su restauración conectada acepta `acompana-family` v1/v2. **Todavía no hay importación automática completa de pastillas-v1 a la nube.** No indicar al propietario que basta cargar el JSON antiguo en Restaurar familia.
+- Al preparar este documento la candidata sólo diagnosticaba el JSON anterior. El lote local [RC-003](RC-003-ensayo-migracion-main.md) añade conversión explícita y restauración v3 con historial original separado, comprobadas con una exportación ficticia real de main. Falta habilitar SQL18 remotamente y validar el archivo familiar. No indicar que el archivo anterior se carga directamente como copia conectada.
 
 ## Sacar la copia en el Android original
 
@@ -26,8 +26,8 @@ La exportación no migra ni elimina la información. Abrir el enlace nuevo en ot
 | --- | --- | --- |
 | Copia del teléfono | Archivo original reciente y copia privada en computadora | Pendiente del propietario |
 | Integridad y restauración local | Validar sin alterar el original; conteos y restauración en perfil aislado | Pendiente de archivo |
-| Conversión compatible | Mapear índices, fechas, stock/pautas, compras/cotizaciones y libros financieros sin inventar equivalencias | Pendiente; diagnóstico existente no es conversor |
-| Ensayo de destino | Familia nueva, conteos/totales/referencias conciliados, reintento seguro y respaldo recuperable | Pendiente de conversión |
+| Conversión compatible | Mapear índices, fechas, stock/pautas, compras/cotizaciones y libros financieros sin inventar equivalencias | Ensayo ficticio aprobado en RC-003; archivo familiar pendiente |
+| Ensayo de destino | Familia nueva, conteos/totales/referencias conciliados, reintento seguro y respaldo recuperable | Aprobado aislado; SQL18 remoto y archivo real pendientes |
 | Revisión familiar | Fichas, inventario, citas, enfermería y pagos verificados por la familia; original disponible para retorno | Pendiente |
 | Integración y producción | Diff completo, pruebas del SHA, decisión de main y del proyecto/directorio de Vercel | Preparación, sin ejecutar |
 
@@ -37,4 +37,4 @@ Merge de código, importación de datos y cambio de producción son tres accione
 
 ## Cierre de preparación
 
-Sin cambios de producto, esquema, datos familiares, main ni configuración de Vercel en este paso. Se conservaron las cuatro propuestas ajenas y no se recibió aún el respaldo. Siguiente acción necesaria: exportar y copiar el JSON desde el Android instalado original. Después cerrar el conversor y su ensayo antes de declarar la migración lista.
+Esta preparación inicial no cambió producto ni esquema. Posteriormente RC-003 implementó y ensayó localmente el conversor, conservando main, producción y las cuatro propuestas ajenas. No se recibió aún el respaldo real. Siguiente acción familiar: exportar y copiar el JSON desde el Android instalado original. La habilitación remota y la comprobación de esa copia siguen pendientes antes de declarar la migración familiar lista.

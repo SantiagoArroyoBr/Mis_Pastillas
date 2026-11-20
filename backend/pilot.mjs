@@ -12,6 +12,8 @@ import { readCatalog } from './history.mjs';
 import { createToday } from './today.mjs';
 import { createCareCoordination } from './care-coordination.mjs';
 import { createFamilyRecovery, familyBackupMaxBytes } from './family-backup.mjs';
+import { convertLegacyBackup } from './legacy-converter.mjs';
+import { createLegacyHistory } from './legacy-history.mjs';
 
 // Remove authentication capabilities from the visible URL before rendering any view.
 let recoveryLink = consumeRecoveryLocation(location, history);
@@ -203,6 +205,7 @@ const finance = createFinance({ run, status, actionButton, renderTable, onChange
   getRequestScope:()=>[connections[credentials.elements.environment.value].url,userId] });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
+const legacyHistory=createLegacyHistory({run,status,renderTable,onPresence:value=>{$('finance-legacy-warning').hidden=!value;}});
 const appointmentHistory = Object.fromEntries(appointmentLists.map(list=>[list,
   createHistoryControl($('appointments-'+list), 'citas '+list, run, async next=>{
     const counts=Object.fromEntries(appointmentLists.map(key=>[key,key===list?next:appointmentHistory[key].count]));
@@ -229,8 +232,10 @@ createAccountRecovery({
 recoveryLink = undefined;
 const backupFile = $('backup-review-file');
 let backupRequest = 0;
+let legacyImportRaw;
 
 function clearBackup() {
+  legacyImportRaw=undefined;$('legacy-import-actions').hidden=true;
   backupRequest++;
   backupFile.value = '';
   $('backup-review-status').textContent = '';
@@ -280,6 +285,7 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  legacyHistory.clear();
   care.clear();todaySummary.clear();
   clearFamilyRecovery();
   for (const id of dirtyForms) $(id)?.reset();
@@ -572,7 +578,7 @@ async function loadFamilyView() {
   await Promise.all([owner && !client.readOnly ? finance.load(client, family, active) : undefined,
     inventory.load(client, family, patients), calendar.load(client, family, patients, owner),
     care.load(client,family,patients,(careMembers??members).map(member=>({...member,label:member.user_id===userId?'Mi cuenta':(member.label??(member.role==='owner'?'Administrador':'Cuidador'))+' · '+member.user_id.slice(0,8)}))),
-    todaySummary.load(client,family,owner)]);
+    todaySummary.load(client,family,owner),legacyHistory.load(client,family,owner)]);
 }
 
 function renderAppointments(appointments, family, today, counts={}) {
@@ -796,6 +802,7 @@ $('cancel-edit-appointment').addEventListener('click', closeAppointment);
 
 backupFile.addEventListener('change', async () => {
   const request = ++backupRequest;
+  legacyImportRaw=undefined;$('legacy-import-actions').hidden=true;
   const file = backupFile.files[0];
   const feedback = $('backup-review-status');
   const counts = $('backup-review-counts');
@@ -810,8 +817,10 @@ backupFile.addEventListener('change', async () => {
     return;
   }
   let result;
+  let selectedRaw;
   try {
-    result = auditBackupRaw(await file.text(), window.AcompanaCompatibility);
+    selectedRaw=await file.text();
+    result = auditBackupRaw(selectedRaw, window.AcompanaCompatibility);
   } catch {
     if (request === backupRequest) {
       feedback.dataset.kind = 'error';
@@ -842,7 +851,20 @@ backupFile.addEventListener('change', async () => {
     .map(([key, total]) => [labels[key] ?? key, String(total)]);
   renderTable(counts, rows, 'Sin registros.');
   $('backup-review-results').hidden = false;
+  legacyImportRaw=selectedRaw;
+  $('legacy-import-actions').hidden=Boolean(client?.isTemporary)||Boolean(client?.readOnly);
 });
+$('prepare-legacy-import').addEventListener('click',run(async()=>{
+  if(!legacyImportRaw)throw Error('Primero selecciona y revisa una copia de la versión anterior.');
+  if(client?.isTemporary||client?.readOnly)throw Error('Para importar, entra con tu cuenta principal y conexión.');
+  const name=$('legacy-family-name').value.trim();if(!name||name.length>80)throw Error('Escribe el nombre de la nueva familia, de hasta 80 caracteres.');
+  const currentClient=client,currentRaw=legacyImportRaw,sequence=backupRequest;
+  const converted=await convertLegacyBackup(currentRaw,{compatibility:window.AcompanaCompatibility,familyName:name});
+  if(currentClient!==client||currentRaw!==legacyImportRaw||sequence!==backupRequest)return;
+  showFamilyBackupReview(JSON.stringify(converted.archive),true);
+  status('Conversión preparada. Revisa los conteos y diferencias; todavía no se guardó ninguna familia.','info');
+  $('family-backup-review').scrollIntoView({block:'start'});
+}));
 appointmentFilter.addEventListener('change', run(async () => {
   const family = families.value;
   const today = localDay.format(new Date());
@@ -874,15 +896,18 @@ $('family-backup-file').addEventListener('change',async()=>{
   try{
     if(file.size>familyBackupMaxBytes)throw Error('La copia supera el límite de 10 MiB.');
     const raw=await file.text();if(sequence!==familyBackupRead||selectedClient!==client)return;
-    const summary=recovery.review(raw);
-    $('family-backup-review-status').textContent='Copia de '+summary.name+'. Revisa los conteos antes de crear la familia recuperada.';
-    const labels={patients:'Fichas',nurses:'Personal de enfermería',shifts:'Jornadas',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones'};
-    Object.assign(labels,{care_tasks:'Pendientes',care_notes:'Notas de bitácora'});
-    renderTable($('family-backup-counts'),Object.entries(summary.counts).map(([key,value])=>[labels[key]??key,String(value)]),'Sin registros.');
-    $('restore-family-backup').reset();$('restore-family-backup').elements.name.value=(summary.name+' · recuperada').slice(0,80);
-    $('family-backup-review').hidden=false;
+    showFamilyBackupReview(raw);
   }catch(error){$('family-backup-review-status').textContent=error.message;}
 });
+function showFamilyBackupReview(raw,converted=false){
+  const summary=recovery.review(raw),legacy=Boolean(summary.counts.legacy_snapshots);
+  $('family-backup-review-status').textContent='Copia de '+summary.name+'. Revisa los conteos antes de crear la familia recuperada.'
+    +(legacy?' Conserva el archivo original y el historial anterior separado: los prepagos y asignaciones sin costo no se suman al nuevo saldo; el personal sin tarifa se consulta en ese historial.':'');
+  const labels={patients:'Fichas',nurses:'Personal con tarifas',shifts:'Jornadas con costo',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones',care_tasks:'Pendientes',care_notes:'Notas de bitácora',legacy_snapshots:'Copias originales con historial anterior'};
+  renderTable($('family-backup-counts'),Object.entries(summary.counts).map(([key,value])=>[labels[key]??key,String(value)]),'Sin registros.');
+  $('restore-family-backup').reset();$('restore-family-backup').elements.name.value=(summary.name+(converted?'':' · recuperada')).slice(0,80);
+  $('family-backup-review').hidden=false;
+}
 $('restore-family-backup').addEventListener('submit',run(async event=>{
   const form=event.currentTarget;
   let family,warning;
@@ -915,7 +940,7 @@ if(!connections.local&&'serviceWorker' in navigator){
     const offerUpdate=()=>{
       if(!registration.waiting||!navigator.serviceWorker.controller)return;
       let button=$('apply-connected-update');
-      if(!button){button=document.createElement('button');button.id='apply-connected-update';button.type='button';button.textContent='Actualizar Acompaña';$('connection-state').after(button);}
+      if(!button){button=document.createElement('button');button.id='apply-connected-update';button.type='button';button.textContent='Actualizar Acompaña';$('operation-progress').after(button);}
       button.onclick=()=>{if(discardDrafts()){applyingUpdate=true;registration.waiting?.postMessage({type:'APPLY_UPDATE'});}};
     };
     offerUpdate();registration.addEventListener('updatefound',()=>registration.installing?.addEventListener('statechange',offerUpdate));

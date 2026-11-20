@@ -85,7 +85,7 @@ test('family backup v2 restores care rows atomically with remapped relations and
   await rpc(caregiver,'add_care_note($1,$2,$3,$4)',[family,randomUUID(),patient,'Nota histórica']);
   await rpc(owner,'set_patient_archived($1,$2,$3,$4)',[family,patient,1,true]);
   const archive=await rpc(owner,'export_family_backup($1)',[family]);
-  assert.equal(archive.version,2);assert.equal(archive.tables.care_tasks[0].assignee_id,null);
+  assert.equal(archive.version,3);assert.equal(archive.tables.care_tasks[0].assignee_id,null);
   assert.ok(!JSON.stringify(archive.tables).includes(caregiver));
   const ticket=randomUUID();
   const restored=await rpc(other,'restore_family_backup($1,$2,$3)',[archive,'Copia de cuidado',ticket]);

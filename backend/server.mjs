@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { connections } from './connection-config.mjs';
 
 const files = {
+  '/legacy-converter.mjs':['legacy-converter.mjs','text/javascript; charset=utf-8'],
+  '/legacy-history.mjs':['legacy-history.mjs','text/javascript; charset=utf-8'],
   '/today.mjs':['today.mjs','text/javascript; charset=utf-8'],
   '/care-coordination.mjs':['care-coordination.mjs','text/javascript; charset=utf-8'],
   '/history.mjs':['history.mjs','text/javascript; charset=utf-8'],

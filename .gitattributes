@@ -1,0 +1,2 @@
+# Conservar los bytes del JSON descargado por main, incluidos sus saltos de línea.
+backend/tests/fixtures/main-backup.json -text

@@ -17,6 +17,8 @@ backend/*
 !backend/history.mjs
 !backend/today.mjs
 !backend/care-coordination.mjs
+!backend/legacy-converter.mjs
+!backend/legacy-history.mjs
 !backend/durable-requests.mjs
 !backend/session-state.mjs
 !backend/offline-cache.mjs

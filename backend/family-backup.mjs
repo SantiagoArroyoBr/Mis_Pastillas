@@ -5,6 +5,8 @@ export const familyBackupTables=Object.freeze(['patients','nurses','shifts','rec
   'inventory_profiles','inventory_purchases','inventory_quotes']);
 export const familyBackupMaxBytes=10*1024*1024;
 export const familyBackupCareTables=Object.freeze([...familyBackupTables,'care_tasks','care_notes']);
+export const familyBackupLegacyTables=Object.freeze([...familyBackupCareTables,'legacy_snapshots']);
+const tablesForVersion=version=>version===3?familyBackupLegacyTables:version===2?familyBackupCareTables:familyBackupTables;
 
 function validAdministration(value,depth=0){
   const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -32,8 +34,8 @@ export function parseFamilyBackup(raw){
     throw new Error('La copia es demasiado grande; el límite es 10 MiB.');
   let archive;try{archive=JSON.parse(raw);}catch{throw new Error('El archivo no es un JSON válido.');}
   const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-  const tables=archive?.version===2?familyBackupCareTables:familyBackupTables;
-  if(!object(archive)||archive.format!=='acompana-family'||![1,2].includes(archive.version)
+  const tables=tablesForVersion(archive?.version);
+  if(!object(archive)||archive.format!=='acompana-family'||![1,2,3].includes(archive.version)
       ||!object(archive.family)||!object(archive.tables)||!validAdministration(archive.administration)
       ||typeof archive.family.name!=='string'||!archive.family.name.trim()||archive.family.name.length>80
       ||typeof archive.family.id!=='string'||! /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(archive.family.id)
@@ -56,7 +58,7 @@ export function parseFamilyBackup(raw){
 
 export function familyBackupSummary(archive){
   return {name:archive.family.name,exportedAt:archive.exported_at,
-    counts:Object.fromEntries((archive.version===2?familyBackupCareTables:familyBackupTables).map(table=>[table,archive.tables[table].length])),
+    counts:Object.fromEntries(tablesForVersion(archive.version).map(table=>[table,archive.tables[table].length])),
     accessHistoryOnly:true};
 }
 

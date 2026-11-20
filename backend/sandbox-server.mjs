@@ -7,6 +7,7 @@ const origin = 'http://127.0.0.1:'+port;
 const compiled = process.env.ACOMPANA_SANDBOX_PREVIEW==='1';
 const sandbox = await createAccessSandbox(origin);
 const files = {
+  '/legacy-converter.mjs':'legacy-converter.mjs','/legacy-history.mjs':'legacy-history.mjs',
   '/today.mjs':'today.mjs','/care-coordination.mjs':'care-coordination.mjs',
   '/sw.js':'sw.js',
   '/history.mjs':'history.mjs','/durable-requests.mjs':'durable-requests.mjs',
@@ -32,7 +33,8 @@ const server = createServer(async (request,response) => {
     }
     if(path.startsWith('/api/') || path.startsWith('/auth/') || path.startsWith('/rest/')) {
       const chunks=[]; let size=0;
-      for await (const chunk of request) {size+=chunk.length;if(size>8192){response.writeHead(413).end();return;} chunks.push(chunk);}
+      const maxBody=path==='/rest/v1/rpc/restore_family_backup'?10*1024*1024:8192;
+      for await (const chunk of request) {size+=chunk.length;if(size>maxBody){response.writeHead(413).end();return;} chunks.push(chunk);}
       const result=await sandbox.handle(new Request(new URL(request.url,origin),{
         method:request.method,headers:request.headers,...(chunks.length&&{body:Buffer.concat(chunks)})}));
       response.writeHead(result.status,Object.fromEntries(result.headers)).end(await result.text());return;

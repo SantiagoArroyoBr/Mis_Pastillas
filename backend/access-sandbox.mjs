@@ -53,7 +53,7 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
   await query('select public.create_family($1)', ['Familia ajena'], {id:outsider.id,iat:initial.iat});
   const allowedTables = new Set(['families','family_members','patients','nurses','shifts','receipts',
     'receipt_cancellations','individual_payments','individual_allocations','appointments','appointment_details',
-    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events','care_tasks','care_notes']);
+    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events','care_tasks','care_notes','legacy_snapshots']);
   async function simulatedSupabase(input, options = {}) {
     const url = new URL(input), path = url.pathname, body = options.body ? JSON.parse(options.body) : {};
     const token = new Headers(options.headers).get('Authorization')?.replace(/^Bearer /,'');

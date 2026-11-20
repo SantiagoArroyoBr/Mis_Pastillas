@@ -369,6 +369,7 @@
         <section data-pilot-view="#finance" hidden>
         <div id="finance" hidden>
           <h2>Enfermería y pagos</h2>
+          <p id="finance-legacy-warning" class="pilot-settings-help" hidden>Esta familia conserva un historial anterior. El saldo de aquí corresponde sólo a jornadas y abonos del nuevo libro. <a href="#backup-review">Consultar registros anteriores</a>.</p>
           <p class="finance-intro">Organiza jornadas y abonos. Cada botón de montos controla únicamente su apartado.</p>
           <form id="add-nurse">
             <label>Nombre de enfermero/a <input name="name" required maxlength="80"></label>
@@ -457,12 +458,32 @@
             </div>
           </section>
           <h3>Revisar una copia de la PWA anterior</h3>
-          <p>El archivo se lee en este navegador. La revisión muestra conteos y no aplica cambios.</p>
+          <p>El archivo se revisa en este navegador. Puedes preparar una importación a una familia nueva; el original se conserva y no se reemplaza ninguna familia existente.</p>
           <label>Copia JSON de la PWA anterior <input id="backup-review-file" type="file" accept=".json,application/json"></label>
           <p id="backup-review-status" class="pilot-notice pilot-notice-inline" role="status" aria-atomic="true" data-kind="info"></p>
           <div id="backup-review-results" class="pilot-table-scroll" tabindex="0" role="region" aria-label="Conteos del respaldo" hidden>
             <table aria-label="Conteos del respaldo"><thead><tr><th scope="col">Datos</th><th scope="col">Cantidad</th></tr></thead><tbody id="backup-review-counts"></tbody></table>
           </div>
+          <div id="legacy-import-actions" hidden>
+            <label>Nombre de familia para la importación <input id="legacy-family-name" maxlength="80" value="Familia desde respaldo"></label>
+            <p>Los prepagos y turnos antiguos se conservan como historial separado: no se convierten en deudas ni abonos nuevos. El personal sin tarifas requiere configurarlas antes de registrar jornadas nuevas.</p>
+            <button id="prepare-legacy-import" type="button">Preparar importación y revisar diferencias</button>
+          </div>
+          <section id="legacy-history" hidden aria-labelledby="legacy-history-heading">
+            <h3 id="legacy-history-heading">Historial de la versión anterior</h3>
+            <label id="legacy-source-label" hidden>Copia anterior <select id="legacy-source"></select></label>
+            <p>Este historial conserva los registros originales. Los prepagos de cobertura y asignaciones anteriores no forman parte del nuevo saldo monetario. Las fechas futuras del respaldo deben revisarse antes de crear jornadas nuevas.</p>
+            <p id="legacy-counts"></p>
+            <button id="download-legacy-original" type="button">Descargar copia original conservada</button>
+            <h4>Prepagos de cobertura anteriores</h4>
+            <button id="legacy-amount-toggle" type="button" aria-controls="legacy-coverage" aria-pressed="false">Ver montos</button>
+            <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Prepagos anteriores"><table><thead><tr><th>Ficha</th><th>Fecha</th><th>Días registrados</th><th>Importe registrado</th></tr></thead><tbody id="legacy-coverage"></tbody></table></div>
+            <h4>Asignaciones anteriores</h4>
+            <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Asignaciones anteriores"><table><thead><tr><th>Fecha</th><th>Ficha</th><th>Enfermería</th><th>Modalidad</th></tr></thead><tbody id="legacy-assignments"></tbody></table></div>
+            <h4>Personal anterior</h4>
+            <div class="pilot-table-scroll" tabindex="0" role="region" aria-label="Personal anterior"><table><thead><tr><th>Ficha</th><th>Nombre</th></tr></thead><tbody id="legacy-staff"></tbody></table></div>
+            <button id="legacy-more" type="button" hidden>Cargar más registros anteriores</button>
+          </section>
         </section>
       </section>
     </section>

@@ -419,6 +419,7 @@
 .connected-pilot h2, .connected-pilot h3, .connected-pilot h4, .connected-pilot summary { overflow-wrap: anywhere; }
 .connected-pilot .pilot-table-scroll { min-inline-size: 0; overscroll-behavior-inline: contain; }
 .connected-pilot .pilot-table-scroll th, .connected-pilot .pilot-table-scroll td { overflow-wrap: normal; word-break: normal; }
+.connected-pilot #legacy-coverage td:nth-child(2), .connected-pilot #legacy-assignments td:first-child { white-space: nowrap; }
 .connected-pilot textarea { resize: vertical; }
 .connected-pilot main { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
 @media (max-width: 420px) {

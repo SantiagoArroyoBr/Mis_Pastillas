@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-20 — RC-003 · Pulido y migración ficticia desde main
+
+Sobre `8fbc692`, exportación descargada del botón original de main92c4034 y restauración en perfil aislado. Conversor local→v3, SQL18 preparado, original literal con SHA256 e historial privado de cobertura/personal/asignaciones sin inventar saldos. Revisión sin escrituras, confirmación en familia nueva, descargas idénticas y compatibilidad v1/v2/tickets. Actualización accesible también desde login; servidor aislado admite respaldos de hasta10MiB sólo en restauración.
+
+126/126 conectadas, 2/2 recorridos Edge, 102/102 PWA y build36. [Contrato, evidencia y límites](docs/RC-003-ensayo-migracion-main.md). Sin aplicación remota18, publicación, main, producción ni datos familiares reales. Cuatro propuestas ajenas preservadas. La copia Android real y autorización específica de esquema remoto siguen pendientes.
+
 ## 2026-11-20 — RC-002 · Preparación de main y respaldo familiar
 
 El propietario confirma Android instalado con main y solicita cerrar la versión. Se verificó el botón de exportación en main92c4034, la separación de aplicaciones y la falta de importación automática completa del JSON anterior. Se prepara la secuencia de respaldo privado, restauración aislada, conversión y conciliación, revisión familiar y corte separado. Main/producción y la instalación original no se modifican. [Preparación y pendientes reales](docs/RC-002-respaldo-android-y-preparacion-main.md). Archivo familiar aún no recibido; sin migración real ni datos personales en Git.
