@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-20 — RC-002 · Preparación de main y respaldo familiar
+
+El propietario confirma Android instalado con main y solicita cerrar la versión. Se verificó el botón de exportación en main92c4034, la separación de aplicaciones y la falta de importación automática completa del JSON anterior. Se prepara la secuencia de respaldo privado, restauración aislada, conversión y conciliación, revisión familiar y corte separado. Main/producción y la instalación original no se modifican. [Preparación y pendientes reales](docs/RC-002-respaldo-android-y-preparacion-main.md). Archivo familiar aún no recibido; sin migración real ni datos personales en Git.
+
 ## 2026-11-19 — Aplicación y publicación de FIX-ACCESO-001
 
 Con autorización específica, migración17 aplicada después de restaurar la copia privada26 tablas/20 filas. Modo de los dosRPC verificado y lecturas reales de equipo/respaldo aprobadas bajo rol autorizado con ROLLBACK. `a7f2475b7dc5d1f292f58dbb7b433c024b815f67` publicado en development; [CI44590074054](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44590074054) success completo y ambos Vercel success. Cliente corregido comprobado en Preview. Sin cambios de datos, permisos, contraseñas o main. [Evidencia](docs/FIX-ACCESO-001-tokens-transacciones.md).

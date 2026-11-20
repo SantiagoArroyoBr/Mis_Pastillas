@@ -2,6 +2,8 @@
 
 Fuente de prioridades y estados para la ejecución autónoma. La [conciliación de macrociclos](docs/AUTONOMIA-001-conciliacion.md) documenta la evidencia de partida. Las propuestas anteriores y las decisiones aprobadas se conservan en sus [documentos de origen](docs/AUTONOMIA-001-inventario.md).
 
+**RC-002 · P1 · En preparación:** cerrar versión y preparar main preservando Android instalado de la mamá del propietario, que usa main92c4034. Esperar exportación JSON privada; validar/restaurar y completar conversión local→nube antes del corte. Diagnóstico existente no es importador. Main, app original y producción sin tocar. [Secuencia y puertas](docs/RC-002-respaldo-android-y-preparacion-main.md).
+
 **FIX-ACCESO-001 · P1 · Cerrada:** refresh inválido tratado y migración17 aplicada con autorización específica tras copia/restauración de26 tablas/20 filas. RPC de equipo y respaldo reales verificados; sin cambio de permisos/datos. 112/112 conectadas, 102/102 PWA y1/1 recorrido; `a7f2475` publicado, CI44590074054 y Vercel success, Preview comprobada. Main intacta. [Diagnóstico y cierre](docs/FIX-ACCESO-001-tokens-transacciones.md).
 
 **COORD-CUIDADO-001 · Publicada:** development `358fb57`, alta segura de enfermería y catálogos paginados; Hoy, pendientes y bitácora; respaldo v2 compatible. Migraciones15/16 autorizadas y aplicadas tras restauración privada de23 tablas/19 filas. 109/109 conectadas, 102/102 PWA y1/1 recorrido ampliado; ensayo real con rollback, conteos/RLS correctos y acceso anónimo401. CI44583330668 y Vercel success; Preview comprobada. Main intacta. [Informe](docs/COORD-CUIDADO-001-hoy-pendientes-bitacora.md).
