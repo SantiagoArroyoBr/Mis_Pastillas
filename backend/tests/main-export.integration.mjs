@@ -107,6 +107,7 @@ test('main 92c4034 exports a real JSON download and restores that exact archive 
     if(browser&&browser.exitCode===null){if(process.platform==='win32')spawnSync('taskkill',['/PID',String(browser.pid),'/T','/F'],{stdio:'ignore'});else browser.kill('SIGKILL');}
     server.closeAllConnections();await new Promise(r=>server.close(r));
     if(!path.resolve(profile).startsWith(path.resolve(path.join(tmpdir(),'acompana-main-export-'))))throw Error('Ruta de limpieza inválida');
-    await rm(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});
+    // Edge y el antivirus pueden tardar en liberar el diccionario del perfil en Windows.
+    await rm(profile,{recursive:true,force:true,maxRetries:10,retryDelay:250});
   }
 });

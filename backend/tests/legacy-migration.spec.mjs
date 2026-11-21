@@ -100,6 +100,9 @@ test('real main export converts, restores and re-exports with exact source and h
   assert.equal(exported.tables.inventory_items.length,archive.tables.inventory_items.length);
   assert.equal(exported.tables.appointments.length,archive.tables.appointments.length);
   assert.deepEqual(exported.tables.shifts,[]);assert.deepEqual(exported.tables.receipts,[]);
+  assert.ok(exported.administration.recovery_history.every(entry=>entry!==null));
+  const recovered=await rpc(owner,'restore_family_backup($1,$2,$3)',[exported,'Segunda recuperación desde main',randomUUID()]);
+  assert.equal((await rpc(owner,'export_family_backup($1)',[recovered])).tables.legacy_snapshots[0].original_json,raw);
   const harmless=JSON.stringify({p:[{name:'password service_role_key',meds:[],note:'Un texto con "access_token": y "token_valid_after": dentro de una nota.'}],pay:{}});
   archive.tables.legacy_snapshots=[snapshot(harmless)];
   const notesFamily=await rpc(owner,'restore_family_backup($1,$2,$3)',[archive,'Notas inocuas',randomUUID()]);

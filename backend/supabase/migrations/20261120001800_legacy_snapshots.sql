@@ -55,6 +55,35 @@ alter function public.export_family_backup(uuid) set schema acompana_backup_v2;
 alter function public.restore_family_backup(jsonb,text,uuid) set schema acompana_backup_v2;
 revoke execute on function acompana_backup_v2.export_family_backup(uuid),acompana_backup_v2.restore_family_backup(jsonb,text,uuid) from public,anon,authenticated;
 
+-- Una copia convertida puede no tener recovery_history. JSON null no es SQL NULL:
+-- el agregado previo añadía un elemento null y la siguiente restauración fallaba.
+create or replace function acompana_private.export_family_backup(family uuid) returns jsonb
+language plpgsql volatile security definer set search_path='' as $$
+declare tables jsonb:='{}'; table_name text; info jsonb; administration jsonb;
+begin
+  perform acompana_private.require_member(family,true);
+  select jsonb_build_object('id',f.id,'name',f.name,'created_at',f.created_at) into strict info
+    from public.families f where f.id=family;
+  foreach table_name in array acompana_private.family_backup_tables() loop
+    tables:=tables||jsonb_build_object(table_name,acompana_private.family_backup_rows(table_name,family));
+  end loop;
+  select jsonb_build_object(
+    'accesses',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'display_name',t.display_name,
+      'expires_at',t.expires_at,'revoked_at',t.revoked_at,'revision',t.revision,'state',t.state,'created_at',t.created_at) order by t.id)
+      from public.temporary_accesses t where t.family_id=family),'[]'::jsonb),
+    'events',coalesce((select jsonb_agg(jsonb_build_object('access_id',e.access_id,'action',e.action,'happened_at',e.happened_at) order by e.id)
+      from public.temporary_access_events e where e.family_id=family),'[]'::jsonb),
+    'membership_states',coalesce((select jsonb_agg(jsonb_build_object('role',m.role,'revoked_at',m.revoked_at) order by m.role,m.revoked_at)
+      from public.family_members m where m.family_id=family),'[]'::jsonb),
+    'recovery_history',coalesce((select jsonb_agg(jsonb_build_object('source_family',r.archive->'family',
+       'restored_at',r.restored_at,'administration',(r.archive->'administration')-'recovery_history'))
+       ||coalesce(nullif(jsonb_agg(r.archive->'administration'->'recovery_history')->0,'null'::jsonb),'[]'::jsonb)
+       from acompana_private.family_restore_requests r where r.restored_family=family),'[]'::jsonb)) into administration;
+  return jsonb_build_object('format','acompana-family','version',1,'exported_at',now(),
+    'family',info,'tables',tables,'administration',administration);
+end $$;
+revoke execute on function acompana_private.export_family_backup(uuid) from public,anon,authenticated;
+
 create function public.export_family_backup(family uuid) returns jsonb
 language plpgsql volatile security definer set search_path='' as $$
 declare archive jsonb;

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-20 — RC-004 · Copia privada validada y preparación de Vercel
+
+Sobre `017fd0d`, validación local privada del archivo recibido, conversión, restauración SQL, reintento idempotente, conciliación de inventario a la misma hora, descarga literal y segunda restauración aprobados. El original permanece intacto; no se guardan datos, nombres, valores ni capturas familiares en Git o informes. El propietario indica que realizará personalmente la prueba en Vercel.
+
+Se reproduce con la fixture ficticia y corrige un fallo de reexportación: la ausencia de recovery_history generaba un elemento JSON null que impedía restaurar la copia posterior. Corrección incluida en SQL18, aún no aplicado previamente. Copia privada de la base real restaurada antes de aplicar18; conteos anteriores conservados, RLS, lectura propietaria y bloqueo de inserción directa comprobados. Tabla de históricos vacía: sin importación familiar remota. Pruebas y estado de publicación en [RC-004](docs/RC-004-preparacion-ensayo-vercel.md). Main y cuatro propuestas ajenas preservados.
+
 ## 2026-11-20 — RC-003 · Pulido y migración ficticia desde main
 
 Sobre `8fbc692`, exportación descargada del botón original de main92c4034 y restauración en perfil aislado. Conversor local→v3, SQL18 preparado, original literal con SHA256 e historial privado de cobertura/personal/asignaciones sin inventar saldos. Revisión sin escrituras, confirmación en familia nueva, descargas idénticas y compatibilidad v1/v2/tickets. Actualización accesible también desde login; servidor aislado admite respaldos de hasta10MiB sólo en restauración.

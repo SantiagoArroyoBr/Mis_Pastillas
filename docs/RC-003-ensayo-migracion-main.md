@@ -1,5 +1,7 @@
 # RC-003 · Pulido y ensayo de migración desde main
 
+Estado posterior: [RC-004](RC-004-preparacion-ensayo-vercel.md) registra la copia privada recibida, la corrección de segunda recuperación y la aplicación de SQL18. Los pendientes de este informe describen su cierre original.
+
 20/11/2026. Petición: pulir la versión actual y exportar un JSON ficticio desde main para comprobar y corregir la migración. Base de desarrollo `8fbc69205132149eb5c9052cbde4ad4f6faf9d32`; origen histórico `92c4034085e13bb38fd0a7ff2622c46ef797873d`. Trabajo local en development. Sin respaldo familiar real, aplicación remota de SQL18, push, main ni cambios de producción en este lote.
 
 ## Resultado y contrato

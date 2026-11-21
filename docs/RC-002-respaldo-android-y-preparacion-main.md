@@ -1,5 +1,7 @@
 # RC-002 · Respaldo Android y preparación de main
 
+Actualización posterior: [RC-004](RC-004-preparacion-ensayo-vercel.md). Copia familiar recibida y validada sólo en local; SQL18 aplicado tras copia/restauración privada. El propietario hará la importación real en Vercel. Los estados siguientes documentan la preparación inicial y el ensayo ficticio anterior.
+
 20/11/2026. El propietario pide cerrar la versión y preparar main, conservando la instalación Android de su mamá hasta migrarla. La familia utiliza la PWA instalada de main, no la candidata conectada. No cambiar main ni el origen que usa esa instalación antes de comprobar el respaldo y la transición.
 
 ## Estado confirmado
