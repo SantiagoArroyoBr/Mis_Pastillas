@@ -29,3 +29,8 @@ backend/*
 backend/icons/*
 !backend/icons/*.png
 !backend/icons/acompana.svg
+
+!backend/care-shifts.mjs
+!backend/patient-timeline.mjs
+!backend/backup-receipt.mjs
+!backend/care-clock.mjs

@@ -53,7 +53,7 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
   await query('select public.create_family($1)', ['Familia ajena'], {id:outsider.id,iat:initial.iat});
   const allowedTables = new Set(['families','family_members','patients','nurses','shifts','receipts',
     'receipt_cancellations','individual_payments','individual_allocations','appointments','appointment_details',
-    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events','care_tasks','care_notes','legacy_snapshots']);
+    'inventory_items','inventory_profiles','inventory_purchases','inventory_quotes','temporary_accesses','temporary_access_events','care_tasks','care_notes','care_shifts','paper_care_logs','paper_care_log_edits','legacy_snapshots']);
   async function simulatedSupabase(input, options = {}) {
     const url = new URL(input), path = url.pathname, body = options.body ? JSON.parse(options.body) : {};
     const token = new Headers(options.headers).get('Authorization')?.replace(/^Bearer /,'');
@@ -107,8 +107,8 @@ export async function createAccessSandbox(origin = 'http://127.0.0.1:4180') {
         const args = Object.keys(body).map((key,index) => '"'+key+'" => $'+(index+1)).join(',');
         const metadata=await db.query("select p.provolatile from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=$1",[name]);
         const readOnly=metadata.rows.length>0&&metadata.rows.every(row=>row.provolatile!=='v');
-        if(name==='list_care_members'){
-          const rows=await query('select * from public.list_care_members('+args+')',Object.values(body),identity,service,readOnly);
+        if(['list_care_members','list_shift_nurses'].includes(name)){
+          const rows=await query('select * from public."'+name+'"('+args+')',Object.values(body),identity,service,readOnly);
           return reply(200,rows);
         }
         const rows = await query('select public."'+name+'"('+args+') as result',Object.values(body),identity,service,readOnly);

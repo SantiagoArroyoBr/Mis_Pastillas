@@ -7,6 +7,10 @@ const origin = 'http://127.0.0.1:'+port;
 const compiled = process.env.ACOMPANA_SANDBOX_PREVIEW==='1';
 const sandbox = await createAccessSandbox(origin);
 const files = {
+  '/care-clock.mjs':'care-clock.mjs',
+  '/care-shifts.mjs':'care-shifts.mjs',
+  '/patient-timeline.mjs':'patient-timeline.mjs',
+  '/backup-receipt.mjs':'backup-receipt.mjs',
   '/legacy-converter.mjs':'legacy-converter.mjs','/legacy-history.mjs':'legacy-history.mjs',
   '/today.mjs':'today.mjs','/care-coordination.mjs':'care-coordination.mjs',
   '/sw.js':'sw.js',

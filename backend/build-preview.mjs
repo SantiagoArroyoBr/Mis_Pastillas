@@ -5,6 +5,10 @@ import { createHash } from 'node:crypto';
 // Lista cerrada: nunca publicar SQL, respaldos, .env, pruebas ni herramientas.
 const output = new URL('./supabase/.temp/preview/', import.meta.url);
 const files = {
+  'care-clock.mjs':'care-clock.mjs',
+  'care-shifts.mjs':'care-shifts.mjs',
+  'patient-timeline.mjs':'patient-timeline.mjs',
+  'backup-receipt.mjs':'backup-receipt.mjs',
   'index.html': 'index.html', 'pilot.mjs': 'pilot.mjs', 'finance.mjs': 'finance.mjs',
   'admin-access.mjs': 'admin-access.mjs',
   'today.mjs':'today.mjs','care-coordination.mjs':'care-coordination.mjs',

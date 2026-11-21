@@ -38,7 +38,7 @@ function snapshot(raw=' {"sel":0,"last":"","p":[{"name":"Ficha original","meds":
 
 test('format3 preserves a literal legacy snapshot through migration and recovery without inventing financial activity',async t=>{
   const {owner,other,caregiver,temporary,family,query,rpc}=await fixture(t);
-  const archive=await rpc(owner,'export_family_backup($1)',[family]);assert.equal(archive.version,3);
+  const archive=await rpc(owner,'export_family_backup($1)',[family]);assert.equal(archive.version,4);
   const source=snapshot();archive.tables.legacy_snapshots=[source];const request=randomUUID();
   const restored=await rpc(owner,'restore_family_backup($1,$2,$3)',[archive,'Migración ficticia',request]);
   assert.equal(await rpc(owner,'restore_family_backup($1,$2,$3)',[archive,'Migración ficticia',request]),restored);
@@ -57,7 +57,7 @@ test('format3 preserves a literal legacy snapshot through migration and recovery
   await assert.rejects(query(owner,'insert into public.legacy_snapshots(id,family_id,source_sha,source_commit,original_json,report,actor_id) values($1,$2,$3,$4,$5,$6,$7)',
     [randomUUID(),restored,source.source_sha,source.source_commit,source.original_json,source.report,owner]),{code:'42501'});
   await assert.rejects(rpc(temporary,'restore_family_backup($1,$2,$3)',[archive,'Prohibida',randomUUID()]),{code:'42501'});
-  const copied=await rpc(owner,'export_family_backup($1)',[restored]);assert.equal(copied.version,3);
+  const copied=await rpc(owner,'export_family_backup($1)',[restored]);assert.equal(copied.version,4);
   const stored=copied.tables.legacy_snapshots[0];assert.equal(stored.original_json,source.original_json);assert.ok(!('actor_id' in stored));
   const twice=await rpc(other,'restore_family_backup($1,$2,$3)',[copied,'Copia propia',randomUUID()]);
   assert.equal((await query(other,'select original_json from public.legacy_snapshots where family_id=$1',[twice]))[0].original_json,source.original_json);

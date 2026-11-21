@@ -14,6 +14,9 @@ import { createCareCoordination } from './care-coordination.mjs';
 import { createFamilyRecovery, familyBackupMaxBytes } from './family-backup.mjs';
 import { convertLegacyBackup } from './legacy-converter.mjs';
 import { createLegacyHistory } from './legacy-history.mjs';
+import { createCareShifts } from './care-shifts.mjs';
+import { createPatientTimeline } from './patient-timeline.mjs';
+import { readBackupReceipt, saveBackupReceipt } from './backup-receipt.mjs';
 
 // Remove authentication capabilities from the visible URL before rendering any view.
 let recoveryLink = consumeRecoveryLocation(location, history);
@@ -205,7 +208,17 @@ const finance = createFinance({ run, status, actionButton, renderTable, onChange
   getRequestScope:()=>[connections[credentials.elements.environment.value].url,userId] });
 const inventory = createInventory({ run, status, renderTable, onChange: calendar.reload });
 const adminAccess = createAdminAccess({ run, status, actionButton, renderTable, onChange: refreshFamily });
-const legacyHistory=createLegacyHistory({run,status,renderTable,onPresence:value=>{$('finance-legacy-warning').hidden=!value;}});
+const legacyHistory=createLegacyHistory({run,status,renderTable,onChange:refreshFamily,onPresence:value=>{$('finance-legacy-warning').hidden=!value;}});
+const careShifts=createCareShifts({run,status,renderTable,actionButton,onChange:refreshFamily,
+  getScope:()=>[connections[credentials.elements.environment.value].url,userId]});
+const patientTimeline=createPatientTimeline({run,renderTable});
+function backupScope(){return [connections[credentials.elements.environment.value].url,userId,families.value];}
+function familyChoiceKey(){return 'acompana-family-choice-v1:'+JSON.stringify([connections[credentials.elements.environment.value].url,userId]);}
+function updateBackupReceipt(){
+  let storage;try{storage=localStorage;}catch{}
+  const stamp=readBackupReceipt(storage,backupScope());
+  $('family-backup-last').textContent=stamp?'Última descarga solicitada desde este dispositivo: '+new Date(stamp).toLocaleString('es-MX')+'. Comprueba que conservas el archivo.':'No hay una descarga registrada desde este dispositivo para esta familia.';
+}
 const appointmentHistory = Object.fromEntries(appointmentLists.map(list=>[list,
   createHistoryControl($('appointments-'+list), 'citas '+list, run, async next=>{
     const counts=Object.fromEntries(appointmentLists.map(key=>[key,key===list?next:appointmentHistory[key].count]));
@@ -285,6 +298,9 @@ function openAppointment(row, family) {
 }
 
 function endSession() {
+  try{sessionStorage.removeItem(familyChoiceKey());}catch{}
+  $('current-family-label').textContent='';
+  careShifts.clear();patientTimeline.clear();$('family-backup-last').textContent='';
   legacyHistory.clear();
   care.clear();todaySummary.clear();
   clearFamilyRecovery();
@@ -422,6 +438,7 @@ async function openCalendarRecord(event) {
     location.hash = hash;
     showPilotView();
   }
+  if(event.kind==='care-shift'){navigate('#care-coordination');$('care-shift-heading').scrollIntoView({block:'start'});return;}
   if (event.kind !== 'appointment') {
     await inventory.openItem(event.id, () => navigate('#inventory'));
     return;
@@ -505,6 +522,7 @@ async function loadFamilyView() {
   $('accept-invite').hidden = Boolean(client?.isTemporary);
   await adminAccess.load(client, family, owner && !readOnly);
   if (renderedFamily !== family) {
+    careShifts.clear();patientTimeline.clear();legacyHistory.clear();
     care.scope(family);todaySummary.clear();
     clearFamilyRecovery();
     $('members').replaceChildren();
@@ -515,10 +533,13 @@ async function loadFamilyView() {
     renderedFamily = family;
   }
   if (!family) {
+    $('current-family-label').textContent='Sin familia seleccionada.';
     $('patients').replaceChildren();
     $('members').replaceChildren();
     return;
   }
+  $('current-family-label').textContent='Familia activa: '+(families.selectedOptions[0]?.textContent??'');
+  try{sessionStorage.setItem(familyChoiceKey(),family);}catch{}
   const filter = { family_id: 'eq.' + family };
   const today = localDay.format(new Date());
   const [patients, members, appointments, careMembers] = await Promise.all([
@@ -529,6 +550,7 @@ async function loadFamilyView() {
     client.readOnly ? null : client.rpc('list_care_members',{family})
   ]);
   const active = patients.filter(patient => !patient.archived_at);
+  updateBackupReceipt();
   $('pilot-active-count').textContent = String(active.length);
   $('pilot-archived-count').textContent = String(patients.length - active.length);
   const archive = (patient, archived) => async () => {
@@ -578,7 +600,8 @@ async function loadFamilyView() {
   await Promise.all([owner && !client.readOnly ? finance.load(client, family, active) : undefined,
     inventory.load(client, family, patients), calendar.load(client, family, patients, owner),
     care.load(client,family,patients,(careMembers??members).map(member=>({...member,label:member.user_id===userId?'Mi cuenta':(member.label??(member.role==='owner'?'Administrador':'Cuidador'))+' · '+member.user_id.slice(0,8)}))),
-    todaySummary.load(client,family,owner),legacyHistory.load(client,family,owner)]);
+    todaySummary.load(client,family,owner),legacyHistory.load(client,family,owner,patients),
+    careShifts.load(client,family,patients,undefined,(careMembers??members)),patientTimeline.load(client,family,patients)]);
 }
 
 function renderAppointments(appointments, family, today, counts={}) {
@@ -621,6 +644,7 @@ function renderAppointments(appointments, family, today, counts={}) {
 }
 
 async function refreshFamilies(preferred = families.value) {
+  if(!preferred)try{preferred=sessionStorage.getItem(familyChoiceKey())??'';}catch{}
   const [available, roles] = await Promise.all([
     readCatalog(client,'families', { select: 'id,name', order: 'name.asc,id.asc' }),
     readCatalog(client,'family_members', { user_id: 'eq.' + userId, revoked_at: 'is.null', select: 'family_id,role',order:'family_id.asc' },{key:['family_id']})
@@ -887,6 +911,8 @@ $('export-family-backup').addEventListener('click',run(async()=>{
   const url=URL.createObjectURL(new Blob([result.raw],{type:'application/json'}));
   try{const link=document.createElement('a');link.href=url;link.download=result.filename;document.body.append(link);link.click();link.remove();}
   finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  let storage;try{storage=localStorage;}catch{}
+  saveBackupReceipt(storage,backupScope());updateBackupReceipt();
   status('Copia descargada. Guárdala en un lugar privado.');
 }));
 $('family-backup-file').addEventListener('change',async()=>{
@@ -903,7 +929,7 @@ function showFamilyBackupReview(raw,converted=false){
   const summary=recovery.review(raw),legacy=Boolean(summary.counts.legacy_snapshots);
   $('family-backup-review-status').textContent='Copia de '+summary.name+'. Revisa los conteos antes de crear la familia recuperada.'
     +(legacy?' Conserva el archivo original y el historial anterior separado: los prepagos y asignaciones sin costo no se suman al nuevo saldo; el personal sin tarifa se consulta en ese historial.':'');
-  const labels={patients:'Fichas',nurses:'Personal con tarifas',shifts:'Jornadas con costo',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones',care_tasks:'Pendientes',care_notes:'Notas de bitácora',legacy_snapshots:'Copias originales con historial anterior'};
+  const labels={patients:'Fichas',nurses:'Personal',shifts:'Jornadas con costo',receipts:'Abonos generales',receipt_cancellations:'Cancelaciones',individual_payments:'Abonos individuales',individual_allocations:'Asignaciones de abonos',appointments:'Citas',appointment_edits:'Detalles de citas',inventory_items:'Artículos',inventory_profiles:'Pautas y nombres',inventory_purchases:'Compras',inventory_quotes:'Cotizaciones',care_tasks:'Pendientes',care_notes:'Notas de bitácora',legacy_snapshots:'Copias originales con historial anterior',care_shifts:'Turnos con horario',paper_care_logs:'Control de hojas impresas',paper_care_log_edits:'Correcciones de hojas'};
   renderTable($('family-backup-counts'),Object.entries(summary.counts).map(([key,value])=>[labels[key]??key,String(value)]),'Sin registros.');
   $('restore-family-backup').reset();$('restore-family-backup').elements.name.value=(summary.name+(converted?'':' · recuperada')).slice(0,80);
   $('family-backup-review').hidden=false;

@@ -1,5 +1,6 @@
 import { projectStock } from './inventory.mjs';
 import { readCatalog } from './history.mjs';
+import {careClock} from './care-clock.mjs';
 
 const $ = id => document.getElementById(id);
 const monthFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
@@ -9,6 +10,7 @@ const dateKey = new Intl.DateTimeFormat('sv-SE');
 const categories = {
   appointment: ['C', 'Citas'],
   shift: ['T', 'Turnos'],
+  'care-shift':['H','Turnos con horario'],
   stock: ['R', 'Reposición estimada'],
   depletion: ['A', 'Agotamiento estimado']
 };
@@ -32,7 +34,7 @@ export async function loadCalendarRecords(client, family, patient, month, owner)
   const from = dateKey.format(first), until = dateKey.format(next);
   const range = column => '(' + column + '.gte.' + from + ',' + column + '.lt.' + until + ')';
   const filter = { family_id: 'eq.' + family, ...(patient && { patient_id: 'eq.' + patient }) };
-  const [appointments, shifts, inventory] = await Promise.all([
+  const [appointments, shifts, inventory, careShifts] = await Promise.all([
     readRows(client, 'appointment_details', { ...filter, and: range('appointment_day'),
       select: 'id,appointment_day,appointment_time,patient_name,location,notes,doctor',
       order: 'appointment_day.asc,appointment_time.asc.nullslast,id.asc' }),
@@ -40,9 +42,11 @@ export async function loadCalendarRecords(client, family, patient, month, owner)
       select: 'id,service_day,modality,patients(name),nurses(name)', order: 'service_day.asc,id.asc' }) : [],
     readRows(client, 'inventory_items', { ...filter, 'patients.archived_at': 'is.null',
       select: 'id,kind,name,base_quantity,base_at,consumptions,patients!inner(name),inventory_profiles(name,consumptions)',
-      order: 'id.asc' })
+      order: 'id.asc' }),
+    readRows(client,'care_shifts',{...filter,and:'(start_local.lt.'+until+'T00:00:00,end_local.gte.'+from+'T00:00:00)',
+      select:'id,patient_id,nurse_id,start_local,end_local,care_zone,closed_at,patients(name)',order:'start_local.asc,id.asc'})
   ]);
-  return { appointments, shifts, inventory, from, until };
+  return { appointments, shifts, inventory, careShifts, from, until };
 }
 
 export function buildCalendarEvents(records, domain, now) {
@@ -61,6 +65,15 @@ export function buildCalendarEvents(records, domain, now) {
     const type = row.modality === 'half' ? 'Media jornada' : 'Jornada completa';
     add(row.service_day, { kind: 'shift', name: row.nurses.name,
       details: [row.patients.name, type, row.service_day > today ? 'Programada' : 'Registrada'].join(' · ') });
+  }
+  for(const row of records.careShifts??[]){
+    const end=String(row.end_local).slice(0,16).replace(' ','T');
+    const localNow=careClock(now,row.care_zone);
+    const state=row.closed_at?'Cerrado':end<=localNow?'Horario terminado · cierre pendiente':'Previsto · atención por confirmar';
+    add(String(row.start_local).slice(0,10),{kind:'care-shift',id:row.id,name:row.patients?.name??'Turno de cuidado',
+      details:[String(row.start_local).slice(0,16).replace('T',' '),'→',String(row.end_local).slice(0,16).replace('T',' '),row.care_zone,state].filter(Boolean).join(' ')});
+    if(!row.closed_at&&String(row.end_local).slice(0,10)!==String(row.start_local).slice(0,10))add(String(row.end_local).slice(0,10),{
+      kind:'care-shift',id:row.id,name:row.patients?.name??'Turno de cuidado',details:'Término '+String(row.end_local).slice(11,16)+' · '+state});
   }
   if (records.until <= today) return byDay;
   for (const row of records.inventory) {
@@ -130,7 +143,7 @@ export function createCalendar(run, openRecord) {
         if (event.id) {
           const button = document.createElement('button');
           button.type = 'button';
-          button.textContent = kind === 'appointment' ? 'Abrir cita' : 'Abrir artículo';
+          button.textContent = kind === 'appointment' ? 'Abrir cita' : kind==='care-shift'?'Ver turno de cuidado':'Abrir artículo';
           button.setAttribute('aria-label', button.textContent + ' · ' + event.name);
           button.addEventListener('click', run(() => openRecord(event)));
           entry.append(button);

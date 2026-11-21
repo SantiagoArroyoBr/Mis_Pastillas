@@ -21,14 +21,14 @@ function fixture(){return {sel:0,last:'',p:[{name:'Alex ficticio',meds:[{name:'A
 
 test('converts distinct patient indices and preserves the literal original with a verified digest',async()=>{
   const raw=' '+JSON.stringify(fixture())+'\n',result=await convertLegacyBackup(raw,options),{archive,report}=result;
-  assert.equal(archive.version,3);assert.equal(archive.tables.patients.length,2);
+  assert.equal(archive.version,4);assert.equal(archive.tables.patients.length,2);
   assert.notEqual(archive.tables.patients[0].id,archive.tables.patients[1].id);
   assert.equal(archive.tables.appointments[0].patient_id,archive.tables.patients[1].id);
   assert.equal(archive.tables.appointments[1].legacy_day,'2026-02-30');
   const snapshot=archive.tables.legacy_snapshots[0];assert.equal(snapshot.original_json,raw);
   assert.equal(snapshot.source_sha,createHash('sha256').update(raw).digest('hex'));
   assert.equal(snapshot.source_commit,legacySourceCommit);assert.deepEqual(snapshot.report,report);
-  assert.equal(parseFamilyBackup(JSON.stringify(archive)).version,3);
+  assert.equal(parseFamilyBackup(JSON.stringify(archive)).version,4);
   const again=await convertLegacyBackup(raw,{...options,now:'2026-11-21T12:00:00Z'});
   assert.deepEqual(again.archive.tables.patients.map(p=>p.id),archive.tables.patients.map(p=>p.id));
 });
@@ -45,7 +45,9 @@ test('preserves inventory bases and independent consumption rules without adding
 
 test('keeps main coverage and assignments historical without manufacturing rates or modern balances',async()=>{
   const {archive,report}=await convertLegacyBackup(JSON.stringify(fixture()),options);
-  for(const table of ['nurses','shifts','receipts','individual_payments','individual_allocations'])assert.deepEqual(archive.tables[table],[]);
+  for(const table of ['shifts','receipts','individual_payments','individual_allocations','care_shifts','paper_care_logs','paper_care_log_edits'])assert.deepEqual(archive.tables[table],[]);
+  assert.equal(archive.tables.nurses.length,1);assert.equal(archive.tables.nurses[0].full_cents,null);assert.equal(archive.tables.nurses[0].half_cents,null);
+  assert.equal(archive.tables.nurses[0].patient_id,archive.tables.patients[0].id);
   assert.equal(report.source.nurses,1);assert.equal(report.source.assignments,1);assert.equal(report.source.coveragePayments,1);
   assert.ok(report.warnings.includes('legacy_finances_preserved_without_invented_modern_balance'));
 });
@@ -82,7 +84,9 @@ test('accepts the backup exported by the actual main UI and retains every litera
   const {archive,report}=await convertLegacyBackup(raw,options);
   assert.equal(report.source.patients,2);assert.equal(report.source.inventory,3);assert.equal(report.source.priceReferences,3);
   assert.equal(report.source.appointments,2);assert.equal(report.source.coveragePayments,3);assert.equal(report.source.assignments,5);
+  assert.equal(archive.tables.nurses.length,3);assert.equal(new Set(archive.tables.nurses.map(n=>n.id)).size,3);
+  assert.ok(archive.tables.nurses.every(n=>n.full_cents===null&&n.half_cents===null&&n.patient_id===archive.tables.patients[n.legacy_patient_index].id));
   assert.equal(archive.tables.inventory_items.reduce((n,item)=>n+item.consumptions.length,0),4);
   assert.equal(archive.tables.legacy_snapshots[0].original_json,raw);
-  assert.equal(parseFamilyBackup(JSON.stringify(archive)).version,3);
+  assert.equal(parseFamilyBackup(JSON.stringify(archive)).version,4);
 });

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 2026-11-21 — INTEGRA-001 · Datos en sus apartados y control de cuidado
+
+Sobre `4362e3d`, lote local aprobado de integración histórica, tarifas revisadas, programación de turnos y control de hojas impresas. Nuevas conversiones integran personal por índices; familias ya importadas disponen de confirmación por fila. Cobertura y asignaciones se consultan en Enfermería/Pagos. Respaldo conserva original y revisión. Horarios con zona explícita; fin sólo anuncia cierre pendiente, sin acreditar atención ni afectar dinero. Hojas distinguen quién llenó y quién registró; correcciones auditadas. Historial por ficha y constancia de descarga solicitada por dispositivo.
+
+147/147 conectadas,102/102 PWA y recorrido Edge ampliado, con restauración v4 compatible1–3. SQL19/20 preparados sólo localmente. Revisión defensiva corrigió coherencia cierre/hoja al restaurar, FK opcional desconocida y diferencias entre zonas horarias. [Informe y límites](docs/INTEGRA-001-historicos-turnos-bitacoras.md). Main, Supabase remoto18, Vercel y cuatro propuestas ajenas preservados; aplicación/publicación requieren autorización específica.
+
 ## 2026-11-20 — RC-004 · Copia privada validada y preparación de Vercel
 
 Sobre `017fd0d`, validación local privada del archivo recibido, conversión, restauración SQL, reintento idempotente, conciliación de inventario a la misma hora, descarga literal y segunda restauración aprobados. El original permanece intacto; no se guardan datos, nombres, valores ni capturas familiares en Git o informes. El propietario indica que realizará personalmente la prueba en Vercel.

@@ -3,7 +3,7 @@ export const legacySourceCommit='92c4034085e13bb38fd0a7ff2622c46ef797873d';
 const maxBytes=10*1024*1024;
 const tables=['patients','nurses','shifts','receipts','receipt_cancellations','individual_payments',
   'individual_allocations','appointments','appointment_edits','inventory_items','inventory_profiles',
-  'inventory_purchases','inventory_quotes','care_tasks','care_notes','legacy_snapshots'];
+  'inventory_purchases','inventory_quotes','care_tasks','care_notes','legacy_snapshots','care_shifts','paper_care_logs','paper_care_log_edits'];
 const encode=value=>new TextEncoder().encode(value);
 const clone=value=>JSON.parse(JSON.stringify(value));
 const fail=message=>{throw new Error(message);};
@@ -67,7 +67,7 @@ export async function convertLegacyBackup(raw,{compatibility=globalThis.window?.
   const stamp=new Date(now);if(!Number.isFinite(stamp.getTime()))fail('La fecha de conversión no es válida.');
   const at=stamp.toISOString(),hash=await digest(raw),id=path=>sourceId(hash,path);
   text(familyName,80,'el nombre de familia');
-  const archive={format:'acompana-family',version:3,exported_at:at,
+  const archive={format:'acompana-family',version:4,exported_at:at,
     family:{id:await id('family'),name:familyName,created_at:at},tables:Object.fromEntries(tables.map(table=>[table,[]])),
     administration:{accesses:[],events:[],membership_states:[]}};
   const report={version:1,source_commit:legacySourceCommit,source_sha:hash,
@@ -79,6 +79,11 @@ export async function convertLegacyBackup(raw,{compatibility=globalThis.window?.
     const patient=state.p[i],patientId=await id('patient/'+i);patientIds.push(patientId);
     archive.tables.patients.push({id:patientId,name:text(patient.name,80,'una ficha'),revision:1,archived_at:patient.archived?at:null});
     report.source.nurses+=(state.pay.nurses[i]??[]).length;
+    for(const [staffIndex,person]of (state.pay.nurses[i]??[]).entries()){
+      archive.tables.nurses.push({id:await id('patient/'+i+'/nurse/'+staffIndex),name:text(person.n,80,'un registro de personal'),
+        full_cents:null,half_cents:null,revision:1,rates_valid_from:null,patient_id:patientId,
+        legacy_source_sha:hash,legacy_patient_index:i,legacy_staff_index:staffIndex,legacy_patient_name:patient.name});
+    }
     report.source.coveragePayments+=(state.pay.cfg[i]?.pays??[]).length;
     for(let j=0;j<patient.meds.length;j++){
       const item=patient.meds[j],itemId=await id('patient/'+i+'/item/'+j);
@@ -108,6 +113,7 @@ export async function convertLegacyBackup(raw,{compatibility=globalThis.window?.
   report.source.assignments=Object.values(state.pay.v).reduce((sum,byPatient)=>sum+Object.values(byPatient).reduce((n,rows)=>n+rows.length,0),0);
   report.migrated.patients=archive.tables.patients.length;report.migrated.inventory=archive.tables.inventory_items.length;
   report.migrated.priceReferences=archive.tables.inventory_quotes.length;report.migrated.appointments=archive.tables.appointments.length;
+  report.migrated.nurses=archive.tables.nurses.length;
   if(report.source.priceReferences)report.warnings.push('price_references_do_not_add_stock');
   if(report.preserved.unmappedPriceReferences)report.warnings.push('invalid_price_dates_preserved_in_original');
   if(report.source.nurses)report.warnings.push('legacy_nurses_without_verified_rates_preserved');

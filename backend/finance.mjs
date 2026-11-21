@@ -114,7 +114,28 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
   const individualPages = createHistoryControl(individualHistory, 'abonos individuales', run,
     next => load(client, family, patients, { individual: next }));
   const pending = new Map();
-  let family, client, patients, balance, selected, timer;
+  let family, client, patients, balance, selected, timer,nurseRows=[],rateRevision;
+  const rateForm=$('configure-nurse-rates');
+  const rateInput=cents=>cents==null?'':(BigInt(cents)/100n).toString()+'.'+(BigInt(cents)%100n).toString().padStart(2,'0');
+  function closeRates(){rateForm.hidden=true;rateForm.reset();rateRevision=undefined;}
+  $('cancel-configure-rates').addEventListener('click',closeRates);
+  rateForm.elements.nurse.addEventListener('change',()=>{
+    const nurse=nurseRows.find(n=>n.id===rateForm.elements.nurse.value);
+    rateRevision=nurse?.revision;
+    rateForm.elements.full.value=rateInput(nurse?.full_cents);rateForm.elements.half.value=rateInput(nurse?.half_cents);
+    rateForm.elements.from.value=nurse?.rates_valid_from??dateFormat.format(new Date());
+  });
+  rateForm.addEventListener('submit',run(async()=>{
+    const contextClient=client,contextFamily=family;
+    const full=parseCents(rateForm.elements.full.value,true),half=parseCents(rateForm.elements.half.value,true);
+    if(full===null&&half===null)throw Error('Confirma al menos una tarifa.');
+    await contextClient.rpc('configure_nurse_rates',{family:contextFamily,nurse:rateForm.elements.nurse.value,
+      expected_revision:rateRevision,full_rate:full,half_rate:half,valid_from:rateForm.elements.from.value});
+    if(contextClient!==client||contextFamily!==family)return;
+    closeRates();
+    try{await load(client,family,patients);await onChange();status('Tarifas guardadas. Las jornadas anteriores mantienen su costo.');}
+    catch{status('Tarifas guardadas. Actualiza la vista; no repitas el guardado.','warning');}
+  }));
 
   function hideAmounts() {
     clearTimeout(timer);
@@ -135,6 +156,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
   function scope(nextFamily) {
     if (family === nextFamily) return;
     family = nextFamily;
+    nurseRows=[];closeRates();
     panel.hidden = true;
     balance = undefined;
     pending.clear();
@@ -173,7 +195,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     const counts = { receipts: requested.receipts ?? receiptPages.count,
       shifts: requested.shifts ?? shiftPages.count, individual: requested.individual ?? individualPages.count };
     const [nurses, receiptPage, totals, shiftPage, individualPage] = await Promise.all([
-      readCatalog(client,'nurses', { ...filter, select: 'id,name,full_cents,half_cents', order: 'name.asc,id.asc' }),
+      readCatalog(client,'nurses', { ...filter, select: 'id,name,full_cents,half_cents,revision,rates_valid_from,patient_id,legacy_patient_name', order: 'name.asc,id.asc' }),
       readHistoryWindow(client, 'receipts', { ...filter, select: 'id,paid_on,amount_cents,concept', order: 'paid_on.desc,id.desc' }, counts.receipts),
       client.rpc('financial_balance', { family, as_of: today }),
       readHistoryWindow(client, 'shifts', {
@@ -193,17 +215,27 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
     if (family !== nextFamily || client !== nextClient) return;
     const cancelled = new Map(cancellations.map(row => [row.receipt_id, row.cancelled_on]));
     balance = totals[0];
+    nurseRows=nurses;
     hideAmounts();
     options(shift.elements.patient, patients);
-    options(shift.elements.nurse, nurses);
-    options(individual.elements.nurse, nurses);
-    shift.querySelector('button').disabled = !patients.length || !nurses.length;
+    const nurseOptions=nurses.map(n=>({...n,name:n.name+(n.legacy_patient_name?' · '+n.legacy_patient_name:'')+' · '+n.id.slice(0,8)}));
+    const rated=nurseOptions.filter(n=>n.full_cents!==null||n.half_cents!==null);
+    options(shift.elements.nurse, rated);
+    options(individual.elements.nurse, nurseOptions);
+    shift.querySelector('button').disabled = !patients.length || !rated.length;
     individual.querySelector('button').disabled = !nurses.length;
     for (const form of [shift, receipt, individual]) form.elements.day.value ||= today;
-    renderTable(rates, nurses.map(row => [
-      row.name, row.full_cents === null ? 'Sin tarifa' : historyAmount(row.full_cents),
-      row.half_cents === null ? 'Sin tarifa' : historyAmount(row.half_cents)
-    ]), 'Aún no hay tarifas registradas.');
+    options(rateForm.elements.nurse,nurseOptions);
+    renderTable(rates, nurses.map(row => {
+      const actions=document.createElement('div');actions.className='pilot-row-actions';
+      const label=document.createElement('span');label.textContent=row.rates_valid_from?'Desde '+row.rates_valid_from:'Tarifa sin fecha de cambio';actions.append(label);
+      actions.append(actionButton(row.name,'Configurar tarifas',()=>{
+        rateForm.elements.nurse.value=row.id;rateRevision=row.revision;rateForm.elements.full.value=rateInput(row.full_cents);rateForm.elements.half.value=rateInput(row.half_cents);
+        rateForm.elements.from.value=today;rateForm.elements.from.max=today;rateForm.hidden=false;rateForm.scrollIntoView({block:'start'});rateForm.elements.full.focus();
+      }));
+      return [row.name+(row.patient_id?' · '+(patients.find(p=>p.id===row.patient_id)?.name??row.legacy_patient_name??'Ficha archivada'):''),
+        row.full_cents===null?'Tarifa pendiente':historyAmount(row.full_cents),row.half_cents===null?'Tarifa pendiente':historyAmount(row.half_cents),actions];
+    }), 'Aún no hay personal registrado.');
     $('rates-toggle').disabled = !nurses.length;
     hideRates();
     renderTable(individualHistory, individualPayments.map(row => [
@@ -264,6 +296,7 @@ export function createFinance({ run, status, actionButton, renderTable, onChange
           if (rpc === 'record_individual_payment' && error.code === 'PT422') {
             throw new Error('El abono supera el monto pendiente de este enfermero hasta la fecha indicada.');
           }
+          if(rpc==='record_shift'&&error.code==='PT422')throw Error('Revisa que la ficha siga activa y que el personal tenga tarifa confirmada para esa modalidad y fecha.');
           throw error;
         }
         pending.delete(key);

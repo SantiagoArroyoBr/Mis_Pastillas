@@ -1,7 +1,7 @@
 const prefix = 'acompana-offline-v1:';
 const allowedTables = new Set(['families', 'family_members', 'patients', 'nurses', 'shifts', 'receipts',
   'receipt_cancellations', 'individual_payments', 'individual_allocations', 'appointment_details',
-  'appointments', 'inventory_items', 'inventory_profiles', 'inventory_purchases', 'inventory_quotes','care_tasks','care_notes']);
+  'appointments', 'inventory_items', 'inventory_profiles', 'inventory_purchases', 'inventory_quotes','care_tasks','care_notes','care_shifts','paper_care_logs','paper_care_log_edits']);
 
 export function cacheableSelect(path) {
   const match = /^\/rest\/v1\/([a-z_]+)\?/.exec(path);
