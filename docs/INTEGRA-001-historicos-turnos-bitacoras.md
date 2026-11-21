@@ -51,4 +51,14 @@ La configuración conserva una tarifa disponible por modalidad y fecha inicial; 
 
 Los turnos nuevos se programan y cierran, sin repetición recurrente ni edición/cancelación de programación en este lote. Una corrección de hoja no cambia ficha/fecha/turno; conserva el registro anterior y su autor. El historial por ficha es una vista de consulta paginada, no un expediente clínico ni un reemplazo del papel.
 
-Pendiente autorización específica para exportar/restaurar una copia privada reciente del proyecto, aplicar19/20 conjuntamente y publicar development; después verificar Preview real. Mantener main y la instalación familiar original hasta la revisión del propietario. No se transmite el respaldo de su mamá para este trabajo.
+El propietario aprueba la migración. Se mantienen main y la instalación familiar original hasta su revisión. No se vuelve a transmitir el archivo de su mamá para este trabajo.
+
+## Aplicación autorizada
+
+21/11/2026. Lote local **`3c3390c3a0782c7db78d138dc05e63eae91e98bd`**. Exportación privada reciente de27 tablas operativas/administrativas con referencias Auth mínimas; restauración desechable sobre18 y aplicación de19/20 aprobadas. No es una copia portable de contraseñas ni del proveedor Auth completo. Copia y resultado excluidos de Git, sin valores familiares en este informe.
+
+SQL19/20 aplicados en una única transacción con recarga de esquema PostgREST. La comparación de conteos y huellas MD5 de los valores previos confirma igualdad; en nurses se excluyen sólo las siete columnas añadidas por19. No se modifican campos históricos. RLS activa, inserciones directas denegadas y list_shift_nurses VOLATILE comprobados.
+
+El ensayo bajo identidad propietaria autenticada crea únicamente registros ficticios dentro de una transacción: familia, ficha y personal; turno nocturno con zona, cierre y control de hoja; corrección con auditoría; exportación/recuperación v4; integración repetida del mismo personal de fuente sin duplicarlo; configuración de tarifas y catálogo seguro. Resultado live_workflow_ok=true, terminado con ROLLBACK. No quedan turnos, hojas ni tickets de prueba. No se usan contraseñas ni se envían correos.
+
+Captura de integridad en `backend/supabase/.temp/integra-cloud-applied.jpg`, ignorada por Git. Verificación de publicación y Preview pendiente de cierre.

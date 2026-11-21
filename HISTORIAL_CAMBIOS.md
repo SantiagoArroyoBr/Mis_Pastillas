@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## 2026-11-21 — Aplicación autorizada de INTEGRA-001
+
+El propietario aprueba la migración del lote3c3390c. Copia privada reciente de27 tablas restaurada en PostgreSQL desechable y actualización a20 comprobada. SQL19/20 aplicados conjuntamente; conteos y huellas de los valores previos iguales, normalizando únicamente columnas nuevas de nurses. RLS activa e inserción directa denegada. Programación/cierre de turno, corrección auditada de hoja, recuperación v4, integración de personal y tarifas comprobados con datos ficticios en transacción terminada con ROLLBACK, sin filas de ensayo persistidas. Publicación y Preview se registran por separado en [informe](docs/INTEGRA-001-historicos-turnos-bitacoras.md). Main y cuatro propuestas ajenas preservados.
+
 ## 2026-11-21 — INTEGRA-001 · Datos en sus apartados y control de cuidado
 
 Sobre `4362e3d`, lote local aprobado de integración histórica, tarifas revisadas, programación de turnos y control de hojas impresas. Nuevas conversiones integran personal por índices; familias ya importadas disponen de confirmación por fila. Cobertura y asignaciones se consultan en Enfermería/Pagos. Respaldo conserva original y revisión. Horarios con zona explícita; fin sólo anuncia cierre pendiente, sin acreditar atención ni afectar dinero. Hojas distinguen quién llenó y quién registró; correcciones auditadas. Historial por ficha y constancia de descarga solicitada por dispositivo.
