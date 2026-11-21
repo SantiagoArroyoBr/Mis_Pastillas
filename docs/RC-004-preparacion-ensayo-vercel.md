@@ -47,4 +47,8 @@ La importación enviará el respaldo a Supabase dentro de la familia nueva de la
 
 ## Publicación
 
-Pendiente de registrar SHA, CI y comprobación de Preview al terminar el lote. El archivo familiar no forma parte de la publicación.
+Publicado en development: **`5e231bb8cccb72bcfd04e11105ffd963074767ab`**. [CI44851186020](https://github.com/SantiagoArroyoBr/Mis_Pastillas/actions/runs/44851186020) **success** en todas sus etapas. Ambos estados Vercel **success**. La ejecución anterior44850791724 detectó la aserción prematura descrita arriba; no se ocultó ni se dio por aprobada.
+
+Preview sirve el importador y el historial con HTTP200 y sin barrera de acceso de Vercel. SQL, pruebas y ruta de la copia privada devuelven404. La consulta anónima del historial en Supabase devuelve401. En el navegador integrado se restauró la sesión existente y se abrió Respaldo, sin seleccionar ni transmitir el archivo familiar. Captura de la pantalla preparada sin datos familiares en `backend/supabase/.temp/legacy-vercel-ready.jpg`, excluida de Git.
+
+La evidencia final queda en un commit documental local posterior al SHA publicado. Main y producción original sin cambios; la importación y revisión familiar en Vercel quedan a cargo del propietario.
