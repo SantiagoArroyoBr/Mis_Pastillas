@@ -16,6 +16,8 @@ La prueba de regresión usa exclusivamente la fixture ficticia exportada de main
 
 Se amplía además la espera al limpiar el perfil temporal de Edge: Windows podía mantener bloqueado su diccionario después de terminar el recorrido, provocando EBUSY durante la limpieza. La repetición quedó aprobada.
 
+La primera ejecución de CI detectó una aserción prematura al regresar de la descarga: el foco podía iniciar la actualización automática y ocultar temporalmente el aviso financiero mientras cargaba. La prueba espera ahora tanto la carga terminada como el aviso visible, sin eliminar ninguna comprobación ni agregar pausas fijas.
+
 ## Preparación real
 
 Se guarda una exportación privada reciente de las tablas operativas/administrativas con las referencias Auth mínimas necesarias para ensayar relaciones. No es una copia portable de contraseñas ni del proveedor Auth completo. Su restauración y aplicación incremental se comprueban en PostgreSQL desechable, con datos anteriores conservados.

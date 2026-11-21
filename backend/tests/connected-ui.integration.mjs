@@ -187,7 +187,7 @@ test('connected build restores sessions, pages history, restores a private backu
   const migrationShot=await cdp.send('Page.captureScreenshot',{format:'jpeg',quality:80,captureBeyondViewport:false});
   await writeFile(path.join(root,'backend/supabase/.temp/legacy-migration-preview.jpg'),Buffer.from(migrationShot.data,'base64'));
   await click('#pilot-navigation a[href="#finance"]');
-  assert.equal(await cdp.evaluate(`document.querySelector('#finance-legacy-warning').hidden`),false);
+  await check(`!document.querySelector('#session').hasAttribute('aria-busy')&&!document.querySelector('#finance-legacy-warning').hidden`);
   assert.equal(await cdp.evaluate(`document.documentElement.scrollWidth<=document.documentElement.clientWidth`),true);
   // Volver a la familia habitual antes de verificar su caché offline.
   await cdp.evaluate(`const families=document.querySelector('#families');families.value=${JSON.stringify(family)};families.dispatchEvent(new Event('change',{bubbles:true}))`);
